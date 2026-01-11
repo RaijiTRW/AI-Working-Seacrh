@@ -144,3 +144,46 @@ export async function getPreferences(userId: string, chatId?: string): Promise<R
 
   return response.json();
 }
+
+// === Vacancy Feed API ===
+
+export interface FeedFilters {
+  query?: string;
+  city?: string;
+  salary_from?: number;
+  experience?: string;
+  sort?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface FeedResult {
+  vacancies: Vacancy[];
+  total: number;
+  page: number;
+  pages: number;
+  has_next: boolean;
+}
+
+/**
+ * Получение ленты вакансий с фильтрацией и пагинацией
+ */
+export async function getVacancyFeed(filters: FeedFilters): Promise<FeedResult> {
+  const params = new URLSearchParams();
+
+  if (filters.query) params.append("query", filters.query);
+  if (filters.city) params.append("city", filters.city);
+  if (filters.salary_from) params.append("salary_from", filters.salary_from.toString());
+  if (filters.experience) params.append("experience", filters.experience);
+  if (filters.sort) params.append("sort", filters.sort);
+  if (filters.page) params.append("page", filters.page.toString());
+  if (filters.limit) params.append("limit", filters.limit.toString());
+
+  const response = await fetch(`${API_URL}/api/vacancies/feed?${params}`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch vacancies");
+  }
+
+  return response.json();
+}

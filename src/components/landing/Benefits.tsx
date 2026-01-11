@@ -7,7 +7,7 @@ const benefits = [
     icon: "clock",
   },
   {
-    title: "Без мусора",
+    title: "Без шума",
     description: "Убираем дубликаты, фейки и нерелевантные предложения.",
     icon: "filter",
   },

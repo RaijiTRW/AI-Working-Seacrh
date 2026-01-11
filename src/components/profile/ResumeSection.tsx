@@ -84,11 +84,14 @@ export default function ResumeSection({ userId }: ResumeSectionProps) {
     try {
       const { error } = await supabase
         .from("resumes")
-        .upsert({
-          user_id: userId,
-          ...resume,
-          updated_at: new Date().toISOString(),
-        });
+        .upsert(
+          {
+            user_id: userId,
+            ...resume,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
 
       if (error) throw error;
       setMessage({ type: "success", text: "Резюме сохранено" });

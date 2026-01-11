@@ -58,15 +58,26 @@ export default function ProfilePage() {
           <Link href="/" className="text-xl font-bold text-gray-900">
             Job AI Search
           </Link>
-          <div className="flex items-center gap-4">
+          <nav className="hidden sm:flex items-center gap-6">
+            <Link
+              href="/vacancies"
+              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              Вакансии
+            </Link>
             <Link
               href="/chat"
-              className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
             >
-              Чат
+              AI-поиск
             </Link>
-            <span className="text-sm font-medium text-orange-600">Профиль</span>
-          </div>
+          </nav>
+          <span className="flex items-center gap-2 px-5 py-2.5 bg-orange-100 text-orange-600 rounded-full text-sm font-medium">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Профиль
+          </span>
         </div>
       </header>
 

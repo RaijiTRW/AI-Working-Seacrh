@@ -14,6 +14,9 @@
 3. Чат с ИИ — уточняет город, сферу, опыт, что не предлагать (сделан)
 4. Парсинг вакансий + фильтрация (сделан - backend)
 5. Выдача релевантных вакансий (сделан)
+6. Лента вакансий /vacancies (сделан)
+7. Автоматический парсинг каждые 2 часа (сделан)
+8. Верификация вакансий каждый час (сделан)
 
 ## Стек
 
@@ -29,6 +32,7 @@
 - FastAPI
 - OpenRouter API (Claude Sonnet 4.5)
 - httpx + BeautifulSoup (парсинг)
+- APScheduler (автопарсинг)
 - Путь: `backend/JobAISeacrh_Backend/`
 
 ## Архитектура AI
@@ -59,28 +63,39 @@ src/                          # Frontend (Next.js)
 ├── app/
 │   ├── page.tsx              # Лендинг
 │   ├── auth/page.tsx         # Авторизация
-│   └── chat/page.tsx         # Чат с ИИ
+│   ├── chat/page.tsx         # Чат с ИИ
+│   ├── profile/page.tsx      # Профиль пользователя
+│   └── vacancies/page.tsx    # Лента вакансий
 ├── components/
 │   ├── landing/              # Компоненты лендинга
 │   ├── auth/                 # Компоненты авторизации
-│   └── chat/                 # Компоненты чата
-│       ├── ChatInput.tsx
-│       ├── ChatMessages.tsx
-│       ├── ChatListModal.tsx
-│       └── VacancyCards.tsx
+│   ├── chat/                 # Компоненты чата
+│   ├── profile/              # Компоненты профиля
+│   └── vacancies/            # Компоненты ленты вакансий
+│       ├── VacancyFilters.tsx
+│       ├── VacancyListCard.tsx
+│       └── VacancyFeed.tsx
 └── lib/
     ├── supabase.ts
     ├── useAuth.ts
     └── api.ts                # API клиент
 
 backend/JobAISeacrh_Backend/  # Backend (separate repo)
-├── main.py                   # FastAPI app
+├── main.py                   # FastAPI app + scheduler startup
 ├── config.py                 # Настройки (OpenRouter)
 ├── api/routes/
-│   └── chat.py               # Эндпоинты чата
+│   ├── chat.py               # Эндпоинты чата
+│   └── vacancies.py          # Эндпоинты ленты вакансий
 ├── agents/
 │   ├── orchestrator.py       # Главный агент
 │   └── validator.py          # Валидация вакансий
+├── services/
+│   ├── vacancy_feed.py       # Сервис ленты (читает из БД)
+│   └── vacancy_storage.py    # CRUD для вакансий в Supabase
+├── scheduler/                # Автопарсинг
+│   ├── scheduler.py          # APScheduler (2ч парсинг, 1ч верификация)
+│   ├── jobs.py               # ParsingJob, VerificationJob
+│   └── human_behavior.py     # Задержки, UA-ротация, антибан
 ├── tools/
 │   ├── search.py             # Единый поиск
 │   └── parsers/
@@ -89,10 +104,15 @@ backend/JobAISeacrh_Backend/  # Backend (separate repo)
 │       └── superjob.py
 └── models/
     ├── vacancy.py
-    └── chat.py
+    ├── chat.py
+    └── feed.py
 
-supabase/migrations/          # SQL миграции
-└── 001_create_chats.sql
+supabase/migrations/
+├── 001_create_chats.sql
+├── 002_add_vacancies_to_messages.sql
+├── 003_create_profiles.sql
+├── 004_create_resumes.sql
+└── 005_create_vacancies_storage.sql  # Хранение вакансий
 ```
 
 ## ENV переменные

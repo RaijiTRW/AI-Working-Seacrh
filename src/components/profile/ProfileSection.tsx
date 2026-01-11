@@ -66,11 +66,14 @@ export default function ProfileSection({ userId, email }: ProfileSectionProps) {
     try {
       const { error } = await supabase
         .from("profiles")
-        .upsert({
-          user_id: userId,
-          ...profile,
-          updated_at: new Date().toISOString(),
-        });
+        .upsert(
+          {
+            user_id: userId,
+            ...profile,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
 
       if (error) throw error;
       setMessage({ type: "success", text: "Профиль сохранён" });
