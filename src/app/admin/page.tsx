@@ -18,8 +18,9 @@ import {
   AdminUser,
   SiteSetting,
 } from "@/lib/api";
+import SchedulerTab from "@/components/admin/SchedulerTab";
 
-type Tab = "stats" | "users" | "settings";
+type Tab = "stats" | "users" | "settings" | "scheduler";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -251,11 +252,12 @@ export default function AdminPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 flex-wrap">
           {[
             { id: "stats" as Tab, label: "Статистика" },
             { id: "users" as Tab, label: "Пользователи" },
             { id: "settings" as Tab, label: "Настройки" },
+            { id: "scheduler" as Tab, label: "Парсинг" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -501,6 +503,11 @@ export default function AdminPage() {
               </div>
             ))}
           </div>
+        )}
+
+        {/* Scheduler Tab */}
+        {activeTab === "scheduler" && token && (
+          <SchedulerTab token={token} />
         )}
       </main>
 
