@@ -1,13 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+
+interface LinkedAccount {
+  email: string;
+  refreshToken: string;
+  addedAt: string;
+}
 
 interface AccountsSectionProps {
   currentEmail: string;
   onLogout: () => void;
 }
+
+const LINKED_ACCOUNTS_KEY = "jobsearch_linked_accounts";
 
 export default function AccountsSection({ currentEmail, onLogout }: AccountsSectionProps) {
   const router = useRouter();
@@ -15,7 +23,47 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [switchingTo, setSwitchingTo] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([]);
+
+  // Load linked accounts and save current session
+  useEffect(() => {
+    const initAccounts = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const stored = localStorage.getItem(LINKED_ACCOUNTS_KEY);
+      let accounts: LinkedAccount[] = [];
+
+      if (stored) {
+        try {
+          accounts = JSON.parse(stored);
+        } catch {
+          accounts = [];
+        }
+      }
+
+      // Update or add current account with fresh token
+      const existingIndex = accounts.findIndex(a => a.email === currentEmail);
+      const currentAccount: LinkedAccount = {
+        email: currentEmail,
+        refreshToken: session.refresh_token || "",
+        addedAt: new Date().toISOString(),
+      };
+
+      if (existingIndex >= 0) {
+        accounts[existingIndex] = currentAccount;
+      } else {
+        accounts.push(currentAccount);
+      }
+
+      localStorage.setItem(LINKED_ACCOUNTS_KEY, JSON.stringify(accounts));
+      setLinkedAccounts(accounts);
+    };
+
+    initAccounts();
+  }, [currentEmail]);
 
   const handleAddAccount = async () => {
     if (!email || !password) {
@@ -23,44 +71,103 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
       return;
     }
 
+    // Check if already linked
+    if (linkedAccounts.find(a => a.email.toLowerCase() === email.toLowerCase())) {
+      setMessage({ type: "error", text: "Этот аккаунт уже добавлен" });
+      return;
+    }
+
     setLoading(true);
     setMessage(null);
 
     try {
-      // Sign out current user
-      await supabase.auth.signOut();
-
-      // Sign in with new account
-      const { error } = await supabase.auth.signInWithPassword({
+      // Sign in with new account (this will sign out current)
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
 
+      // Add to linked accounts with token
+      if (data.session) {
+        const newAccount: LinkedAccount = {
+          email,
+          refreshToken: data.session.refresh_token || "",
+          addedAt: new Date().toISOString(),
+        };
+        const updated = [...linkedAccounts, newAccount];
+        localStorage.setItem(LINKED_ACCOUNTS_KEY, JSON.stringify(updated));
+      }
+
       // Redirect to chat
       router.push("/chat");
-    } catch (err) {
+    } catch {
       setMessage({ type: "error", text: "Ошибка входа. Проверьте данные." });
-      // Sign back in if failed (optional - user can manually login)
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSwitchAccount = async (account: LinkedAccount) => {
+    if (account.email === currentEmail) return;
+
+    setSwitchingTo(account.email);
+    setMessage(null);
+
+    try {
+      // Use refresh token to restore session
+      const { error } = await supabase.auth.refreshSession({
+        refresh_token: account.refreshToken,
+      });
+
+      if (error) {
+        // Token expired, need to re-login
+        console.error("Session refresh failed:", error);
+        setMessage({
+          type: "error",
+          text: "Сессия истекла. Удалите аккаунт и добавьте заново."
+        });
+        setSwitchingTo(null);
+        return;
+      }
+
+      // Redirect to chat
+      router.push("/chat");
+    } catch (err) {
+      console.error("Switch error:", err);
+      setMessage({ type: "error", text: "Ошибка переключения" });
+      setSwitchingTo(null);
+    }
+  };
+
+  const handleRemoveAccount = (accountEmail: string) => {
+    if (accountEmail === currentEmail) {
+      setMessage({ type: "error", text: "Нельзя удалить текущий аккаунт" });
+      return;
+    }
+
+    const updated = linkedAccounts.filter(a => a.email !== accountEmail);
+    localStorage.setItem(LINKED_ACCOUNTS_KEY, JSON.stringify(updated));
+    setLinkedAccounts(updated);
+    setMessage({ type: "success", text: "Аккаунт удалён из списка" });
+  };
+
   const handleGoogleLogin = async () => {
     try {
-      await supabase.auth.signOut();
       await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/chat`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
-    } catch (err) {
+    } catch {
       setMessage({ type: "error", text: "Ошибка входа через Google" });
     }
   };
+
+  // Other linked accounts (not current)
+  const otherAccounts = linkedAccounts.filter(a => a.email !== currentEmail);
 
   return (
     <div className="space-y-6">
@@ -71,12 +178,12 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
               <span className="text-orange-600 font-semibold">
-                {currentEmail[0].toUpperCase()}
+                {currentEmail[0]?.toUpperCase() || "?"}
               </span>
             </div>
             <div>
               <p className="font-medium text-gray-900">{currentEmail}</p>
-              <p className="text-sm text-gray-500">Активный</p>
+              <p className="text-sm text-green-600">Активный</p>
             </div>
           </div>
           <button
@@ -88,10 +195,10 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
         </div>
       </div>
 
-      {/* Add account */}
+      {/* Linked accounts + Add account */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-gray-900">Добавить аккаунт</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Связанные аккаунты</h2>
           {!showAddForm && (
             <button
               onClick={() => setShowAddForm(true)}
@@ -102,10 +209,57 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
           )}
         </div>
 
+        {/* Other linked accounts */}
+        {otherAccounts.length > 0 && (
+          <div className="space-y-3 mb-4">
+            {otherAccounts.map((account) => (
+              <div
+                key={account.email}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
+              >
+                <button
+                  onClick={() => handleSwitchAccount(account)}
+                  disabled={switchingTo === account.email}
+                  className="flex items-center gap-3 flex-1 text-left hover:opacity-80 transition-opacity disabled:opacity-50"
+                >
+                  <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                    <span className="text-gray-600 font-semibold">
+                      {account.email[0]?.toUpperCase() || "?"}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{account.email}</p>
+                    <p className="text-sm text-gray-500">
+                      {switchingTo === account.email ? (
+                        <span className="flex items-center gap-1">
+                          <span className="w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                          Переключение...
+                        </span>
+                      ) : (
+                        "Нажмите для переключения"
+                      )}
+                    </p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => handleRemoveAccount(account.email)}
+                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Удалить из списка"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Add account form */}
         {showAddForm ? (
-          <div className="space-y-4">
+          <div className="space-y-4 pt-4 border-t border-gray-100">
             <p className="text-sm text-gray-500">
-              Войдите в другой аккаунт. Текущая сессия будет завершена.
+              Войдите в другой аккаунт для мгновенного переключения
             </p>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Почта</label>
@@ -133,7 +287,7 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
                 disabled={loading}
                 className="px-6 py-2 bg-orange-500 text-white font-medium rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50"
               >
-                {loading ? "Вход..." : "Войти"}
+                {loading ? "Вход..." : "Добавить и войти"}
               </button>
               <button
                 onClick={() => {
@@ -182,11 +336,11 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
               Войти через Google
             </button>
           </div>
-        ) : (
+        ) : otherAccounts.length === 0 ? (
           <p className="text-gray-400 text-sm text-center py-4">
-            Нажмите "Добавить" чтобы войти в другой аккаунт
+            Нажмите "Добавить" чтобы связать другой аккаунт
           </p>
-        )}
+        ) : null}
       </div>
 
       {/* Message */}

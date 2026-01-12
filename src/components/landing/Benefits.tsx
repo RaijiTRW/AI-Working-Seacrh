@@ -48,22 +48,22 @@ const icons: Record<string, JSX.Element> = {
 
 export default function Benefits() {
   return (
-    <section className="py-24 px-6 bg-gradient-to-b from-gray-50 to-white">
+    <section className="py-16 md:py-24 px-4 sm:px-6 bg-gradient-to-b from-gray-50 to-white">
       <div className="max-w-5xl mx-auto">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-10 md:mb-16">
           Почему мы
         </h2>
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid sm:grid-cols-2 gap-4 md:gap-6">
           {benefits.map((benefit, index) => (
             <div
               key={index}
-              className="p-6 rounded-2xl bg-white border border-gray-100 hover:border-orange-200 hover:shadow-lg hover:shadow-orange-500/5 transition-all duration-300"
+              className="p-4 md:p-6 rounded-xl md:rounded-2xl bg-white border border-gray-100 hover:border-orange-200 hover:shadow-lg hover:shadow-orange-500/5 transition-all duration-300"
             >
-              <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center mb-4">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center mb-3 md:mb-4">
                 {icons[benefit.icon]}
               </div>
-              <h3 className="text-xl font-semibold mb-2">{benefit.title}</h3>
-              <p className="text-muted">{benefit.description}</p>
+              <h3 className="text-lg md:text-xl font-semibold mb-1.5 md:mb-2">{benefit.title}</h3>
+              <p className="text-sm md:text-base text-muted">{benefit.description}</p>
             </div>
           ))}
         </div>

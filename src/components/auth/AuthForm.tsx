@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
@@ -10,6 +10,9 @@ type Mode = "login" | "signup";
 
 export default function AuthForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isSwitch = searchParams.get("switch") === "true";
+
   const [step, setStep] = useState<Step>("email");
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
@@ -19,9 +22,23 @@ export default function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
+  const [switchEmail, setSwitchEmail] = useState<string | null>(null);
 
   const codeInputs = useRef<(HTMLInputElement | null)[]>([]);
   const passwordRef = useRef<HTMLInputElement>(null);
+
+  // Check for account switch
+  useEffect(() => {
+    if (isSwitch) {
+      const savedEmail = sessionStorage.getItem("switch_to_email");
+      if (savedEmail) {
+        setEmail(savedEmail);
+        setSwitchEmail(savedEmail);
+        setStep("password");
+        sessionStorage.removeItem("switch_to_email");
+      }
+    }
+  }, [isSwitch]);
 
   useEffect(() => {
     if (countdown > 0) {
@@ -158,7 +175,7 @@ export default function AuthForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/chat`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
       if (error) throw error;
@@ -172,6 +189,11 @@ export default function AuthForm() {
       setStep("password");
       setCode(["", "", "", "", "", ""]);
     } else if (step === "password") {
+      if (switchEmail) {
+        // If switching accounts, go back to profile
+        router.push("/profile");
+        return;
+      }
       setStep("email");
       setPassword("");
     }
@@ -188,7 +210,7 @@ export default function AuthForm() {
       <div className="max-w-sm mx-auto w-full">
         {/* Logo */}
         <Link href="/" className="inline-block mb-8">
-          <span className="text-xl font-bold text-gray-900">AI Job Search</span>
+          <span className="text-xl font-bold text-gray-900">Job Search</span>
         </Link>
 
         {step === "email" && (
@@ -267,14 +289,20 @@ export default function AuthForm() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Назад
+              {switchEmail ? "Отмена" : "Назад"}
             </button>
 
+            {switchEmail && (
+              <div className="mb-6 p-3 bg-blue-50 text-blue-700 rounded-xl text-sm">
+                Переключение на аккаунт
+              </div>
+            )}
+
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {mode === "login" ? "Введи пароль" : "Придумай пароль"}
+              {switchEmail ? "Введи пароль" : mode === "login" ? "Введи пароль" : "Придумай пароль"}
             </h2>
             <p className="text-gray-500 mb-8">
-              {mode === "login" ? (
+              {mode === "login" || switchEmail ? (
                 <>Для аккаунта <span className="font-medium text-gray-700">{email}</span></>
               ) : (
                 <>Минимум 6 символов</>

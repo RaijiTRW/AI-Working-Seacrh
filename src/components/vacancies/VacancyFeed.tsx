@@ -11,6 +11,7 @@ interface VacancyFeedProps {
   total?: number;
   hasNext?: boolean;
   onLoadMore?: () => void;
+  currentUserId?: string;
 }
 
 type SortOption = "relevance" | "date" | "salary_desc" | "salary_asc";
@@ -22,6 +23,7 @@ export default function VacancyFeed({
   total,
   hasNext,
   onLoadMore,
+  currentUserId,
 }: VacancyFeedProps) {
   const [sortBy, setSortBy] = useState<SortOption>("relevance");
 
@@ -79,12 +81,12 @@ export default function VacancyFeed({
           </svg>
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          {query ? "Ничего не найдено" : "Введите запрос для поиска"}
+          {query ? "Ничего не найдено" : "Вакансии загружаются"}
         </h3>
         <p className="text-gray-500 mb-6 max-w-sm mx-auto">
           {query
             ? "Попробуйте изменить запрос или фильтры"
-            : "Используйте поиск слева, чтобы найти вакансии"}
+            : "Система собирает вакансии со всех площадок. Попробуйте обновить страницу позже или воспользуйтесь AI-поиском"}
         </p>
         <Link
           href="/chat"
@@ -134,7 +136,7 @@ export default function VacancyFeed({
       {/* Vacancy list */}
       <div className="space-y-4">
         {sortedVacancies.map((vacancy) => (
-          <VacancyListCard key={vacancy.id} vacancy={vacancy} />
+          <VacancyListCard key={vacancy.id} vacancy={vacancy} currentUserId={currentUserId} />
         ))}
       </div>
 

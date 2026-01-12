@@ -299,11 +299,11 @@ export default function ChatPage() {
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
       <header className="shrink-0 bg-white border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold text-gray-900">
-            Job AI Search
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+          <Link href="/" className="text-lg sm:text-xl font-bold text-gray-900">
+            Job Search
           </Link>
-          <nav className="hidden sm:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-6">
             <Link
               href="/vacancies"
               className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
@@ -312,15 +312,26 @@ export default function ChatPage() {
             </Link>
             <span className="text-sm font-medium text-orange-600">AI-поиск</span>
           </nav>
-          <Link
-            href="/profile"
-            className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            Профиль
-          </Link>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              href="/messages"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <span className="hidden sm:inline">Сообщения</span>
+            </Link>
+            <Link
+              href="/profile"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span className="hidden sm:inline">Профиль</span>
+            </Link>
+          </div>
         </div>
       </header>
 

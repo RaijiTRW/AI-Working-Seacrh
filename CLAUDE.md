@@ -15,8 +15,18 @@
 4. Парсинг вакансий + фильтрация (сделан - backend)
 5. Выдача релевантных вакансий (сделан)
 6. Лента вакансий /vacancies (сделан)
-7. Автоматический парсинг каждые 2 часа (сделан)
-8. Верификация вакансий каждый час (сделан)
+7. Автоматический парсинг HH/SuperJob каждые 2 часа (сделан)
+8. Автоматический парсинг Avito каждые 4 часа (щадящий режим)
+9. Верификация вакансий каждый час (сделан)
+10. Создание вакансий работодателями /vacancies/create (сделан)
+11. Статистика вакансий: наши / из сети / всего (сделан)
+12. Фильтрация по источнику: Наши / В сети / Все (сделан)
+13. Страница деталей вакансии /vacancies/[id] (сделан)
+14. Управление своими вакансиями /vacancies/my (сделан)
+15. Редактирование вакансий /vacancies/edit/[id] (сделан)
+16. Чат между соискателями и работодателями /messages (сделан)
+17. Админ-панель /admin (сделан)
+18. Next.js API Routes для вакансий работодателей (сделан)
 
 ## Стек
 
@@ -65,7 +75,21 @@ src/                          # Frontend (Next.js)
 │   ├── auth/page.tsx         # Авторизация
 │   ├── chat/page.tsx         # Чат с ИИ
 │   ├── profile/page.tsx      # Профиль пользователя
-│   └── vacancies/page.tsx    # Лента вакансий
+│   ├── messages/page.tsx     # Чат с работодателями
+│   ├── admin/page.tsx        # Админ-панель
+│   ├── api/                  # Next.js API Routes
+│   │   └── employer/
+│   │       └── vacancies/
+│   │           ├── route.ts           # GET (list), POST (create)
+│   │           └── [id]/
+│   │               ├── route.ts       # GET, PUT, DELETE
+│   │               └── publish/route.ts  # POST (publish)
+│   └── vacancies/
+│       ├── page.tsx          # Лента вакансий
+│       ├── create/page.tsx   # Создание вакансии
+│       ├── edit/[id]/page.tsx # Редактирование вакансии
+│       ├── my/page.tsx       # Мои вакансии (управление)
+│       └── [id]/page.tsx     # Детали вакансии
 ├── components/
 │   ├── landing/              # Компоненты лендинга
 │   ├── auth/                 # Компоненты авторизации
@@ -74,7 +98,8 @@ src/                          # Frontend (Next.js)
 │   └── vacancies/            # Компоненты ленты вакансий
 │       ├── VacancyFilters.tsx
 │       ├── VacancyListCard.tsx
-│       └── VacancyFeed.tsx
+│       ├── VacancyFeed.tsx
+│       └── VacancyStats.tsx  # Статистика + фильтр по источнику
 └── lib/
     ├── supabase.ts
     ├── useAuth.ts
@@ -84,20 +109,27 @@ backend/JobAISeacrh_Backend/  # Backend (separate repo)
 ├── main.py                   # FastAPI app + scheduler startup
 ├── config.py                 # Настройки (OpenRouter)
 ├── api/routes/
-│   ├── chat.py               # Эндпоинты чата
-│   └── vacancies.py          # Эндпоинты ленты вакансий
+│   ├── chat.py               # Эндпоинты чата с ИИ
+│   ├── vacancies.py          # Эндпоинты ленты + /stats + source фильтр
+│   ├── employer_vacancies.py # CRUD вакансий работодателей
+│   ├── conversations.py      # Чат между пользователями
+│   └── admin.py              # Админ-панель
 ├── agents/
 │   ├── orchestrator.py       # Главный агент
 │   └── validator.py          # Валидация вакансий
 ├── services/
-│   ├── vacancy_feed.py       # Сервис ленты (читает из БД)
-│   └── vacancy_storage.py    # CRUD для вакансий в Supabase
+│   ├── vacancy_feed.py       # Сервис ленты (читает из БД + source фильтр)
+│   ├── vacancy_storage.py    # CRUD для вакансий в Supabase
+│   ├── employer_vacancy_service.py  # Вакансии работодателей
+│   ├── conversation_service.py      # Сервис чатов
+│   ├── admin_service.py      # Сервис админки
+│   └── auth_service.py       # JWT авторизация
 ├── scheduler/                # Автопарсинг
-│   ├── scheduler.py          # APScheduler (2ч парсинг, 1ч верификация)
-│   ├── jobs.py               # ParsingJob, VerificationJob
+│   ├── scheduler.py          # APScheduler (HH/SJ 2ч, Avito 4ч, верификация 1ч)
+│   ├── jobs.py               # ParsingJob, AvitoParsingJob, VerificationJob
 │   └── human_behavior.py     # Задержки, UA-ротация, антибан
 ├── tools/
-│   ├── search.py             # Единый поиск
+│   ├── search.py             # Единый поиск (сначала БД, потом live)
 │   └── parsers/
 │       ├── hh.py
 │       ├── avito.py
@@ -105,14 +137,18 @@ backend/JobAISeacrh_Backend/  # Backend (separate repo)
 └── models/
     ├── vacancy.py
     ├── chat.py
-    └── feed.py
+    ├── feed.py
+    └── employer_vacancy.py   # Модели вакансий работодателей
 
 supabase/migrations/
 ├── 001_create_chats.sql
 ├── 002_add_vacancies_to_messages.sql
 ├── 003_create_profiles.sql
 ├── 004_create_resumes.sql
-└── 005_create_vacancies_storage.sql  # Хранение вакансий
+├── 005_create_vacancies_storage.sql  # Хранение вакансий из сети
+├── 006_employer_vacancies.sql        # Вакансии работодателей
+├── 007_admin_system.sql              # Админ-система (роли, баны, настройки)
+└── 008_employer_chat.sql             # Чат соискатель-работодатель
 ```
 
 ## ENV переменные
@@ -121,6 +157,8 @@ supabase/migrations/
 ```
 NEXT_PUBLIC_SUPABASE_URL=xxx
 NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
+# ВАЖНО: service_role key для Next.js API routes (серверные операции)
+SUPABASE_SERVICE_ROLE_KEY=xxx
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
@@ -130,7 +168,10 @@ OPENROUTER_API_KEY=sk-or-xxx
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
 MODEL_NAME=anthropic/claude-sonnet-4-5-20250514
 SUPABASE_URL=xxx
-SUPABASE_KEY=xxx
+# ВАЖНО: Используй service_role key (НЕ anon key)!
+# service_role обходит RLS, нужен для админ-операций
+# Supabase Dashboard → Settings → API → service_role
+SUPABASE_KEY=service_role_key_here
 DEBUG=true
 CORS_ORIGINS=["http://localhost:3000"]
 ```

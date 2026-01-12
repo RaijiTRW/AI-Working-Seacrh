@@ -35,12 +35,26 @@ export default function ProfileSection({ userId, email }: ProfileSectionProps) {
   }, [userId]);
 
   const loadProfile = async () => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("user_id", userId)
         .single();
+
+      if (error) {
+        console.error("Profile load error:", error);
+        // PGRST116 = no rows returned, that's ok for new users
+        if (error.code !== "PGRST116") {
+          setMessage({ type: "error", text: `Ошибка загрузки: ${error.message}` });
+        }
+        return;
+      }
 
       if (data) {
         setProfile({
@@ -53,7 +67,7 @@ export default function ProfileSection({ userId, email }: ProfileSectionProps) {
         });
       }
     } catch (err) {
-      // Profile doesn't exist yet, that's ok
+      console.error("Profile load exception:", err);
     } finally {
       setLoading(false);
     }
@@ -64,21 +78,64 @@ export default function ProfileSection({ userId, email }: ProfileSectionProps) {
     setMessage(null);
 
     try {
+      // Проверяем актуальность сессии
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        console.error("Session error:", sessionError);
+        setMessage({ type: "error", text: "Сессия истекла. Пожалуйста, войдите заново." });
+        setSaving(false);
+        return;
+      }
+
+      // Проверяем что userId совпадает с текущим пользователем
+      if (session.user.id !== userId) {
+        console.error("User ID mismatch:", { sessionUserId: session.user.id, propUserId: userId });
+        setMessage({ type: "error", text: "Ошибка авторизации. Перезагрузите страницу." });
+        setSaving(false);
+        return;
+      }
+
+      // Преобразуем пустые строки в null для полей с типом date
+      const profileData = {
+        user_id: userId,
+        first_name: profile.first_name || null,
+        last_name: profile.last_name || null,
+        patronymic: profile.patronymic || null,
+        phone: profile.phone || null,
+        city: profile.city || null,
+        birth_date: profile.birth_date || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Используем upsert для атомарной операции
       const { error } = await supabase
         .from("profiles")
-        .upsert(
-          {
-            user_id: userId,
-            ...profile,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "user_id" }
-        );
+        .upsert(profileData, { onConflict: "user_id" });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Upsert error:", {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+        });
+        throw new Error(error.message || error.code || "Ошибка сохранения");
+      }
+
       setMessage({ type: "success", text: "Профиль сохранён" });
-    } catch (err) {
-      setMessage({ type: "error", text: "Ошибка сохранения" });
+    } catch (err: unknown) {
+      console.error("Save error:", err);
+      let errorMessage = "Неизвестная ошибка";
+
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === "object" && err !== null) {
+        const e = err as { message?: string; code?: string };
+        errorMessage = e.message || e.code || JSON.stringify(err);
+      }
+
+      setMessage({ type: "error", text: `Ошибка: ${errorMessage}` });
     } finally {
       setSaving(false);
     }

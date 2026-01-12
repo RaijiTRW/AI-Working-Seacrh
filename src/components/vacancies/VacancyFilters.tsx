@@ -1,31 +1,182 @@
 "use client";
 
-import { useState } from "react";
-
-interface VacancyFiltersProps {
-  onSearch?: (query: string) => void;
-  onFilterChange?: (filters: FilterState) => void;
-}
+import { useState, useMemo, useRef, useEffect } from "react";
 
 interface FilterState {
   query: string;
-  city: string;
+  cities: string[];
   salaryFrom: string;
   experience: string;
 }
 
-export default function VacancyFilters({ onSearch, onFilterChange }: VacancyFiltersProps) {
-  const [filters, setFilters] = useState<FilterState>({
+interface VacancyFiltersProps {
+  onSearch?: (query: string) => void;
+  onFilterChange?: (filters: FilterState) => void;
+  initialFilters?: FilterState;
+}
+
+const POPULAR_CITIES = [
+  // Топ-15 по населению
+  "Москва",
+  "Санкт-Петербург",
+  "Новосибирск",
+  "Екатеринбург",
+  "Казань",
+  "Нижний Новгород",
+  "Челябинск",
+  "Самара",
+  "Омск",
+  "Ростов-на-Дону",
+  "Уфа",
+  "Красноярск",
+  "Воронеж",
+  "Пермь",
+  "Волгоград",
+  // Крупные города
+  "Краснодар",
+  "Саратов",
+  "Тюмень",
+  "Тольятти",
+  "Ижевск",
+  "Барнаул",
+  "Ульяновск",
+  "Иркутск",
+  "Хабаровск",
+  "Ярославль",
+  "Владивосток",
+  "Махачкала",
+  "Томск",
+  "Оренбург",
+  "Кемерово",
+  "Новокузнецк",
+  "Рязань",
+  "Астрахань",
+  "Набережные Челны",
+  "Пенза",
+  "Липецк",
+  "Киров",
+  "Чебоксары",
+  "Калининград",
+  "Тула",
+  "Курск",
+  "Сочи",
+  "Ставрополь",
+  "Улан-Удэ",
+  "Тверь",
+  "Магнитогорск",
+  "Белгород",
+  "Сургут",
+  "Иваново",
+  "Брянск",
+  // Южные города
+  "Новороссийск",
+  "Таганрог",
+  "Анапа",
+  "Геленджик",
+  "Армавир",
+  "Волгодонск",
+  "Шахты",
+  "Батайск",
+  "Невинномысск",
+  "Пятигорск",
+  "Кисловодск",
+  "Ессентуки",
+  // Центр
+  "Калуга",
+  "Орёл",
+  "Смоленск",
+  "Владимир",
+  "Кострома",
+  "Тамбов",
+  "Вологда",
+  "Мурманск",
+  "Петрозаводск",
+  "Архангельск",
+  "Великий Новгород",
+  "Псков",
+  // Урал и Сибирь
+  "Нижний Тагил",
+  "Златоуст",
+  "Миасс",
+  "Копейск",
+  "Курган",
+  "Нижневартовск",
+  "Ноябрьск",
+  "Новый Уренгой",
+  "Норильск",
+  "Братск",
+  "Ангарск",
+  "Чита",
+  "Якутск",
+  "Благовещенск",
+  "Комсомольск-на-Амуре",
+  "Южно-Сахалинск",
+  "Петропавловск-Камчатский",
+  // Поволжье
+  "Саранск",
+  "Йошкар-Ола",
+  "Сызрань",
+  "Балаково",
+  "Энгельс",
+  "Дзержинск",
+  "Арзамас",
+  "Димитровград",
+  "Альметьевск",
+  "Нижнекамск",
+  "Елабуга",
+];
+
+export default function VacancyFilters({ onSearch, onFilterChange, initialFilters }: VacancyFiltersProps) {
+  const [filters, setFilters] = useState<FilterState>(initialFilters || {
     query: "",
-    city: "",
+    cities: [],
     salaryFrom: "",
     experience: "",
   });
+  const [citySearch, setCitySearch] = useState("");
+  const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleChange = (field: keyof FilterState, value: string) => {
+  // Sync filters when initialFilters changes
+  useEffect(() => {
+    if (initialFilters) {
+      setFilters(initialFilters);
+    }
+  }, [initialFilters]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsCityDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Filter cities by search
+  const filteredCities = useMemo(() => {
+    if (!citySearch.trim()) return POPULAR_CITIES;
+    const search = citySearch.toLowerCase();
+    return POPULAR_CITIES.filter(city => city.toLowerCase().includes(search));
+  }, [citySearch]);
+
+  const handleChange = (field: keyof FilterState, value: string | string[]) => {
     const newFilters = { ...filters, [field]: value };
     setFilters(newFilters);
     onFilterChange?.(newFilters);
+  };
+
+  const toggleCity = (city: string) => {
+    const newCities = filters.cities.includes(city)
+      ? filters.cities.filter(c => c !== city)
+      : [...filters.cities, city];
+    handleChange("cities", newCities);
+  };
+
+  const removeCity = (city: string) => {
+    handleChange("cities", filters.cities.filter(c => c !== city));
   };
 
   const handleSearch = () => {
@@ -80,15 +231,80 @@ export default function VacancyFilters({ onSearch, onFilterChange }: VacancyFilt
         <h3 className="font-semibold text-gray-900 mb-4">Фильтры</h3>
 
         {/* City */}
-        <div className="mb-4">
+        <div className="mb-4" ref={dropdownRef}>
           <label className="block text-sm font-medium text-gray-700 mb-2">Город</label>
-          <input
-            type="text"
-            value={filters.city}
-            onChange={(e) => handleChange("city", e.target.value)}
-            placeholder="Москва"
-            className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-          />
+
+          {/* Selected cities tags */}
+          {filters.cities.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {filters.cities.map(city => (
+                <span
+                  key={city}
+                  className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 text-sm rounded-lg"
+                >
+                  {city}
+                  <button
+                    onClick={() => removeCity(city)}
+                    className="hover:text-orange-900"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* City search input */}
+          <div className="relative">
+            <input
+              type="text"
+              value={citySearch}
+              onChange={(e) => setCitySearch(e.target.value)}
+              onFocus={() => setIsCityDropdownOpen(true)}
+              placeholder="Найти город..."
+              className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            />
+            <button
+              type="button"
+              onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded"
+            >
+              <svg
+                className={`w-5 h-5 text-gray-400 transition-transform ${isCityDropdownOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+
+          {/* City dropdown with checkboxes */}
+          {isCityDropdownOpen && (
+            <div className="mt-2 max-h-60 overflow-y-auto border border-gray-200 rounded-xl bg-white shadow-lg">
+              {filteredCities.length === 0 ? (
+                <div className="px-4 py-3 text-sm text-gray-500">Город не найден</div>
+              ) : (
+                filteredCities.map(city => (
+                  <label
+                    key={city}
+                    className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={filters.cities.includes(city)}
+                      onChange={() => toggleCity(city)}
+                      className="w-4 h-4 text-orange-500 focus:ring-orange-500 rounded"
+                    />
+                    <span className="text-sm text-gray-700">{city}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         {/* Salary */}
@@ -127,9 +343,12 @@ export default function VacancyFilters({ onSearch, onFilterChange }: VacancyFilt
         </div>
 
         {/* Reset */}
-        {(filters.city || filters.salaryFrom || filters.experience) && (
+        {(filters.cities.length > 0 || filters.salaryFrom || filters.experience) && (
           <button
-            onClick={() => setFilters({ query: filters.query, city: "", salaryFrom: "", experience: "" })}
+            onClick={() => {
+              setFilters({ query: filters.query, cities: [], salaryFrom: "", experience: "" });
+              setCitySearch("");
+            }}
             className="mt-4 text-sm text-orange-600 hover:text-orange-700"
           >
             Сбросить фильтры

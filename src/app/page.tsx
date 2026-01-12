@@ -2,6 +2,7 @@ import {
   Header,
   Hero,
   HowItWorks,
+  VacancyFeedSection,
   Benefits,
   FAQ,
   Footer,
@@ -14,6 +15,7 @@ export default function Home() {
       <main>
         <Hero />
         <HowItWorks />
+        <VacancyFeedSection />
         <Benefits />
         <FAQ />
       </main>

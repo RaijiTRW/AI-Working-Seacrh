@@ -16,6 +16,7 @@ export interface Vacancy {
   description: string;
   url: string;
   source: string;
+  user_id?: string; // ID владельца (для platform вакансий)
 }
 
 export interface ChatResponse {
@@ -150,8 +151,10 @@ export async function getPreferences(userId: string, chatId?: string): Promise<R
 export interface FeedFilters {
   query?: string;
   city?: string;
+  cities?: string[];
   salary_from?: number;
   experience?: string;
+  source?: string; // platform, network
   sort?: string;
   page?: number;
   limit?: number;
@@ -172,9 +175,15 @@ export async function getVacancyFeed(filters: FeedFilters): Promise<FeedResult> 
   const params = new URLSearchParams();
 
   if (filters.query) params.append("query", filters.query);
-  if (filters.city) params.append("city", filters.city);
+  // Support both single city and multiple cities
+  if (filters.cities && filters.cities.length > 0) {
+    params.append("city", filters.cities.join(","));
+  } else if (filters.city) {
+    params.append("city", filters.city);
+  }
   if (filters.salary_from) params.append("salary_from", filters.salary_from.toString());
   if (filters.experience) params.append("experience", filters.experience);
+  if (filters.source) params.append("source", filters.source);
   if (filters.sort) params.append("sort", filters.sort);
   if (filters.page) params.append("page", filters.page.toString());
   if (filters.limit) params.append("limit", filters.limit.toString());
@@ -186,4 +195,660 @@ export async function getVacancyFeed(filters: FeedFilters): Promise<FeedResult> 
   }
 
   return response.json();
+}
+
+// === Vacancy Stats API ===
+
+export interface VacancyStats {
+  platform: number;
+  network: number;
+  total: number;
+}
+
+/**
+ * Получить статистику вакансий
+ */
+export async function getVacancyStats(): Promise<VacancyStats> {
+  const response = await fetch(`${API_URL}/api/vacancies/stats`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch vacancy stats");
+  }
+
+  return response.json();
+}
+
+// === Employer Vacancies API ===
+
+export interface EmployerVacancy {
+  id: string;
+  user_id: string;
+  title: string;
+  company: string;
+  city: string;
+  salary_from?: number;
+  salary_to?: number;
+  salary_currency: string;
+  experience?: string;
+  employment_type?: string;
+  schedule?: string;
+  description: string;
+  requirements?: string;
+  conditions?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  status: string;
+  is_active: boolean;
+  views_count: number;
+  responses_count: number;
+  created_at?: string;
+  updated_at?: string;
+  published_at?: string;
+}
+
+export interface EmployerVacancyCreate {
+  title: string;
+  company: string;
+  city: string;
+  salary_from?: number;
+  salary_to?: number;
+  salary_currency?: string;
+  experience?: string;
+  employment_type?: string;
+  schedule?: string;
+  description: string;
+  requirements?: string;
+  conditions?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+}
+
+export interface EmployerVacancyList {
+  vacancies: EmployerVacancy[];
+  total: number;
+  page: number;
+  pages: number;
+  has_next: boolean;
+}
+
+/**
+ * Создать вакансию
+ */
+export async function createVacancy(
+  vacancy: EmployerVacancyCreate,
+  token: string
+): Promise<EmployerVacancy> {
+  const response = await fetch(`/api/employer/vacancies`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(vacancy),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to create vacancy");
+  }
+
+  return response.json();
+}
+
+/**
+ * Получить мои вакансии
+ */
+export async function getMyVacancies(
+  token: string,
+  page = 1,
+  limit = 20
+): Promise<EmployerVacancyList> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+
+  const response = await fetch(`/api/employer/vacancies?${params}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch vacancies");
+  }
+
+  return response.json();
+}
+
+/**
+ * Опубликовать вакансию
+ */
+export async function publishVacancy(
+  vacancyId: string,
+  token: string
+): Promise<EmployerVacancy> {
+  const response = await fetch(
+    `/api/employer/vacancies/${vacancyId}/publish`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to publish vacancy");
+  }
+
+  return response.json();
+}
+
+/**
+ * Удалить вакансию
+ */
+export async function deleteVacancy(
+  vacancyId: string,
+  token: string
+): Promise<void> {
+  const response = await fetch(
+    `/api/employer/vacancies/${vacancyId}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to delete vacancy");
+  }
+}
+
+/**
+ * Получить вакансию по ID
+ */
+export async function getVacancyById(
+  vacancyId: string
+): Promise<EmployerVacancy> {
+  const response = await fetch(
+    `/api/employer/vacancies/${vacancyId}`
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch vacancy");
+  }
+
+  return response.json();
+}
+
+/**
+ * Обновить вакансию
+ */
+export async function updateVacancy(
+  vacancyId: string,
+  updates: Partial<EmployerVacancyCreate>,
+  token: string
+): Promise<EmployerVacancy> {
+  const response = await fetch(
+    `/api/employer/vacancies/${vacancyId}`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(updates),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to update vacancy");
+  }
+
+  return response.json();
+}
+
+/**
+ * Увеличить счётчик просмотров вакансии
+ */
+export async function incrementVacancyViews(vacancyId: string): Promise<void> {
+  try {
+    await fetch(`/api/employer/vacancies/${vacancyId}/view`, {
+      method: "POST",
+    });
+  } catch {
+    // Ignore errors for view tracking
+  }
+}
+
+// === Admin API ===
+
+export interface AdminStats {
+  total_users: number;
+  online_users: number;
+  banned_users: number;
+  admins_count: number;
+  platform_vacancies: number;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  full_name?: string;
+  role: string;
+  is_banned: boolean;
+  ban_reason?: string;
+  can_create_vacancies: boolean;
+  subscription_type?: string;
+  subscription_expires_at?: string;
+  last_seen_at?: string;
+  created_at?: string;
+}
+
+export interface AdminUserList {
+  users: AdminUser[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+export interface SiteSetting {
+  id: string;
+  value: { enabled: boolean };
+  updated_at?: string;
+}
+
+/**
+ * Получить статистику админ-панели
+ */
+export async function getAdminStats(token: string): Promise<AdminStats> {
+  const response = await fetch(`${API_URL}/api/admin/stats`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch admin stats");
+  }
+
+  return response.json();
+}
+
+/**
+ * Получить список пользователей
+ */
+export async function getAdminUsers(
+  token: string,
+  page = 1,
+  limit = 20,
+  search?: string
+): Promise<AdminUserList> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+  if (search) params.append("search", search);
+
+  const response = await fetch(`${API_URL}/api/admin/users?${params}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch users");
+  }
+
+  return response.json();
+}
+
+/**
+ * Забанить пользователя
+ */
+export async function banUser(
+  token: string,
+  userId: string,
+  reason?: string
+): Promise<void> {
+  const response = await fetch(`${API_URL}/api/admin/users/${userId}/ban`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ reason }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to ban user");
+  }
+}
+
+/**
+ * Разбанить пользователя
+ */
+export async function unbanUser(token: string, userId: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/admin/users/${userId}/unban`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to unban user");
+  }
+}
+
+/**
+ * Переключить возможность создания вакансий
+ */
+export async function toggleUserVacancies(
+  token: string,
+  userId: string,
+  canCreate: boolean
+): Promise<void> {
+  const response = await fetch(
+    `${API_URL}/api/admin/users/${userId}/toggle-vacancies`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ can_create: canCreate }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to toggle vacancies");
+  }
+}
+
+/**
+ * Установить подписку пользователю
+ */
+export async function setUserSubscription(
+  token: string,
+  userId: string,
+  subscriptionType: string,
+  expiresAt?: string
+): Promise<void> {
+  const response = await fetch(
+    `${API_URL}/api/admin/users/${userId}/subscription`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        subscription_type: subscriptionType,
+        expires_at: expiresAt,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to set subscription");
+  }
+}
+
+/**
+ * Установить роль пользователю
+ */
+export async function setUserRole(
+  token: string,
+  userId: string,
+  role: string
+): Promise<void> {
+  const response = await fetch(`${API_URL}/api/admin/users/${userId}/role`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ role }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to set role");
+  }
+}
+
+/**
+ * Получить настройки сайта
+ */
+export async function getSiteSettings(token: string): Promise<SiteSetting[]> {
+  const response = await fetch(`${API_URL}/api/admin/settings`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch settings");
+  }
+
+  return response.json();
+}
+
+/**
+ * Обновить настройку сайта
+ */
+export async function updateSiteSetting(
+  token: string,
+  settingId: string,
+  enabled: boolean
+): Promise<void> {
+  const response = await fetch(`${API_URL}/api/admin/settings/${settingId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ value: { enabled } }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update setting");
+  }
+}
+
+/**
+ * Проверить, является ли пользователь админом
+ */
+export async function checkIsAdmin(token: string): Promise<boolean> {
+  try {
+    console.log("checkIsAdmin: calling", `${API_URL}/api/admin/stats`);
+    const response = await fetch(`${API_URL}/api/admin/stats`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    console.log("checkIsAdmin: response status", response.status);
+    if (!response.ok) {
+      const text = await response.text();
+      console.log("checkIsAdmin: error response", text);
+    }
+    return response.ok;
+  } catch (err) {
+    console.error("checkIsAdmin: exception", err);
+    return false;
+  }
+}
+
+// === Conversations API ===
+
+export interface ConversationMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+  is_read: boolean;
+  created_at?: string;
+}
+
+export interface Conversation {
+  id: string;
+  vacancy_id: string;
+  applicant_id: string;
+  employer_id: string;
+  status: string;
+  last_message_at?: string;
+  applicant_unread_count: number;
+  employer_unread_count: number;
+  created_at?: string;
+  vacancy_title?: string;
+  vacancy_company?: string;
+  applicant_name?: string;
+  applicant_email?: string;
+}
+
+export interface ConversationList {
+  conversations: Conversation[];
+  total: number;
+}
+
+export interface MessageList {
+  messages: ConversationMessage[];
+  total: number;
+}
+
+/**
+ * Создать или получить чат для вакансии
+ */
+export async function createConversation(
+  vacancyId: string,
+  token: string
+): Promise<Conversation> {
+  const response = await fetch(`/api/conversations`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ vacancy_id: vacancyId }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to create conversation");
+  }
+
+  return response.json();
+}
+
+/**
+ * Получить свои чаты
+ */
+export async function getConversations(
+  token: string,
+  page = 1
+): Promise<ConversationList> {
+  const params = new URLSearchParams({ page: page.toString() });
+
+  const response = await fetch(`/api/conversations?${params}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch conversations");
+  }
+
+  return response.json();
+}
+
+/**
+ * Получить количество непрочитанных сообщений
+ */
+export async function getUnreadCount(token: string): Promise<number> {
+  const response = await fetch(`/api/conversations/unread`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    return 0;
+  }
+
+  const data = await response.json();
+  return data.count;
+}
+
+/**
+ * Получить сообщения из чата
+ */
+export async function getMessages(
+  conversationId: string,
+  token: string,
+  page = 1
+): Promise<MessageList> {
+  const params = new URLSearchParams({ page: page.toString() });
+
+  const response = await fetch(
+    `/api/conversations/${conversationId}/messages?${params}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch messages");
+  }
+
+  return response.json();
+}
+
+/**
+ * Отправить сообщение
+ */
+export async function sendConversationMessage(
+  conversationId: string,
+  content: string,
+  token: string
+): Promise<ConversationMessage> {
+  const response = await fetch(
+    `/api/conversations/${conversationId}/messages`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ content }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to send message");
+  }
+
+  return response.json();
+}
+
+/**
+ * Отметить сообщения как прочитанные
+ */
+export async function markAsRead(
+  conversationId: string,
+  token: string
+): Promise<void> {
+  await fetch(`/api/conversations/${conversationId}/read`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
 }
