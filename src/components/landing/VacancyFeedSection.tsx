@@ -224,7 +224,7 @@ export default function VacancyFeedSection() {
           </div>
 
           {/* Right - Feed mockup with tilt on desktop */}
-          <div className="flex-shrink-0 order-1 lg:order-2 w-full flex justify-center lg:block [perspective:1000px]">
+          <div className="order-1 lg:order-2 w-full lg:w-auto flex justify-center lg:justify-end perspective-[1000px]">
             <div className="lg:[transform:rotateY(-8deg)_rotateX(2deg)] [transform-style:preserve-3d]">
               <FeedMockup />
             </div>
