@@ -47,9 +47,8 @@ function MockVacancyCard({ vacancy, index }: { vacancy: typeof mockVacancies[0];
 
   return (
     <div
-      className={`bg-white rounded-xl p-3 border border-gray-100 shadow-sm transition-all duration-500 ${
-        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-      }`}
+      className={`bg-white rounded-xl p-3 border border-gray-100 shadow-sm transition-all duration-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+        }`}
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
@@ -57,11 +56,10 @@ function MockVacancyCard({ vacancy, index }: { vacancy: typeof mockVacancies[0];
           <p className="text-xs text-gray-500">{vacancy.company}</p>
         </div>
         <span
-          className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-            vacancy.source === "platform"
-              ? "bg-orange-100 text-orange-600"
-              : "bg-gray-100 text-gray-600"
-          }`}
+          className={`text-[10px] px-1.5 py-0.5 rounded-full ${vacancy.source === "platform"
+            ? "bg-orange-100 text-orange-600"
+            : "bg-gray-100 text-gray-600"
+            }`}
         >
           {vacancy.source === "platform" ? "Наши" : vacancy.source === "hh" ? "hh.ru" : "SJ"}
         </span>
@@ -138,11 +136,10 @@ function FeedMockup() {
           ].map((filter) => (
             <button
               key={filter.id}
-              className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                activeFilter === filter.id
-                  ? "bg-orange-500 text-white"
-                  : "bg-gray-100 text-gray-600"
-              }`}
+              className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${activeFilter === filter.id
+                ? "bg-orange-500 text-white"
+                : "bg-gray-100 text-gray-600"
+                }`}
             >
               {filter.label}
             </button>
@@ -194,8 +191,8 @@ export default function VacancyFeedSection() {
               </span>
             </h2>
             <p className="text-base md:text-lg text-gray-600 mb-6 md:mb-8 max-w-xl mx-auto lg:mx-0">
-              Больше не нужно сидеть на hh.ru и Avito. Мы собираем вакансии со всех площадок,
-              фильтруем мусор и дубликаты, показываем только актуальные предложения.
+              Больше не нужно сидеть на hh.ru и SuperJob. Мы собираем вакансии со всех площадок,
+              фильтруем и показываем только актуальные предложения.
             </p>
 
             <div className="space-y-3 md:space-y-4 mb-6 md:mb-8 text-left max-w-md mx-auto lg:mx-0">

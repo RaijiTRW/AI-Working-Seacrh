@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/useAuth";
+import { useIsAdmin } from "@/lib/useIsAdmin";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 export default function Header() {
   const { user, loading } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -78,6 +80,30 @@ export default function Header() {
           >
             AI-поиск
           </a>
+          {isAdmin ? (
+            <a
+              href="/employers"
+              className={`text-sm font-medium transition-colors ${
+                pathname === "/employers"
+                  ? "text-blue-600"
+                  : "text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              Работодателям
+            </a>
+          ) : (
+            <div className="relative inline-block">
+              <span
+                className="text-sm font-medium text-gray-400 cursor-not-allowed"
+                title="Функционал работодателей скоро будет доступен"
+              >
+                Работодателям
+              </span>
+              <span className="absolute -top-2 -right-8 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded">
+                Скоро
+              </span>
+            </div>
+          )}
         </nav>
 
         {/* Right side buttons */}
@@ -169,6 +195,27 @@ export default function Header() {
             >
               AI-поиск
             </a>
+            {isAdmin ? (
+              <a
+                href="/employers"
+                className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  pathname === "/employers"
+                    ? "bg-blue-50 text-blue-600"
+                    : "text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                Работодателям
+              </a>
+            ) : (
+              <div className="relative px-4 py-3 rounded-lg">
+                <span className="text-sm font-medium text-gray-400 cursor-not-allowed">
+                  Работодателям
+                </span>
+                <span className="ml-2 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded">
+                  Скоро
+                </span>
+              </div>
+            )}
             {user && (
               <>
                 <a

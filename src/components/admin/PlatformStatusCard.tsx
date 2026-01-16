@@ -56,15 +56,24 @@ function formatDuration(seconds: number | null | undefined): string {
 }
 
 const JOB_ICONS: Record<string, string> = {
-  parsing_job: "HH",
-  avito_job: "AV",
-  verification_job: "VF",
+  mass_parsing_job: "📥",  // Новый массовый парсинг для ленты
+  parsing_job: "HH",       // Старый (deprecated)
+  avito_job: "AV",         // Отключен
+  verification_job: "✓",
 };
 
 const JOB_COLORS: Record<string, string> = {
+  mass_parsing_job: "purple",  // Фиолетовый для ленты
   parsing_job: "orange",
   avito_job: "blue",
   verification_job: "green",
+};
+
+const JOB_DESCRIPTIONS: Record<string, string> = {
+  mass_parsing_job: "Сбор вакансий для ленты",
+  parsing_job: "Старый парсинг (deprecated)",
+  avito_job: "Отключен",
+  verification_job: "Проверка актуальности",
 };
 
 export default function PlatformStatusCard({
@@ -107,7 +116,9 @@ export default function PlatformStatusCard({
         <div className="flex items-center gap-3">
           <div
             className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm ${
-              color === "orange"
+              color === "purple"
+                ? "bg-purple-100 text-purple-600"
+                : color === "orange"
                 ? "bg-orange-100 text-orange-600"
                 : color === "blue"
                 ? "bg-blue-100 text-blue-600"
@@ -118,7 +129,8 @@ export default function PlatformStatusCard({
           </div>
           <div>
             <h3 className="font-semibold text-gray-900">{job.name}</h3>
-            <div className="flex items-center gap-1.5">
+            <p className="text-xs text-gray-500">{JOB_DESCRIPTIONS[job.job_id] || ""}</p>
+            <div className="flex items-center gap-1.5 mt-0.5">
               <div className={`w-2 h-2 rounded-full ${status.dot}`} />
               <span className={`text-xs ${status.text}`}>{status.label}</span>
             </div>

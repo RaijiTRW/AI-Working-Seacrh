@@ -1,25 +1,11 @@
-import {
-  Header,
-  Hero,
-  HowItWorks,
-  VacancyFeedSection,
-  Benefits,
-  FAQ,
-  Footer,
-} from "@/components/landing";
+import { Header } from "@/components/landing";
+import LandingContent from "@/components/landing/LandingContent";
 
 export default function Home() {
   return (
     <>
       <Header />
-      <main>
-        <Hero />
-        <HowItWorks />
-        <VacancyFeedSection />
-        <Benefits />
-        <FAQ />
-      </main>
-      <Footer />
+      <LandingContent />
     </>
   );
 }

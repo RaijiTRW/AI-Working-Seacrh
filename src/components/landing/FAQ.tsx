@@ -6,7 +6,7 @@ const faqs = [
   {
     question: "Как работает сервис?",
     answer:
-      "Ты рассказываешь, какую работу ищешь, через простой чат. ИИ уточняет детали, затем ищет вакансии по всем популярным сайтам, фильтрует мусор и выдаёт тебе только подходящие варианты.",
+      "Ты рассказываешь, какую работу ищешь, через простой чат. ИИ уточняет детали, затем ищет вакансии по всем популярным сайтам, фильтрует и выдаёт тебе только подходящие варианты.",
   },
   {
     question: "Откуда берутся вакансии?",
@@ -16,7 +16,7 @@ const faqs = [
   {
     question: "Сколько это стоит?",
     answer:
-      "Первый подбор бесплатный. Дальше — подписка от 299 рублей в месяц или разовая оплата за подбор.",
+      "Первый подбор бесплатный. Дальше — подписка от 799 рублей в месяц",
   },
   {
     question: "Как быстро получу результат?",
@@ -46,11 +46,10 @@ export default function FAQ() {
               >
                 <span className="font-medium text-sm md:text-base">{faq.question}</span>
                 <span
-                  className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
-                    openIndex === index
-                      ? "bg-orange-500 text-white rotate-45"
-                      : "bg-gray-100 text-gray-500"
-                  }`}
+                  className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${openIndex === index
+                    ? "bg-orange-500 text-white rotate-45"
+                    : "bg-gray-100 text-gray-500"
+                    }`}
                 >
                   <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -58,9 +57,8 @@ export default function FAQ() {
                 </span>
               </button>
               <div
-                className={`overflow-hidden transition-all duration-300 ${
-                  openIndex === index ? "max-h-48" : "max-h-0"
-                }`}
+                className={`overflow-hidden transition-all duration-300 ${openIndex === index ? "max-h-48" : "max-h-0"
+                  }`}
               >
                 <div className="px-4 md:px-6 pb-4 md:pb-5 text-sm md:text-base text-muted">
                   {faq.answer}

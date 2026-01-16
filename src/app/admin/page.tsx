@@ -19,8 +19,9 @@ import {
   SiteSetting,
 } from "@/lib/api";
 import SchedulerTab from "@/components/admin/SchedulerTab";
+import SupportChatTab from "@/components/admin/SupportChatTab";
 
-type Tab = "stats" | "users" | "settings" | "scheduler";
+type Tab = "stats" | "users" | "settings" | "scheduler" | "support";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -256,6 +257,7 @@ export default function AdminPage() {
           {[
             { id: "stats" as Tab, label: "Статистика" },
             { id: "users" as Tab, label: "Пользователи" },
+            { id: "support" as Tab, label: "Чат поддержки" },
             { id: "settings" as Tab, label: "Настройки" },
             { id: "scheduler" as Tab, label: "Парсинг" },
           ].map((tab) => (
@@ -509,6 +511,11 @@ export default function AdminPage() {
         {activeTab === "scheduler" && token && (
           <SchedulerTab token={token} />
         )}
+
+        {/* Support Chat Tab */}
+        {activeTab === "support" && token && (
+          <SupportChatTab token={token} />
+        )}
       </main>
 
       {/* Ban Modal */}
@@ -561,9 +568,8 @@ export default function AdminPage() {
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
             >
               <option value="">Без подписки</option>
-              <option value="basic">Basic</option>
-              <option value="pro">Pro</option>
-              <option value="enterprise">Enterprise</option>
+              <option value="trial">Trial (3 запроса/день)</option>
+              <option value="pro">Pro (10 запросов/день)</option>
             </select>
             <div className="flex justify-end gap-2 mt-4">
               <button

@@ -2,7 +2,11 @@
  * API клиент для работы с бэкендом
  */
 
+// Python backend - только AI поиск вакансий и scheduler
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+// Next.js API routes - админка, подписки, поддержка
+const NEXT_API = "";
 
 export interface Vacancy {
   id: string;
@@ -58,6 +62,11 @@ export async function sendMessage(
   return response.json();
 }
 
+export interface SearchMode {
+  searchInFeed: boolean;
+  searchOnline: boolean;
+}
+
 /**
  * Отправка сообщения со стримингом
  */
@@ -65,6 +74,7 @@ export async function sendMessageStream(
   message: string,
   userId: string,
   chatId: string | null,
+  searchMode: SearchMode,
   onText: (text: string) => void,
   onVacancies: (vacancies: Vacancy[]) => void,
   onDone: (chatId: string) => void,
@@ -79,6 +89,8 @@ export async function sendMessageStream(
       message,
       user_id: userId,
       chat_id: chatId,
+      search_in_feed: searchMode.searchInFeed,
+      search_online: searchMode.searchOnline,
     }),
   });
 
@@ -467,7 +479,7 @@ export interface SiteSetting {
  * Получить статистику админ-панели
  */
 export async function getAdminStats(token: string): Promise<AdminStats> {
-  const response = await fetch(`${API_URL}/api/admin/stats`, {
+  const response = await fetch(`${NEXT_API}/api/admin/stats`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -495,7 +507,7 @@ export async function getAdminUsers(
   });
   if (search) params.append("search", search);
 
-  const response = await fetch(`${API_URL}/api/admin/users?${params}`, {
+  const response = await fetch(`${NEXT_API}/api/admin/users?${params}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -516,7 +528,7 @@ export async function banUser(
   userId: string,
   reason?: string
 ): Promise<void> {
-  const response = await fetch(`${API_URL}/api/admin/users/${userId}/ban`, {
+  const response = await fetch(`${NEXT_API}/api/admin/users/${userId}/ban`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -534,7 +546,7 @@ export async function banUser(
  * Разбанить пользователя
  */
 export async function unbanUser(token: string, userId: string): Promise<void> {
-  const response = await fetch(`${API_URL}/api/admin/users/${userId}/unban`, {
+  const response = await fetch(`${NEXT_API}/api/admin/users/${userId}/unban`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -555,7 +567,7 @@ export async function toggleUserVacancies(
   canCreate: boolean
 ): Promise<void> {
   const response = await fetch(
-    `${API_URL}/api/admin/users/${userId}/toggle-vacancies`,
+    `${NEXT_API}/api/admin/users/${userId}/toggle-vacancies`,
     {
       method: "POST",
       headers: {
@@ -581,7 +593,7 @@ export async function setUserSubscription(
   expiresAt?: string
 ): Promise<void> {
   const response = await fetch(
-    `${API_URL}/api/admin/users/${userId}/subscription`,
+    `${NEXT_API}/api/admin/users/${userId}/subscription`,
     {
       method: "POST",
       headers: {
@@ -608,7 +620,7 @@ export async function setUserRole(
   userId: string,
   role: string
 ): Promise<void> {
-  const response = await fetch(`${API_URL}/api/admin/users/${userId}/role`, {
+  const response = await fetch(`${NEXT_API}/api/admin/users/${userId}/role`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -626,7 +638,7 @@ export async function setUserRole(
  * Получить настройки сайта
  */
 export async function getSiteSettings(token: string): Promise<SiteSetting[]> {
-  const response = await fetch(`${API_URL}/api/admin/settings`, {
+  const response = await fetch(`${NEXT_API}/api/admin/settings`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -636,7 +648,8 @@ export async function getSiteSettings(token: string): Promise<SiteSetting[]> {
     throw new Error("Failed to fetch settings");
   }
 
-  return response.json();
+  const data = await response.json();
+  return data.settings || [];
 }
 
 /**
@@ -647,7 +660,7 @@ export async function updateSiteSetting(
   settingId: string,
   enabled: boolean
 ): Promise<void> {
-  const response = await fetch(`${API_URL}/api/admin/settings/${settingId}`, {
+  const response = await fetch(`${NEXT_API}/api/admin/settings/${settingId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -666,8 +679,8 @@ export async function updateSiteSetting(
  */
 export async function checkIsAdmin(token: string): Promise<boolean> {
   try {
-    console.log("checkIsAdmin: calling", `${API_URL}/api/admin/stats`);
-    const response = await fetch(`${API_URL}/api/admin/stats`, {
+    console.log("checkIsAdmin: calling", `${NEXT_API}/api/admin/stats`);
+    const response = await fetch(`${NEXT_API}/api/admin/stats`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -1012,4 +1025,151 @@ export async function markAsRead(
       Authorization: `Bearer ${token}`,
     },
   });
+}
+
+// === Subscription API ===
+
+export interface Subscription {
+  plan: "pro_trial" | "base" | "pro";
+  status: "active" | "expired" | "cancelled";
+  expires_at: string | null;  // null для base плана
+  days_left: number | null;   // null для base плана
+  can_search_online: boolean; // false для base плана
+}
+
+export interface RequestLimits {
+  daily_limit: number;
+  daily_used: number;
+  bonus_requests: number;
+  remaining: number;
+  can_use: boolean;
+}
+
+export interface SubscriptionPrices {
+  subscription: number;
+  extra_requests: number;
+  extra_requests_count: number;
+}
+
+export interface SubscriptionInfo {
+  subscription: Subscription | null;
+  limits: RequestLimits;
+  // Флаги планов
+  is_pro_trial: boolean;       // На Pro Trial (7 дней)
+  is_base: boolean;            // На Base (бесплатный навсегда)
+  is_pro: boolean;             // На Pro (платная подписка)
+  is_pro_trial_expired: boolean; // Pro Trial истёк, показать модалку
+  prices: SubscriptionPrices;
+}
+
+export interface CheckoutResponse {
+  payment_id: string;
+  payment_url: string;
+}
+
+export interface PaymentStatus {
+  status: string;
+  paid: boolean;
+  type?: "subscription" | "extra_requests";
+}
+
+/**
+ * Получить информацию о подписке текущего пользователя
+ */
+export async function getSubscription(token: string): Promise<SubscriptionInfo> {
+  const response = await fetch(`${NEXT_API}/api/subscription`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Unauthorized");
+    }
+    throw new Error("Failed to fetch subscription");
+  }
+
+  return response.json();
+}
+
+/**
+ * Создать платёж для подписки Pro
+ */
+export async function createSubscriptionCheckout(
+  token: string
+): Promise<CheckoutResponse> {
+  const response = await fetch(`${NEXT_API}/api/subscription/checkout`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to create checkout");
+  }
+
+  return response.json();
+}
+
+/**
+ * Создать платёж для докупки запросов
+ */
+export async function buyExtraRequests(
+  token: string
+): Promise<CheckoutResponse> {
+  const response = await fetch(`${NEXT_API}/api/subscription/extra`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || "Failed to create payment");
+  }
+
+  return response.json();
+}
+
+/**
+ * Проверить статус платежа
+ */
+export async function checkPaymentStatus(
+  token: string,
+  paymentId: string
+): Promise<PaymentStatus> {
+  const response = await fetch(
+    `${NEXT_API}/api/subscription/check/${paymentId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to check payment status");
+  }
+
+  return response.json();
+}
+
+/**
+ * Создать триал подписку (если не создалась автоматически)
+ */
+export async function createTrial(token: string): Promise<void> {
+  const response = await fetch(`${NEXT_API}/api/subscription/create-trial`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to create trial");
+  }
 }

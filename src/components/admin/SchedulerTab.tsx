@@ -120,9 +120,10 @@ export default function SchedulerTab({ token }: SchedulerTabProps) {
     );
   }
 
-  // Sort jobs: parsing_job, avito_job, verification_job
+  // Sort jobs: mass_parsing_job (лента) первый, потом verification
+  // Старые parsing_job и avito_job в конец (deprecated/отключены)
   const sortedJobs = status?.jobs.sort((a, b) => {
-    const order = ["parsing_job", "avito_job", "verification_job"];
+    const order = ["mass_parsing_job", "verification_job", "parsing_job", "avito_job"];
     return order.indexOf(a.job_id) - order.indexOf(b.job_id);
   }) || [];
 

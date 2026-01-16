@@ -4,14 +4,16 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import ChatInput from "@/components/chat/ChatInput";
+import ChatInput, { SearchMode } from "@/components/chat/ChatInput";
 import ChatMessages, { Message } from "@/components/chat/ChatMessages";
 import { Chat } from "@/components/chat/ChatListModal";
 import { sendMessageStream, Vacancy } from "@/lib/api";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import { useSubscriptionContext } from "@/components/subscription";
 
 export default function ChatPage() {
   const router = useRouter();
+  const { subscription, refresh: refreshSubscription } = useSubscriptionContext();
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -144,7 +146,7 @@ export default function ChatPage() {
     }
   };
 
-  const handleSend = async (content: string) => {
+  const handleSend = async (content: string, searchMode: SearchMode) => {
     if (!user?.id) return;
 
     let chatId = currentChatId;
@@ -180,6 +182,7 @@ export default function ChatPage() {
         content,
         user.id,
         chatId,
+        searchMode,
         // onText
         (text) => {
           fullText += text;
@@ -211,6 +214,9 @@ export default function ChatPage() {
 
           // Reload chats to update the list
           loadChats();
+
+          // Update subscription limits
+          refreshSubscription();
         },
         // onRejectedVacancies
         (newRejectedVacancies) => {
@@ -311,8 +317,40 @@ export default function ChatPage() {
               Вакансии
             </Link>
             <span className="text-sm font-medium text-orange-600">AI-поиск</span>
+            {/* Request counter */}
+            {subscription && (
+              <Link
+                href="/subscription"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  subscription.limits.remaining > 0
+                    ? "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                    : "bg-red-50 text-red-700 hover:bg-red-100"
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                {subscription.limits.remaining} запрос{subscription.limits.remaining === 1 ? "" : subscription.limits.remaining >= 2 && subscription.limits.remaining <= 4 ? "а" : "ов"}
+              </Link>
+            )}
           </nav>
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Mobile request counter */}
+            {subscription && (
+              <Link
+                href="/subscription"
+                className={`md:hidden flex items-center gap-1 px-2.5 py-2 rounded-full text-sm font-medium transition-colors ${
+                  subscription.limits.remaining > 0
+                    ? "bg-blue-50 text-blue-700"
+                    : "bg-red-50 text-red-700"
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                {subscription.limits.remaining}
+              </Link>
+            )}
             <Link
               href="/messages"
               className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
@@ -373,6 +411,7 @@ export default function ChatPage() {
             onNewChat={handleNewChat}
             onDeleteChat={handleDeleteChat}
             loadingChats={loadingChats}
+            canSearchOnline={subscription?.subscription?.can_search_online ?? true}
           />
         </div>
       </main>
