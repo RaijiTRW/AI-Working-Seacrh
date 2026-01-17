@@ -7,10 +7,8 @@ const supabase = createClient(
 );
 
 /**
- * POST /api/admin/users/[userId]/requests
- * Изменить бонусные запросы пользователю (добавить или уменьшить)
- * amount > 0 - добавить запросы
- * amount < 0 - убавить запросы
+ * POST /api/admin/users/[userId]/reset-daily
+ * Сбросить использованные сегодня запросы (daily_used = 0)
  */
 export async function POST(
   req: NextRequest,
@@ -45,53 +43,27 @@ export async function POST(
     }
 
     const { userId } = await params;
-    const { amount } = await req.json();
 
-    if (amount === undefined || amount === null || amount === 0) {
-      return NextResponse.json(
-        { error: "Invalid amount (cannot be 0)" },
-        { status: 400 }
-      );
-    }
-
-    // Get current bonus_requests
-    const { data: targetProfile } = await supabase
-      .from("profiles")
-      .select("bonus_requests")
-      .eq("user_id", userId)
-      .single();
-
-    const currentBonus = targetProfile?.bonus_requests || 0;
-    const newBonus = currentBonus + amount;
-
-    // Проверка: не уйдём ли в отрицательные значения
-    if (newBonus < 0) {
-      return NextResponse.json(
-        { error: `Cannot reduce below 0. Current bonus: ${currentBonus}` },
-        { status: 400 }
-      );
-    }
-
-    // Update bonus_requests
+    // Reset daily_used to 0
     const { error: updateError } = await supabase
-      .from("profiles")
-      .update({ bonus_requests: newBonus })
+      .from("user_subscription_status")
+      .update({ daily_used: 0 })
       .eq("user_id", userId);
 
     if (updateError) {
-      console.error("Error updating bonus requests:", updateError);
+      console.error("Error resetting daily_used:", updateError);
       return NextResponse.json(
-        { error: "Failed to add requests" },
+        { error: "Failed to reset daily usage" },
         { status: 500 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      new_bonus: newBonus,
+      message: "Daily usage reset to 0",
     });
   } catch (error) {
-    console.error("Error in add requests:", error);
+    console.error("Error in reset daily:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

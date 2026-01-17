@@ -10,11 +10,14 @@ import { Chat } from "@/components/chat/ChatListModal";
 import { sendMessageStream, Vacancy } from "@/lib/api";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import { useSubscriptionContext } from "@/components/subscription";
+import { useSiteSettings } from "@/lib/useSiteSettings";
 
 export default function ChatPage() {
   const router = useRouter();
   const { subscription, refresh: refreshSubscription } = useSubscriptionContext();
+  const { settings, loading: settingsLoading } = useSiteSettings();
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -92,6 +95,15 @@ export default function ChatPage() {
         router.push("/auth");
       } else {
         setUser({ id: user.id, email: user.email });
+
+        // Check if user is admin
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("user_id", user.id)
+          .single();
+
+        setIsAdmin(profile?.role === "admin");
       }
       setLoading(false);
     };
@@ -505,10 +517,39 @@ export default function ChatPage() {
     }
   };
 
-  if (loading) {
+  if (loading || settingsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!settings.chat_enabled && !isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <header className="bg-white border-b border-gray-100">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+            <Link href="/" className="text-lg sm:text-xl font-bold text-gray-900">
+              Job Search
+            </Link>
+          </div>
+        </header>
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-20">
+          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              AI-поиск временно недоступен
+            </h1>
+            <p className="text-gray-600">
+              Функция отключена администратором. Пожалуйста, попробуйте позже.
+            </p>
+          </div>
+        </div>
       </div>
     );
   }

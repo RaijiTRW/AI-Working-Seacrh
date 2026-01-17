@@ -6,6 +6,7 @@ import Header from "@/components/landing/Header";
 import { useAuth } from "@/lib/useAuth";
 import { supabase } from "@/lib/supabase";
 import { createVacancy, publishVacancy, EmployerVacancyCreate } from "@/lib/api";
+import { useSiteSettings } from "@/lib/useSiteSettings";
 
 const EXPERIENCE_OPTIONS = [
   { value: "", label: "Не указан" },
@@ -34,6 +35,8 @@ const SCHEDULE_OPTIONS = [
 export default function CreateVacancyPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { settings, loading: settingsLoading } = useSiteSettings();
+  const [isAdmin, setIsAdmin] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -60,6 +63,21 @@ export default function CreateVacancyPage() {
       router.push("/auth");
     }
   }, [user, authLoading, router]);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (user?.id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("user_id", user.id)
+          .single();
+
+        setIsAdmin(profile?.role === "admin");
+      }
+    };
+    checkAdmin();
+  }, [user]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -125,7 +143,7 @@ export default function CreateVacancyPage() {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || settingsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
@@ -135,6 +153,29 @@ export default function CreateVacancyPage() {
 
   if (!user) {
     return null;
+  }
+
+  if (!settings.vacancy_creation_enabled && !isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-20">
+          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Создание вакансий временно недоступно
+            </h1>
+            <p className="text-gray-600">
+              Функция отключена администратором. Пожалуйста, попробуйте позже.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

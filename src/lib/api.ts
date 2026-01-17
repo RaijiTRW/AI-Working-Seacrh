@@ -214,7 +214,8 @@ export async function getVacancyFeed(filters: FeedFilters): Promise<FeedResult> 
   if (filters.page) params.append("page", filters.page.toString());
   if (filters.limit) params.append("limit", filters.limit.toString());
 
-  const response = await fetch(`${API_URL}/api/vacancies/feed?${params}`);
+  // Используем Next.js API route вместо Python backend
+  const response = await fetch(`${NEXT_API}/api/vacancies/feed?${params}`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch vacancies");
@@ -235,7 +236,8 @@ export interface VacancyStats {
  * Получить статистику вакансий
  */
 export async function getVacancyStats(): Promise<VacancyStats> {
-  const response = await fetch(`${API_URL}/api/vacancies/stats`);
+  // Используем Next.js API route вместо Python backend
+  const response = await fetch(`${NEXT_API}/api/vacancies/stats`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch vacancy stats");
@@ -652,7 +654,7 @@ export async function setUserRole(
 }
 
 /**
- * Добавить бонусные запросы пользователю
+ * Добавить/убавить бонусные запросы пользователю
  */
 export async function addUserRequests(
   token: string,
@@ -670,6 +672,25 @@ export async function addUserRequests(
 
   if (!response.ok) {
     throw new Error("Failed to add requests");
+  }
+}
+
+/**
+ * Сбросить использованные сегодня запросы (daily_used = 0)
+ */
+export async function resetDailyUsage(
+  token: string,
+  userId: string
+): Promise<void> {
+  const response = await fetch(`${NEXT_API}/api/admin/users/${userId}/reset-daily`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to reset daily usage");
   }
 }
 
@@ -705,7 +726,7 @@ export async function updateSiteSetting(
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ value: { enabled } }),
+    body: JSON.stringify({ enabled }),
   });
 
   if (!response.ok) {
@@ -733,6 +754,98 @@ export async function checkIsAdmin(token: string): Promise<boolean> {
   } catch (err) {
     console.error("checkIsAdmin: exception", err);
     return false;
+  }
+}
+
+// === Employer Vacancy Moderation API ===
+
+export interface EmployerVacancyModeration extends EmployerVacancy {
+  profiles?: {
+    full_name?: string;
+    email: string;
+  };
+}
+
+export interface EmployerVacancyModerationList {
+  vacancies: EmployerVacancyModeration[];
+  total: number;
+  page: number;
+  pages: number;
+  has_next: boolean;
+}
+
+/**
+ * Получить вакансии на модерации или отклоненные
+ */
+export async function getEmployerVacanciesForModeration(
+  token: string,
+  status: "pending_review" | "rejected" = "pending_review",
+  page = 1,
+  limit = 20
+): Promise<EmployerVacancyModerationList> {
+  const params = new URLSearchParams({
+    status,
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+
+  const response = await fetch(`${NEXT_API}/api/admin/employer-vacancies?${params}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch vacancies for moderation");
+  }
+
+  return response.json();
+}
+
+/**
+ * Одобрить вакансию работодателя вручную
+ */
+export async function approveEmployerVacancy(
+  token: string,
+  vacancyId: string
+): Promise<void> {
+  const response = await fetch(
+    `${NEXT_API}/api/admin/employer-vacancies/${vacancyId}/approve`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to approve vacancy");
+  }
+}
+
+/**
+ * Отклонить вакансию работодателя вручную
+ */
+export async function rejectEmployerVacancy(
+  token: string,
+  vacancyId: string,
+  reason: string
+): Promise<void> {
+  const response = await fetch(
+    `${NEXT_API}/api/admin/employer-vacancies/${vacancyId}/reject`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ reason }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to reject vacancy");
   }
 }
 

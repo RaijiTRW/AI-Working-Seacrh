@@ -15,14 +15,16 @@ import {
   setUserSubscription,
   setUserRole,
   addUserRequests,
+  resetDailyUsage,
   AdminStats,
   AdminUser,
   SiteSetting,
 } from "@/lib/api";
 import SchedulerTab from "@/components/admin/SchedulerTab";
 import SupportChatTab from "@/components/admin/SupportChatTab";
+import ModerationTab from "@/components/admin/ModerationTab";
 
-type Tab = "stats" | "users" | "settings" | "scheduler" | "support";
+type Tab = "stats" | "users" | "settings" | "scheduler" | "support" | "moderation";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -159,19 +161,53 @@ export default function AdminPage() {
   const handleAddRequests = async () => {
     if (!token || !selectedUser || !requestsAmount) return;
     const amount = parseInt(requestsAmount, 10);
-    if (isNaN(amount) || amount < 1) {
-      alert("Введите корректное количество запросов");
+    if (isNaN(amount) || amount === 0) {
+      alert("Введите корректное количество запросов (положительное для добавления, отрицательное для уменьшения)");
       return;
     }
+
+    // Проверка: не уйдём ли в отрицательные значения
+    const currentBonus = selectedUser.bonus_requests || 0;
+    const newBonus = currentBonus + amount;
+    if (newBonus < 0) {
+      alert(`Нельзя убрать больше чем есть. Текущие бонусные запросы: ${currentBonus}`);
+      return;
+    }
+
     try {
       await addUserRequests(token, selectedUser.id, amount);
       setShowRequestsModal(false);
       setRequestsAmount("");
       fetchUsers(); // Обновить список пользователей
-      alert(`Добавлено ${amount} запросов для ${selectedUser.email}`);
+      const action = amount > 0 ? "Добавлено" : "Убавлено";
+      alert(`${action} ${Math.abs(amount)} запросов для ${selectedUser.email}`);
     } catch (e) {
       console.error("Failed to add requests:", e);
-      alert("Ошибка при добавлении запросов");
+      alert("Ошибка при изменении запросов");
+    }
+  };
+
+  const handleResetDailyUsage = async () => {
+    if (!token || !selectedUser) return;
+
+    const currentUsed = selectedUser.daily_used || 0;
+    if (currentUsed === 0) {
+      alert("Использованных запросов нет, сбрасывать нечего");
+      return;
+    }
+
+    if (!confirm(`Сбросить использованные сегодня запросы (${currentUsed}) для ${selectedUser.email}?`)) {
+      return;
+    }
+
+    try {
+      await resetDailyUsage(token, selectedUser.id);
+      setShowRequestsModal(false);
+      fetchUsers(); // Обновить список пользователей
+      alert(`Использованные запросы сброшены для ${selectedUser.email}`);
+    } catch (e) {
+      console.error("Failed to reset daily usage:", e);
+      alert("Ошибка при сбросе использованных запросов");
     }
   };
 
@@ -190,9 +226,10 @@ export default function AdminPage() {
     if (!token) return;
     try {
       await updateSiteSetting(token, setting.id, !setting.value.enabled);
-      fetchSettings();
+      await fetchSettings();
     } catch (e) {
       console.error("Failed to update setting:", e);
+      alert("Ошибка при обновлении настройки");
     }
   };
 
@@ -280,6 +317,7 @@ export default function AdminPage() {
             { id: "stats" as Tab, label: "Статистика" },
             { id: "users" as Tab, label: "Пользователи" },
             { id: "support" as Tab, label: "Чат поддержки" },
+            { id: "moderation" as Tab, label: "Модерация вакансий" },
             { id: "settings" as Tab, label: "Настройки" },
             { id: "scheduler" as Tab, label: "Парсинг" },
           ].map((tab) => (
@@ -466,7 +504,7 @@ export default function AdminPage() {
                               setShowRequestsModal(true);
                             }}
                             className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
-                            title="Выдать запросы"
+                            title="Управление запросами (добавить/убавить)"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -547,6 +585,11 @@ export default function AdminPage() {
         {activeTab === "support" && token && (
           <SupportChatTab token={token} />
         )}
+
+        {/* Moderation Tab */}
+        {activeTab === "moderation" && token && (
+          <ModerationTab token={token} />
+        )}
       </main>
 
       {/* Ban Modal */}
@@ -625,7 +668,7 @@ export default function AdminPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-bold text-gray-900 mb-4">
-              Выдать запросы
+              Управление запросами
             </h3>
             <p className="text-sm text-gray-600 mb-4">
               {selectedUser.email}
@@ -658,15 +701,30 @@ export default function AdminPage() {
 
             <input
               type="number"
-              min="1"
-              placeholder="Количество запросов для добавления"
+              placeholder="+10 для добавления, -5 для уменьшения"
               value={requestsAmount}
               onChange={(e) => setRequestsAmount(e.target.value)}
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
             <p className="text-xs text-gray-500 mt-2">
-              Запросы будут добавлены к текущим бонусным запросам пользователя
+              Введите положительное число для добавления или отрицательное для уменьшения бонусных запросов
             </p>
+
+            {/* Reset daily usage button */}
+            {(selectedUser.daily_used || 0) > 0 && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <button
+                  onClick={handleResetDailyUsage}
+                  className="w-full px-4 py-2 bg-orange-100 text-orange-600 rounded-lg hover:bg-orange-200 transition-colors text-sm font-medium"
+                >
+                  🔄 Сбросить использованные сегодня ({selectedUser.daily_used || 0})
+                </button>
+                <p className="text-xs text-gray-500 mt-1 text-center">
+                  Вернёт пользователю дневной лимит запросов
+                </p>
+              </div>
+            )}
+
             <div className="flex justify-end gap-2 mt-4">
               <button
                 onClick={() => setShowRequestsModal(false)}
@@ -678,7 +736,7 @@ export default function AdminPage() {
                 onClick={handleAddRequests}
                 className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
               >
-                Выдать
+                Применить
               </button>
             </div>
           </div>

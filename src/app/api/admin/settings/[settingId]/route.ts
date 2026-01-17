@@ -35,6 +35,7 @@ export async function PUT(
       .update({
         value: { enabled },
         updated_at: new Date().toISOString(),
+        updated_by: userId,
       })
       .eq("id", settingId);
 
