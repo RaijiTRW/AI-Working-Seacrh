@@ -78,7 +78,9 @@ export async function sendMessageStream(
   onText: (text: string) => void,
   onVacancies: (vacancies: Vacancy[]) => void,
   onDone: (chatId: string) => void,
-  onRejectedVacancies?: (vacancies: Vacancy[]) => void
+  onRejectedVacancies?: (vacancies: Vacancy[]) => void,
+  excludeVacancyIds?: string[],
+  signal?: AbortSignal
 ): Promise<void> {
   const response = await fetch(`${API_URL}/api/chat/message/stream`, {
     method: "POST",
@@ -91,7 +93,10 @@ export async function sendMessageStream(
       chat_id: chatId,
       search_in_feed: searchMode.searchInFeed,
       search_online: searchMode.searchOnline,
+      exclude_vacancy_ids: excludeVacancyIds || [],
     }),
+    signal,
+    keepalive: true,
   });
 
   if (!response.ok) {
@@ -127,9 +132,18 @@ export async function sendMessageStream(
               console.log("Received vacancies:", data.content);
               onVacancies(data.content as Vacancy[]);
               break;
+            case "vacancies_chunk":
+              // Добавляем вакансии по частям (progressive loading)
+              console.log("Received vacancies chunk:", data.content);
+              onVacancies(data.content as Vacancy[]);
+              break;
             case "rejected_vacancies":
               console.log("Received rejected vacancies:", data.content);
               onRejectedVacancies?.(data.content as Vacancy[]);
+              break;
+            case "progress":
+              // Сообщения о прогрессе загрузки (можно игнорировать или логировать)
+              console.log("Progress:", data.message);
               break;
             case "done":
               onDone(data.chat_id || "");
@@ -460,6 +474,9 @@ export interface AdminUser {
   subscription_expires_at?: string;
   last_seen_at?: string;
   created_at?: string;
+  bonus_requests?: number;
+  daily_limit?: number;
+  daily_used?: number;
 }
 
 export interface AdminUserList {
@@ -631,6 +648,28 @@ export async function setUserRole(
 
   if (!response.ok) {
     throw new Error("Failed to set role");
+  }
+}
+
+/**
+ * Добавить бонусные запросы пользователю
+ */
+export async function addUserRequests(
+  token: string,
+  userId: string,
+  amount: number
+): Promise<void> {
+  const response = await fetch(`${NEXT_API}/api/admin/users/${userId}/requests`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ amount }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to add requests");
   }
 }
 

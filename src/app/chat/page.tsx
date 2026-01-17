@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -21,6 +21,9 @@ export default function ChatPage() {
   const [streamingText, setStreamingText] = useState("");
   const [streamingVacancies, setStreamingVacancies] = useState<Vacancy[]>([]);
   const [streamingRejectedVacancies, setStreamingRejectedVacancies] = useState<Vacancy[]>([]);
+
+  // AbortController для остановки запроса
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Chats
   const [chats, setChats] = useState<Chat[]>([]);
@@ -146,6 +149,178 @@ export default function ChatPage() {
     }
   };
 
+  const handleStop = async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+
+      // Сохраняем то, что уже было найдено
+      const finalText = streamingText || "Поиск остановлен.";
+      const finalVacancies = streamingVacancies;
+      const finalRejectedVacancies = streamingRejectedVacancies;
+
+      // Создаем сообщение с тем, что успели найти
+      if (finalVacancies.length > 0 || finalText) {
+        const assistantMessage: Message = {
+          id: `assistant-${Date.now()}`,
+          role: "assistant",
+          content: finalText,
+          vacancies: finalVacancies.length > 0 ? finalVacancies : undefined,
+          rejectedVacancies: finalRejectedVacancies.length > 0 ? finalRejectedVacancies : undefined,
+        };
+
+        setMessages((prev) => [...prev, assistantMessage]);
+
+        // Сохраняем в БД если есть chatId
+        if (currentChatId) {
+          await saveMessage(currentChatId, "assistant", finalText, finalVacancies);
+        }
+      }
+
+      setIsTyping(false);
+      setStreamingText("");
+      setStreamingVacancies([]);
+      setStreamingRejectedVacancies([]);
+    }
+  };
+
+  const handleLoadMore = async (messageId: string) => {
+    if (!user?.id || !currentChatId) return;
+
+    // Найти сообщение с этим ID
+    const message = messages.find((m) => m.id === messageId);
+    if (!message || message.role !== "assistant" || !message.vacancies) return;
+
+    // Собрать все ID вакансий (approved + rejected)
+    const excludeIds: string[] = [];
+    if (message.vacancies) {
+      excludeIds.push(...message.vacancies.map((v) => v.id));
+    }
+    if (message.rejectedVacancies) {
+      excludeIds.push(...message.rejectedVacancies.map((v) => v.id));
+    }
+
+    // Отправить запрос "найди еще" с exclude_vacancy_ids
+    const loadMoreMessage = "найди еще";
+
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      role: "user",
+      content: loadMoreMessage,
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setIsTyping(true);
+    setStreamingText("");
+    setStreamingVacancies([]);
+    setStreamingRejectedVacancies([]);
+
+    // Save user message
+    await saveMessage(currentChatId, "user", loadMoreMessage);
+
+    // Создаем AbortController для возможности остановки
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    try {
+      let fullText = "";
+      let vacancies: Vacancy[] = [];
+      let rejectedVacancies: Vacancy[] = [];
+
+      await sendMessageStream(
+        loadMoreMessage,
+        user.id,
+        currentChatId,
+        { searchInFeed: true, searchOnline: true }, // Ищем везде
+        // onText
+        (text) => {
+          fullText += text;
+          setStreamingText(fullText);
+        },
+        // onVacancies
+        (newVacancies) => {
+          // Дедупликация внутри chunk
+          const seenInChunk = new Set<string>();
+          const deduplicatedChunk = newVacancies.filter(v => {
+            if (seenInChunk.has(v.id)) return false;
+            seenInChunk.add(v.id);
+            return true;
+          });
+
+          // Дедупликация относительно существующих вакансий
+          const existingIds = new Set(vacancies.map(v => v.id));
+          const uniqueNew = deduplicatedChunk.filter(v => !existingIds.has(v.id));
+          vacancies = [...vacancies, ...uniqueNew];
+          setStreamingVacancies(vacancies);
+        },
+        // onDone
+        async () => {
+          const assistantMessage: Message = {
+            id: `assistant-${Date.now()}`,
+            role: "assistant",
+            content: fullText || "Произошла ошибка, попробуй ещё раз.",
+            vacancies: vacancies.length > 0 ? vacancies : undefined,
+            rejectedVacancies: rejectedVacancies.length > 0 ? rejectedVacancies : undefined,
+          };
+
+          setMessages((prev) => [...prev, assistantMessage]);
+          setIsTyping(false);
+          setStreamingText("");
+          setStreamingVacancies([]);
+          setStreamingRejectedVacancies([]);
+
+          // Save assistant message with vacancies
+          await saveMessage(currentChatId!, "assistant", fullText, vacancies);
+
+          // Reload chats to update the list
+          loadChats();
+
+          // Update subscription limits
+          refreshSubscription();
+        },
+        // onRejectedVacancies
+        (newRejectedVacancies) => {
+          // Дедупликация внутри chunk
+          const seenInChunk = new Set<string>();
+          const deduplicatedChunk = newRejectedVacancies.filter(v => {
+            if (seenInChunk.has(v.id)) return false;
+            seenInChunk.add(v.id);
+            return true;
+          });
+
+          // Дедупликация относительно существующих вакансий
+          const existingIds = new Set(rejectedVacancies.map(v => v.id));
+          const uniqueNew = deduplicatedChunk.filter(v => !existingIds.has(v.id));
+          rejectedVacancies = [...rejectedVacancies, ...uniqueNew];
+          setStreamingRejectedVacancies(rejectedVacancies);
+        },
+        // excludeVacancyIds
+        excludeIds,
+        // signal
+        abortController.signal
+      );
+    } catch (error) {
+      // Игнорируем ошибку если запрос был отменен
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log("Request was aborted");
+        return;
+      }
+      console.error("Error sending message:", error);
+
+      const errorMessage: Message = {
+        id: `assistant-${Date.now()}`,
+        role: "assistant",
+        content: "Не удалось связаться с сервером. Проверь подключение и попробуй снова.",
+      };
+
+      setMessages((prev) => [...prev, errorMessage]);
+      setIsTyping(false);
+      setStreamingText("");
+    } finally {
+      abortControllerRef.current = null;
+    }
+  };
+
   const handleSend = async (content: string, searchMode: SearchMode) => {
     if (!user?.id) return;
 
@@ -173,6 +348,10 @@ export default function ChatPage() {
     // Save user message
     await saveMessage(chatId, "user", content);
 
+    // Создаем AbortController для возможности остановки
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     try {
       let fullText = "";
       let vacancies: Vacancy[] = [];
@@ -190,8 +369,19 @@ export default function ChatPage() {
         },
         // onVacancies
         (newVacancies) => {
-          vacancies = newVacancies;
-          setStreamingVacancies(newVacancies);
+          // Дедупликация внутри chunk
+          const seenInChunk = new Set<string>();
+          const deduplicatedChunk = newVacancies.filter(v => {
+            if (seenInChunk.has(v.id)) return false;
+            seenInChunk.add(v.id);
+            return true;
+          });
+
+          // Дедупликация относительно существующих вакансий
+          const existingIds = new Set(vacancies.map(v => v.id));
+          const uniqueNew = deduplicatedChunk.filter(v => !existingIds.has(v.id));
+          vacancies = [...vacancies, ...uniqueNew];
+          setStreamingVacancies(vacancies);
         },
         // onDone
         async () => {
@@ -220,11 +410,31 @@ export default function ChatPage() {
         },
         // onRejectedVacancies
         (newRejectedVacancies) => {
-          rejectedVacancies = newRejectedVacancies;
-          setStreamingRejectedVacancies(newRejectedVacancies);
-        }
+          // Дедупликация внутри chunk
+          const seenInChunk = new Set<string>();
+          const deduplicatedChunk = newRejectedVacancies.filter(v => {
+            if (seenInChunk.has(v.id)) return false;
+            seenInChunk.add(v.id);
+            return true;
+          });
+
+          // Дедупликация относительно существующих вакансий
+          const existingIds = new Set(rejectedVacancies.map(v => v.id));
+          const uniqueNew = deduplicatedChunk.filter(v => !existingIds.has(v.id));
+          rejectedVacancies = [...rejectedVacancies, ...uniqueNew];
+          setStreamingRejectedVacancies(rejectedVacancies);
+        },
+        // excludeVacancyIds
+        undefined,
+        // signal
+        abortController.signal
       );
     } catch (error) {
+      // Игнорируем ошибку если запрос был отменен
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log("Request was aborted");
+        return;
+      }
       console.error("Error sending message:", error);
 
       const errorMessage: Message = {
@@ -236,6 +446,8 @@ export default function ChatPage() {
       setMessages((prev) => [...prev, errorMessage]);
       setIsTyping(false);
       setStreamingText("");
+    } finally {
+      abortControllerRef.current = null;
     }
   };
 
@@ -383,6 +595,7 @@ export default function ChatPage() {
             streamingText={streamingText}
             streamingVacancies={streamingVacancies}
             streamingRejectedVacancies={streamingRejectedVacancies}
+            onLoadMore={handleLoadMore}
           />
         </div>
 
@@ -403,7 +616,9 @@ export default function ChatPage() {
         >
           <ChatInput
             onSend={handleSend}
+            onStop={handleStop}
             disabled={isTyping}
+            isTyping={isTyping}
             centered={!hasStarted}
             chats={chats}
             currentChatId={currentChatId}

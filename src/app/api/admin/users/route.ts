@@ -30,9 +30,16 @@ export async function GET(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
+    // Join with subscriptions to get daily_limit and daily_used
     let query = supabase
       .from("profiles")
-      .select("*", { count: "exact" })
+      .select(`
+        *,
+        subscriptions!inner(
+          daily_limit,
+          daily_used
+        )
+      `, { count: "exact" })
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -50,8 +57,15 @@ export async function GET(request: NextRequest) {
     const total = count || 0;
     const pages = Math.ceil(total / limit);
 
+    // Flatten subscriptions data into user object
+    const formattedUsers = (users || []).map((user: any) => ({
+      ...user,
+      daily_limit: user.subscriptions?.daily_limit || 0,
+      daily_used: user.subscriptions?.daily_used || 0,
+    }));
+
     return NextResponse.json({
-      users: users || [],
+      users: formattedUsers,
       total,
       page,
       pages,

@@ -17,6 +17,7 @@ interface ChatMessagesProps {
   streamingText?: string;
   streamingVacancies?: Vacancy[];
   streamingRejectedVacancies?: Vacancy[];
+  onLoadMore?: (messageId: string) => void;
 }
 
 function TypingDots() {
@@ -34,11 +35,15 @@ function AssistantMessage({
   vacancies,
   rejectedVacancies,
   animate,
+  onLoadMore,
+  messageId,
 }: {
   content: string;
   vacancies?: Vacancy[];
   rejectedVacancies?: Vacancy[];
   animate?: boolean;
+  onLoadMore?: (messageId: string) => void;
+  messageId?: string;
 }) {
   const [displayedText, setDisplayedText] = useState(animate ? "" : content);
   const [isComplete, setIsComplete] = useState(!animate);
@@ -75,7 +80,18 @@ function AssistantMessage({
           <span className="text-white text-xs font-bold">AI</span>
         </div>
         <div className="flex-1 pt-1">
-          <p className="pb-4">Zend:</p>
+          <div className="flex items-center gap-2 pb-4">
+            <p>Zend:</p>
+            {vacancies && vacancies.length > 0 && onLoadMore && messageId && (
+              <button
+                onClick={() => onLoadMore(messageId)}
+                className="text-xs px-2 py-1 rounded-md bg-orange-50 text-orange-600 hover:bg-orange-100 hover:text-orange-700 transition-colors font-medium"
+                title="Найти еще вакансии по этому запросу"
+              >
+                Еще
+              </button>
+            )}
+          </div>
           <p className="text-gray-900 leading-relaxed whitespace-pre-wrap">
             {displayedText}
             {!isComplete && <span className="inline-block w-0.5 h-5 bg-orange-500 ml-0.5 animate-pulse" />}
@@ -116,6 +132,7 @@ export default function ChatMessages({
   streamingText,
   streamingVacancies,
   streamingRejectedVacancies,
+  onLoadMore,
 }: ChatMessagesProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [lastMessageId, setLastMessageId] = useState<string | null>(null);
@@ -206,6 +223,8 @@ export default function ChatMessages({
                 vacancies={msg.vacancies}
                 rejectedVacancies={msg.rejectedVacancies}
                 animate={msg.id === lastMessageId && messages[messages.length - 1].role === "assistant" && !isHistory}
+                onLoadMore={onLoadMore}
+                messageId={msg.id}
               />
             )}
           </div>
@@ -213,10 +232,10 @@ export default function ChatMessages({
       })}
 
       {/* Streaming message */}
-      {isTyping && streamingText && (
+      {isTyping && (streamingText || streamingVacancies.length > 0) && (
         <div className="animate-in fade-in duration-300">
           <AssistantMessage
-            content={streamingText}
+            content={streamingText || "Ищу вакансии..."}
             vacancies={streamingVacancies}
             rejectedVacancies={streamingRejectedVacancies}
             animate={false}
@@ -225,7 +244,7 @@ export default function ChatMessages({
       )}
 
       {/* Typing indicator (before text starts streaming) */}
-      {isTyping && !streamingText && (
+      {isTyping && !streamingText && streamingVacancies.length === 0 && (
         <div className="flex gap-3 max-w-3xl animate-in fade-in duration-300">
           <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
             <span className="text-white text-xs font-bold">AI</span>

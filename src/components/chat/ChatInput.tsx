@@ -10,7 +10,9 @@ export interface SearchMode {
 
 interface ChatInputProps {
   onSend: (message: string, searchMode: SearchMode) => void;
+  onStop?: () => void;
   disabled?: boolean;
+  isTyping?: boolean;
   centered?: boolean;
   chats?: Chat[];
   currentChatId?: string | null;
@@ -23,7 +25,9 @@ interface ChatInputProps {
 
 export default function ChatInput({
   onSend,
+  onStop,
   disabled = false,
+  isTyping = false,
   centered = false,
   chats = [],
   currentChatId = null,
@@ -143,7 +147,7 @@ export default function ChatInput({
             </button>
             {/* Tooltip для Base плана */}
             {!canSearchOnline && (
-              <div className="absolute left-0 top-full mt-1 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
+              <div className="absolute left-0 bottom-full mb-1 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
                 Доступно в Pro подписке
               </div>
             )}
@@ -242,19 +246,32 @@ export default function ChatInput({
             className="flex-1 resize-none bg-transparent px-2 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none max-h-[200px]"
           />
 
-          {/* Send button */}
-          <button
-            onClick={handleSubmit}
-            disabled={!message.trim() || disabled}
-            className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${message.trim() && !disabled
-                ? "bg-orange-500 text-white hover:bg-orange-600"
-                : "bg-gray-100 text-gray-300 cursor-not-allowed"
-              }`}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          </button>
+          {/* Send/Stop button */}
+          {isTyping ? (
+            <button
+              onClick={onStop}
+              className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all bg-red-500 text-white hover:bg-red-600"
+              title="Остановить"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <rect x="6" y="6" width="12" height="12" rx="1" />
+              </svg>
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={!message.trim() || disabled}
+              className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${message.trim() && !disabled
+                  ? "bg-orange-500 text-white hover:bg-orange-600"
+                  : "bg-gray-100 text-gray-300 cursor-not-allowed"
+                }`}
+              title="Отправить"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
         </div>
       </div>
 

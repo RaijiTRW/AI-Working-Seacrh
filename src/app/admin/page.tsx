@@ -14,6 +14,7 @@ import {
   toggleUserVacancies,
   setUserSubscription,
   setUserRole,
+  addUserRequests,
   AdminStats,
   AdminUser,
   SiteSetting,
@@ -43,6 +44,8 @@ export default function AdminPage() {
   const [banReason, setBanReason] = useState("");
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [subscriptionType, setSubscriptionType] = useState("");
+  const [showRequestsModal, setShowRequestsModal] = useState(false);
+  const [requestsAmount, setRequestsAmount] = useState("");
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -150,6 +153,25 @@ export default function AdminPage() {
       fetchUsers();
     } catch (e) {
       console.error("Failed to set subscription:", e);
+    }
+  };
+
+  const handleAddRequests = async () => {
+    if (!token || !selectedUser || !requestsAmount) return;
+    const amount = parseInt(requestsAmount, 10);
+    if (isNaN(amount) || amount < 1) {
+      alert("Введите корректное количество запросов");
+      return;
+    }
+    try {
+      await addUserRequests(token, selectedUser.id, amount);
+      setShowRequestsModal(false);
+      setRequestsAmount("");
+      fetchUsers(); // Обновить список пользователей
+      alert(`Добавлено ${amount} запросов для ${selectedUser.email}`);
+    } catch (e) {
+      console.error("Failed to add requests:", e);
+      alert("Ошибка при добавлении запросов");
     }
   };
 
@@ -264,11 +286,10 @@ export default function AdminPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === tab.id
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.id
                   ? "bg-orange-500 text-white"
                   : "bg-white text-gray-600 hover:bg-gray-100"
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -333,6 +354,7 @@ export default function AdminPage() {
                     <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Роль</th>
                     <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Статус</th>
                     <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Подписка</th>
+                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Запросы</th>
                     <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Был онлайн</th>
                     <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Действия</th>
                   </tr>
@@ -348,11 +370,10 @@ export default function AdminPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`inline-flex px-2 py-1 rounded text-xs font-medium ${
-                            user.role === "admin"
+                          className={`inline-flex px-2 py-1 rounded text-xs font-medium ${user.role === "admin"
                               ? "bg-red-100 text-red-700"
                               : "bg-gray-100 text-gray-700"
-                          }`}
+                            }`}
                         >
                           {user.role === "admin" ? "Админ" : "Пользователь"}
                         </span>
@@ -370,6 +391,19 @@ export default function AdminPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {user.subscription_type || "-"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-xs">
+                          <div className="text-purple-600 font-medium">
+                            Бонус: {user.bonus_requests || 0}
+                          </div>
+                          <div className="text-gray-600">
+                            Дневной: {user.daily_used || 0} / {user.daily_limit || 0}
+                          </div>
+                          <div className="text-green-600 font-medium">
+                            Всего: {((user.daily_limit || 0) - (user.daily_used || 0) + (user.bonus_requests || 0))}
+                          </div>
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         {formatDate(user.last_seen_at)}
@@ -402,11 +436,10 @@ export default function AdminPage() {
                           )}
                           <button
                             onClick={() => handleToggleVacancies(user)}
-                            className={`p-1.5 rounded ${
-                              user.can_create_vacancies
+                            className={`p-1.5 rounded ${user.can_create_vacancies
                                 ? "text-orange-600 hover:bg-orange-50"
                                 : "text-gray-400 hover:bg-gray-50"
-                            }`}
+                              }`}
                             title={user.can_create_vacancies ? "Запретить вакансии" : "Разрешить вакансии"}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -427,16 +460,16 @@ export default function AdminPage() {
                             </svg>
                           </button>
                           <button
-                            onClick={() => handleToggleAdmin(user)}
-                            className={`p-1.5 rounded ${
-                              user.role === "admin"
-                                ? "text-red-600 hover:bg-red-50"
-                                : "text-gray-400 hover:bg-gray-50"
-                            }`}
-                            title={user.role === "admin" ? "Убрать админа" : "Сделать админом"}
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setRequestsAmount("");
+                              setShowRequestsModal(true);
+                            }}
+                            className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
+                            title="Выдать запросы"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
                           </button>
                         </div>
@@ -492,14 +525,12 @@ export default function AdminPage() {
                 </div>
                 <button
                   onClick={() => handleToggleSetting(setting)}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    setting.value.enabled ? "bg-orange-500" : "bg-gray-200"
-                  }`}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${setting.value.enabled ? "bg-orange-500" : "bg-gray-200"
+                    }`}
                 >
                   <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      setting.value.enabled ? "translate-x-5" : "translate-x-0"
-                    }`}
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${setting.value.enabled ? "translate-x-5" : "translate-x-0"
+                      }`}
                   />
                 </button>
               </div>
@@ -583,6 +614,71 @@ export default function AdminPage() {
                 className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
               >
                 Сохранить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Requests Modal */}
+      {showRequestsModal && selectedUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              Выдать запросы
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              {selectedUser.email}
+            </p>
+
+            {/* Current state */}
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <div className="text-sm font-medium text-gray-700 mb-2">Текущее состояние:</div>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Бонусные запросы:</span>
+                  <span className="font-medium text-purple-600">{selectedUser.bonus_requests || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Дневной лимит:</span>
+                  <span className="font-medium">{selectedUser.daily_limit || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Использовано сегодня:</span>
+                  <span className="font-medium">{selectedUser.daily_used || 0}</span>
+                </div>
+                <div className="flex justify-between border-t border-gray-200 pt-1 mt-1">
+                  <span className="text-gray-700 font-medium">Доступно всего:</span>
+                  <span className="font-bold text-green-600">
+                    {((selectedUser.daily_limit || 0) - (selectedUser.daily_used || 0) + (selectedUser.bonus_requests || 0))}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <input
+              type="number"
+              min="1"
+              placeholder="Количество запросов для добавления"
+              value={requestsAmount}
+              onChange={(e) => setRequestsAmount(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+            <p className="text-xs text-gray-500 mt-2">
+              Запросы будут добавлены к текущим бонусным запросам пользователя
+            </p>
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={() => setShowRequestsModal(false)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleAddRequests}
+                className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
+              >
+                Выдать
               </button>
             </div>
           </div>
