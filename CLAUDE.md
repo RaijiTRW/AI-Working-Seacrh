@@ -278,8 +278,7 @@ backend/JobAISeacrh_Backend/  # Backend (только AI + парсинг)
 │   ├── conversation_service.py      # Сервис чатов
 │   ├── admin_service.py      # Сервис админки
 │   ├── auth_service.py       # JWT авторизация
-│   ├── subscription_service.py      # Подписки и лимиты запросов
-│   └── yookassa_service.py   # Интеграция с YooKassa
+│   └── subscription_service.py      # Подписки и лимиты запросов
 ├── scheduler/                # Автопарсинг
 │   ├── scheduler.py          # APScheduler (HH/SJ 2ч, верификация 1ч, модерация 1ч)
 │   ├── jobs.py               # ParsingJob, AvitoParsingJob, VerificationJob, ModerationJob
@@ -324,9 +323,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
 SUPABASE_SERVICE_ROLE_KEY=xxx
 NEXT_PUBLIC_API_URL=http://localhost:8000
 
-# OpenRouter для AI-чата поддержки
-OPENROUTER_API_KEY=sk-or-xxx
-MODEL_NAME=anthropic/claude-sonnet-4-5-20250514
+# YooKassa (платежи через Next.js API routes)
+YOOKASSA_SHOP_ID=xxx
+YOOKASSA_SECRET_KEY=xxx
+YOOKASSA_RETURN_URL=https://jobaisearch.ru/subscription/success
 ```
 
 ### Backend (.env in backend/JobAISeacrh_Backend/)
@@ -339,11 +339,6 @@ SUPABASE_URL=xxx
 # service_role обходит RLS, нужен для админ-операций
 # Supabase Dashboard → Settings → API → service_role
 SUPABASE_KEY=service_role_key_here
-
-# YooKassa (для подписок)
-YOOKASSA_SHOP_ID=xxx
-YOOKASSA_SECRET_KEY=xxx
-YOOKASSA_RETURN_URL=https://jobaisearch.ru/subscription/success
 
 DEBUG=true
 CORS_ORIGINS=["http://localhost:3000"]

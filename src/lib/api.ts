@@ -30,9 +30,10 @@ export interface ChatResponse {
 }
 
 export interface StreamMessage {
-  type: "text" | "vacancies" | "rejected_vacancies" | "done";
+  type: "text" | "vacancies" | "vacancies_chunk" | "rejected_vacancies" | "progress" | "done";
   content: string | Vacancy[];
   chat_id?: string;
+  message?: string;
 }
 
 /**
@@ -760,6 +761,9 @@ export async function checkIsAdmin(token: string): Promise<boolean> {
 // === Employer Vacancy Moderation API ===
 
 export interface EmployerVacancyModeration extends EmployerVacancy {
+  rejection_reason?: string;
+  moderation_checked_at?: string;
+  moderated_by?: string;
   profiles?: {
     full_name?: string;
     email: string;

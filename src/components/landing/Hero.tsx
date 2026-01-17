@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/useAuth";
-import { ChatCard, VacancyCard, ResumeCard, EmployerStatsCard } from "./hero";
+import ChatCard from "./hero/ChatCard";
+import VacancyCard from "./hero/VacancyCard";
+import ResumeCard from "./hero/ResumeCard";
+import EmployerStatsCard from "./hero/EmployerStatsCard";
 
 type HeroMode = "jobseeker" | "employer";
 

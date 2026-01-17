@@ -232,7 +232,7 @@ export default function ChatMessages({
       })}
 
       {/* Streaming message */}
-      {isTyping && (streamingText || streamingVacancies.length > 0) && (
+      {isTyping && (streamingText || (streamingVacancies?.length ?? 0) > 0) && (
         <div className="animate-in fade-in duration-300">
           <AssistantMessage
             content={streamingText || "Ищу вакансии..."}
@@ -244,7 +244,7 @@ export default function ChatMessages({
       )}
 
       {/* Typing indicator (before text starts streaming) */}
-      {isTyping && !streamingText && streamingVacancies.length === 0 && (
+      {isTyping && !streamingText && (streamingVacancies?.length ?? 0) === 0 && (
         <div className="flex gap-3 max-w-3xl animate-in fade-in duration-300">
           <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
             <span className="text-white text-xs font-bold">AI</span>

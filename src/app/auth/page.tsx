@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import AuthHero from "@/components/auth/AuthHero";
 import AuthForm from "@/components/auth/AuthForm";
 
@@ -14,7 +15,9 @@ export default function AuthPage() {
 
       {/* Right side - Form */}
       <div className="bg-white flex items-center justify-center px-4 py-8 sm:px-6 sm:py-12">
-        <AuthForm />
+        <Suspense fallback={<div className="text-center">Загрузка...</div>}>
+          <AuthForm />
+        </Suspense>
       </div>
     </div>
   );
