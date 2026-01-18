@@ -26,6 +26,7 @@ jobs:
           username: ${{ secrets.VDS_USERNAME }}
           key: ${{ secrets.VDS_SSH_KEY }}
           port: ${{ secrets.VDS_PORT || 22 }}
+          script_shell: bash
           script: |
             echo "=== Starting deployment ==="
             cd /c/apps/AI-Working-Seacrh
