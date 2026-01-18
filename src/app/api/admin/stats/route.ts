@@ -3,11 +3,17 @@ import { getSupabaseAdmin, getUserFromToken } from "@/lib/supabase-admin";
 
 async function isAdmin(userId: string): Promise<boolean> {
   const supabase = getSupabaseAdmin();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("role")
     .eq("user_id", userId)
     .single();
+
+  console.log("[isAdmin] Checking userId:", userId);
+  console.log("[isAdmin] Profile data:", data);
+  console.log("[isAdmin] Error:", error);
+  console.log("[isAdmin] Is admin:", data?.role === "admin");
+
   return data?.role === "admin";
 }
 
