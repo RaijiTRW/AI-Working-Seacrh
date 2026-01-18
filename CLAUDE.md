@@ -71,6 +71,13 @@
     - Отклоненные вакансии → админ-панель для ручной проверки
     - Админ может одобрить/отклонить вручную
     - Статусы: draft, pending_review, published, rejected
+26. **Автодеплой через GitHub Actions + уведомления** (сделан) 🚀
+    - Zero-downtime deployment с PM2
+    - При пуше в main → автоматический деплой на VDS
+    - Старая версия работает пока новая не запустится
+    - Уведомление пользователям об обновлении (правый верхний угол)
+    - Проверка версии каждые 30 сек
+    - Кнопка "Обновить сейчас" для перезагрузки страницы
 
 ## Стек
 
@@ -190,6 +197,7 @@ src/                          # Frontend (Next.js)
 │   ├── messages/page.tsx     # Чат с работодателями
 │   ├── admin/page.tsx        # Админ-панель
 │   ├── api/                  # Next.js API Routes
+│   │   ├── version/route.ts  # GET версия приложения (для автодеплоя)
 │   │   ├── vacancies/        # Лента вакансий
 │   │   │   ├── feed/route.ts         # GET лента (наши + сеть)
 │   │   │   └── stats/route.ts        # GET статистика
@@ -231,6 +239,7 @@ src/                          # Frontend (Next.js)
 │       ├── page.tsx          # Управление подпиской
 │       └── success/page.tsx  # После оплаты
 ├── components/
+│   ├── UpdateNotification.tsx # Уведомление об обновлении (автодеплой)
 │   ├── landing/              # Компоненты лендинга
 │   │   └── Pricing.tsx       # Секция цен
 │   ├── auth/                 # Компоненты авторизации
@@ -389,11 +398,21 @@ uvicorn app.main:app --reload
 - Домен: `jobaisearch.ru`
 - См. файл: `DEPLOY.md`
 
-### Ключевые моменты
-- NSSM для служб Windows (Frontend, Backend, Nginx)
+### CI/CD (Автодеплой)
+- **GitHub Actions** при пуше в `main`
+- **PM2** для zero-downtime reload (вместо NSSM)
+- Конфигурация: [ecosystem.config.js](ecosystem.config.js)
+- Workflow: [.github/workflows/deploy.yml](.github/workflows/deploy.yml)
+- **Старый сайт работает пока новый не запустится**
+- Уведомление пользователям об обновлении (каждые 30 сек проверка версии)
+- API версии: `/api/version` (читает файл `.version`)
+
+### Ключевые моменты деплоя
+- **PM2** для zero-downtime deployment (Frontend: 2 инстанса cluster, Backend: 1 инстанс)
 - Nginx как reverse proxy (80/443 → 3000/8000)
 - SSL через win-acme (Let's Encrypt)
-- Автоперезапуск при падении служб
+- Автоперезапуск при падении через PM2
+- SSH доступ для GitHub Actions (OpenSSH Server)
 
 ### Система подписок (трёхуровневая)
 

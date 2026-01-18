@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ClientProviders } from "@/components/providers/ClientProviders";
+import UpdateNotification from "@/components/UpdateNotification";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,8 +29,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "JobSearch — Быстрый поиск работы с ИИ",
-    template: "%s | JobSearch",
+    default: "JobAISearch — Быстрый поиск работы с ИИ",
+    template: "%s | JobAISearch",
+  },
+  icons: {
+    icon: "/favicon.ico",
   },
   description:
     "Найдите работу быстрее с помощью искусственного интеллекта. Вакансии с hh.ru, Avito, SuperJob в одном месте. Персональный подбор без дубликатов.",
@@ -134,6 +138,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ClientProviders>{children}</ClientProviders>
+        <UpdateNotification />
       </body>
     </html>
   );

@@ -440,58 +440,124 @@ Get-Content C:\logs\nginx\error.log -Tail 50
 
 ---
 
-## 11. Обновление приложения
+## 11. Автоматический деплой через GitHub Actions
 
-### 11.1 Скрипт обновления Frontend
-```batch
-@echo off
-REM C:\apps\update-frontend.bat
+### 11.1 Настройка GitHub Secrets
 
-echo Stopping frontend service...
-nssm stop JobAISearch-Frontend
+В репозитории GitHub → Settings → Secrets and variables → Actions добавить:
 
-cd /d C:\apps\jobaisearch-frontend
+- `VDS_HOST` - IP адрес или домен сервера
+- `VDS_USERNAME` - имя пользователя (обычно `Administrator`)
+- `VDS_SSH_KEY` - приватный SSH ключ (см. ниже как создать)
+- `VDS_PORT` - порт SSH (обычно 22)
 
-echo Pulling latest changes...
-git pull origin main
+**Создание SSH ключа на VDS:**
+```powershell
+# На VDS установить OpenSSH Server
+Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+Start-Service sshd
+Set-Service -Name sshd -StartupType 'Automatic'
 
-echo Installing dependencies...
-call npm install
+# Создать ключ
+ssh-keygen -t rsa -b 4096 -C "github-actions"
 
-echo Building...
-call npm run build
+# Ключ сохранится в C:\Users\Administrator\.ssh\id_rsa
+# Публичный ключ добавить в authorized_keys
+type C:\Users\Administrator\.ssh\id_rsa.pub >> C:\Users\Administrator\.ssh\authorized_keys
 
-echo Starting frontend service...
-nssm start JobAISearch-Frontend
-
-echo Frontend updated successfully!
-pause
+# Приватный ключ (id_rsa) добавить в GitHub Secrets
 ```
 
-### 11.2 Скрипт обновления Backend
-```batch
-@echo off
-REM C:\apps\update-backend.bat
+### 11.2 Настройка PM2 для zero-downtime deploy
 
-echo Stopping backend service...
+**Установить PM2:**
+```powershell
+npm install -g pm2
+npm install -g pm2-windows-service
+
+# Установить как службу Windows
+pm2-service-install
+# При установке указать имя пользователя и пароль
+```
+
+**Применить конфигурацию:**
+```powershell
+cd C:\apps\AI-Working-Seacrh
+pm2 start ecosystem.config.js
+
+# Сохранить конфигурацию для автозапуска
+pm2 save
+```
+
+**Конфигурация ecosystem.config.js уже создана в проекте**
+
+### 11.3 Workflow GitHub Actions
+
+Файл [.github/workflows/deploy.yml](.github/workflows/deploy.yml) уже создан.
+
+**Как работает автодеплой:**
+1. При пуше в `main` ветку запускается GitHub Action
+2. Подключается к VDS по SSH
+3. Обновляет код из git
+4. Устанавливает зависимости
+5. Собирает Next.js
+6. Делает **PM2 reload** (zero-downtime) - старая версия работает пока новая не запустится
+7. Сохраняет версию в файл `.version` для проверки обновлений
+
+**Старый сайт работает до полного запуска нового!**
+
+### 11.4 Уведомление пользователей об обновлении
+
+**Автоматическое уведомление:**
+- Компонент [UpdateNotification.tsx](src/components/UpdateNotification.tsx) проверяет версию каждые 30 сек
+- При обновлении показывается уведомление в правом верхнем углу
+- Пользователь видит кнопку "Обновить сейчас"
+- После клика - страница перезагружается на новую версию
+
+**API endpoint для версии:**
+- `/api/version` - возвращает текущий commit SHA
+
+### 11.5 Миграция с NSSM на PM2
+
+Если используешь NSSM, нужно переключиться на PM2:
+
+```powershell
+# Остановить и удалить старые службы
+nssm stop JobAISearch-Frontend
 nssm stop JobAISearch-Backend
+nssm remove JobAISearch-Frontend confirm
+nssm remove JobAISearch-Backend confirm
 
-cd /d C:\apps\jobaisearch-backend
+# Запустить через PM2
+cd C:\apps\AI-Working-Seacrh
+pm2 start ecosystem.config.js
+pm2 save
 
-echo Pulling latest changes...
+# Проверить статус
+pm2 status
+pm2 logs
+```
+
+### 11.6 Ручное обновление (если нужно)
+
+Если нужно обновить вручную:
+```powershell
+cd C:\apps\AI-Working-Seacrh
+
+# Обновить код
 git pull origin main
 
-echo Activating venv...
-call venv\Scripts\activate
-
-echo Installing dependencies...
+# Установить зависимости
+npm install
+cd backend\JobAISeacrh_Backend
 pip install -r requirements.txt
+cd ..\..
 
-echo Starting backend service...
-nssm start JobAISearch-Backend
+# Собрать
+npm run build
 
-echo Backend updated successfully!
-pause
+# Перезапустить (zero-downtime)
+pm2 reload all
 ```
 
 ---

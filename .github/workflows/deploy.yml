@@ -1,0 +1,75 @@
+name: Auto Deploy to VDS
+
+on:
+  push:
+    branches:
+      - main  # Деплой при пуше в main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Получаем всю историю для версионирования
+
+      - name: Get commit SHA (short)
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Deploy to VDS
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VDS_HOST }}
+          username: ${{ secrets.VDS_USERNAME }}
+          key: ${{ secrets.VDS_SSH_KEY }}
+          port: ${{ secrets.VDS_PORT || 22 }}
+          script: |
+            echo "=== Starting deployment ==="
+            cd C:\apps\AI-Working-Seacrh
+
+            # Сохраняем текущий коммит для проверки версии
+            git rev-parse --short HEAD > .version-old
+
+            # Обновляем код
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Сохраняем новый коммит
+            git rev-parse --short HEAD > .version
+
+            echo "=== Installing dependencies ==="
+            # Frontend
+            call npm install --production=false
+
+            # Backend
+            cd backend\JobAISeacrh_Backend
+            call pip install -r requirements.txt
+            cd ..\..
+
+            echo "=== Building Next.js ==="
+            set NODE_ENV=production
+            call npm run build
+
+            echo "=== Reloading services (zero-downtime) ==="
+            # PM2 reload без даунтайма
+            call pm2 reload jobai-frontend --update-env
+            call pm2 reload jobai-backend --update-env
+
+            # Проверяем статус
+            call pm2 status
+
+            echo "=== Deployment completed successfully ==="
+            echo "Old version: $(type .version-old)"
+            echo "New version: $(type .version)"
+
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Deployment successful! Version: ${{ steps.vars.outputs.sha_short }}"
+          else
+            echo "❌ Deployment failed!"
+          fi
