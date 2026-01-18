@@ -28,7 +28,7 @@ jobs:
           port: ${{ secrets.VDS_PORT || 22 }}
           script: |
             echo "=== Starting deployment ==="
-            cd C:\apps\AI-Working-Seacrh
+            cd /c/apps/AI-Working-Seacrh
 
             # Сохраняем текущий коммит для проверки версии
             git rev-parse --short HEAD > .version-old
@@ -42,28 +42,28 @@ jobs:
 
             echo "=== Installing dependencies ==="
             # Frontend
-            call npm install --production=false
+            npm install --production=false
 
             # Backend
-            cd backend\JobAISeacrh_Backend
-            call pip install -r requirements.txt
-            cd ..\..
+            cd backend/JobAISeacrh_Backend
+            pip install -r requirements.txt
+            cd ../..
 
             echo "=== Building Next.js ==="
-            set NODE_ENV=production
-            call npm run build
+            export NODE_ENV=production
+            npm run build
 
             echo "=== Reloading services (zero-downtime) ==="
             # PM2 reload без даунтайма
-            call pm2 reload jobai-frontend --update-env
-            call pm2 reload jobai-backend --update-env
+            pm2 reload jobai-frontend --update-env
+            pm2 reload jobai-backend --update-env
 
             # Проверяем статус
-            call pm2 status
+            pm2 status
 
             echo "=== Deployment completed successfully ==="
-            echo "Old version: $(type .version-old)"
-            echo "New version: $(type .version)"
+            echo "Old version: $(cat .version-old)"
+            echo "New version: $(cat .version)"
 
       - name: Notify deployment status
         if: always()
