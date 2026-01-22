@@ -26,40 +26,65 @@ jobs:
           username: ${{ secrets.VDS_USERNAME }}
           key: ${{ secrets.VDS_SSH_KEY }}
           port: ${{ secrets.VDS_PORT || 22 }}
-          script_shell: bash
+          command_timeout: 15m
           script: |
             echo "=== Starting deployment ==="
             cd /c/apps/AI-Working-Seacrh
 
             # Сохраняем текущий коммит для проверки версии
-            git rev-parse --short HEAD > .version-old
+            git rev-parse --short HEAD > .version-old 2>/dev/null || echo "unknown" > .version-old
 
-            # Обновляем код
+            echo "=== Pulling latest code ==="
             git fetch origin main
             git reset --hard origin/main
 
             # Сохраняем новый коммит
             git rev-parse --short HEAD > .version
 
-            echo "=== Installing dependencies ==="
-            # Frontend
-            npm install --production=false
+            echo "=== Installing Frontend dependencies ==="
+            npm ci --production=false
 
-            # Backend
-            cd backend/JobAISeacrh_Backend
-            pip install -r requirements.txt
-            cd ../..
+            echo "=== Installing Backend dependencies ==="
+            cd backend
+            pip install -r requirements.txt --quiet
+            cd ..
 
             echo "=== Building Next.js ==="
             export NODE_ENV=production
             npm run build
 
-            echo "=== Reloading services (zero-downtime) ==="
-            # PM2 reload без даунтайма
-            pm2 reload jobai-frontend --update-env
-            pm2 reload jobai-backend --update-env
+            echo "=== Restarting services with PM2 (zero-downtime) ==="
+            # Проверяем, запущен ли PM2
+            if pm2 list | grep -q "jobai"; then
+              # PM2 reload для zero-downtime
+              pm2 reload ecosystem.config.js --update-env
+            else
+              # Первый запуск
+              pm2 start ecosystem.config.js
+            fi
 
-            # Проверяем статус
+            # Сохраняем конфигурацию PM2
+            pm2 save
+
+            echo "=== Waiting for services to start ==="
+            sleep 5
+
+            echo "=== Health check ==="
+            # Frontend check
+            if curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/api/version | grep -q "200"; then
+              echo "✓ Frontend is healthy"
+            else
+              echo "⚠ Frontend health check failed, but continuing..."
+            fi
+
+            # Backend check
+            if curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/health | grep -q "200"; then
+              echo "✓ Backend is healthy"
+            else
+              echo "⚠ Backend health check failed, but continuing..."
+            fi
+
+            # PM2 status
             pm2 status
 
             echo "=== Deployment completed successfully ==="

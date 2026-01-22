@@ -28,9 +28,9 @@ module.exports = {
     {
       name: 'jobai-backend',
       script: 'uvicorn',
-      args: 'app.main:app --host 127.0.0.1 --port 8000',
-      cwd: 'C:\\apps\\AI-Working-Seacrh\\backend\\JobAISeacrh_Backend',
-      interpreter: 'C:\\Python312\\python.exe',
+      args: 'main:app --host 127.0.0.1 --port 8000',
+      cwd: 'C:\\apps\\AI-Working-Seacrh\\backend',
+      interpreter: 'python',
       interpreter_args: '-m',
       instances: 1, // FastAPI - 1 инстанс (scheduler конфликтует)
       exec_mode: 'fork',
