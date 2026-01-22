@@ -38,7 +38,6 @@ jobs:
             echo === Git pull ===
             git fetch origin main
             git reset --hard origin/main
-            git rev-parse --short HEAD > .version
 
             echo === Installing dependencies ===
             call npm ci --prefer-offline --no-audit
@@ -48,14 +47,30 @@ jobs:
             pip install -r requirements.txt --quiet
             cd ..
 
-            echo === Clearing cache and building ===
+            echo === Stopping services ===
+            C:\nssm-2.24\win64\nssm.exe stop jobai-frontend
+            C:\nssm-2.24\win64\nssm.exe stop jobai-backend
+            timeout /t 2 /nobreak
+
+            echo === Clearing all caches ===
             if exist .next rmdir /s /q .next
+            if exist node_modules\.cache rmdir /s /q node_modules\.cache
+
+            echo === Building frontend ===
             call npm run build
 
-            echo === Restarting services via NSSM ===
-            C:\nssm-2.24\win64\nssm.exe restart jobai-backend
+            echo === Updating version file ===
+            git rev-parse --short HEAD > .version
+
+            echo === Starting services ===
+            C:\nssm-2.24\win64\nssm.exe start jobai-backend
             timeout /t 3 /nobreak
-            C:\nssm-2.24\win64\nssm.exe restart jobai-frontend
+            C:\nssm-2.24\win64\nssm.exe start jobai-frontend
+            timeout /t 5 /nobreak
+
+            echo === Verifying services ===
+            C:\nssm-2.24\win64\nssm.exe status jobai-frontend
+            C:\nssm-2.24\win64\nssm.exe status jobai-backend
 
             echo === Done ===
 
