@@ -57,9 +57,10 @@ jobs:
             echo === Updating version file ===
             git rev-parse --short HEAD > .version
 
-            echo === Restarting services via scheduled task ===
-            schtasks /run /tn "JobAI-Restart"
-            timeout /t 15 /nobreak
+            echo === Triggering restart ===
+            echo restart > .restart-needed
+            echo Waiting for watchdog to restart services...
+            timeout /t 90 /nobreak
 
             echo === Health check ===
             curl -s http://127.0.0.1:3000/api/version || echo Frontend not responding yet
