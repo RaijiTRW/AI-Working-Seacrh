@@ -57,14 +57,9 @@ jobs:
             echo === Updating version file ===
             git rev-parse --short HEAD > .version
 
-            echo === Restarting services ===
-            echo Killing frontend process...
-            for /f "tokens=2" %%i in ('netstat -ano ^| findstr :3000 ^| findstr LISTENING') do taskkill /F /PID %%i 2>nul
-            echo Killing backend process...
-            for /f "tokens=2" %%i in ('netstat -ano ^| findstr :8001 ^| findstr LISTENING') do taskkill /F /PID %%i 2>nul
-
-            echo Waiting for NSSM to restart services...
-            timeout /t 10 /nobreak
+            echo === Restarting services via scheduled task ===
+            schtasks /run /tn "JobAI-Restart"
+            timeout /t 15 /nobreak
 
             echo === Health check ===
             curl -s http://127.0.0.1:3000/api/version || echo Frontend not responding yet

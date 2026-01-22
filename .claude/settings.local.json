@@ -61,7 +61,8 @@
       "Bash(/c/nssm-2.24/win64/nssm.exe restart jobai-frontend)",
       "Bash(tasklist:*)",
       "Bash(net stop:*)",
-      "Bash(net start jobai-frontend)"
+      "Bash(net start jobai-frontend)",
+      "Bash(cmd //c \"taskkill /F /PID 4992\")"
     ]
   }
 }
