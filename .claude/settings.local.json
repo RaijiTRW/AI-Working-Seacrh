@@ -41,7 +41,8 @@
       "Bash(./nginx.exe:*)",
       "Bash(if not exist \"c:\\\\apps\\\\AI-Working-Seacrh\\\\logs\" mkdir \"c:\\\\apps\\\\AI-Working-Seacrh\\\\logs\")",
       "Bash(node:*)",
-      "Bash(netsh advfirewall firewall add rule:*)"
+      "Bash(netsh advfirewall firewall add rule:*)",
+      "Bash(TURBOPACK=0 npx next:*)"
     ]
   }
 }

@@ -6,12 +6,12 @@ import UpdateNotification from "@/components/UpdateNotification";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
-  subsets: ["latin", "cyrillic"],
+  subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin", "cyrillic"],
+  subsets: ["latin"],
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://jobaisearch.ru";
@@ -32,10 +32,7 @@ export const metadata: Metadata = {
     default: "JobAISearch — Быстрый поиск работы с ИИ",
     template: "%s | JobAISearch",
   },
-  icons: {
-    icon: "/favicon.ico",
-  },
-  description:
+    description:
     "Найдите работу быстрее с помощью искусственного интеллекта. Вакансии с hh.ru, Avito, SuperJob в одном месте. Персональный подбор без дубликатов.",
   keywords: [
     "поиск работы",
@@ -129,10 +126,7 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-        <link rel="apple-touch-icon" href="/favicon-master-512.png" />
+        <link rel="apple-touch-icon" href="/favicon-master-512.png?v=2" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
