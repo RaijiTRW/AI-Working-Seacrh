@@ -629,7 +629,7 @@ export default function ChatPage() {
       {/* Chat area */}
       <main className="flex-1 flex flex-col relative overflow-hidden">
         {/* Messages area - always present but hidden when empty */}
-        <div className={`flex-1 overflow-y-auto pb-44 transition-opacity duration-500 ${hasStarted && showMessages ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className={`flex-1 overflow-y-auto pb-60 transition-opacity duration-500 ${hasStarted && showMessages ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <ChatMessages
             messages={messages}
             isTyping={isTyping}
