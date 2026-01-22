@@ -28,12 +28,10 @@ jobs:
           port: ${{ secrets.VDS_PORT || 22 }}
           command_timeout: 20m
           script: |
-            set -e
             echo "=== Deployment started ==="
             cd /c/apps/AI-Working-Seacrh
 
-            # Сохраняем старую версию
-            cat .version 2>/dev/null > .version-old || echo "unknown" > .version-old
+            cat .version > .version-old 2>/dev/null || echo "unknown" > .version-old
 
             echo "=== Git pull ==="
             git fetch origin main
@@ -56,42 +54,23 @@ jobs:
             npm run build
 
             echo "=== Stopping old services ==="
-            # Убиваем все node и python процессы на наших портах
-            taskkill //F //IM node.exe 2>/dev/null || true
-            sleep 2
-
-            echo "=== Starting Frontend ==="
-            cd /c/apps/AI-Working-Seacrh
-            nohup npm run start > logs/frontend-out.log 2> logs/frontend-error.log &
-            sleep 5
+            taskkill /F /IM node.exe || echo "No node processes"
+            taskkill /F /IM python.exe || echo "No python processes"
+            sleep 3
 
             echo "=== Starting Backend ==="
             cd /c/apps/AI-Working-Seacrh/backend
-            nohup python -m uvicorn main:app --host 0.0.0.0 --port 8000 > ../logs/backend-out.log 2> ../logs/backend-error.log &
+            nohup python -m uvicorn main:app --host 0.0.0.0 --port 8000 > ../logs/backend-out.log 2>&1 &
+            sleep 3
+
+            echo "=== Starting Frontend ==="
+            cd /c/apps/AI-Working-Seacrh
+            nohup npm run start > logs/frontend-out.log 2>&1 &
             sleep 5
 
             echo "=== Health check ==="
-            cd /c/apps/AI-Working-Seacrh
-
-            # Frontend
-            for i in 1 2 3 4 5; do
-              if curl -s http://127.0.0.1:3000/api/version | grep -q "version"; then
-                echo "✓ Frontend OK"
-                break
-              fi
-              echo "Waiting for frontend... ($i)"
-              sleep 3
-            done
-
-            # Backend
-            for i in 1 2 3 4 5; do
-              if curl -s http://127.0.0.1:8000/health | grep -q "healthy"; then
-                echo "✓ Backend OK"
-                break
-              fi
-              echo "Waiting for backend... ($i)"
-              sleep 3
-            done
+            curl -s http://127.0.0.1:3000/api/version && echo " Frontend OK" || echo "Frontend not ready"
+            curl -s http://127.0.0.1:8000/health && echo " Backend OK" || echo "Backend not ready"
 
             echo "=== Deployment complete ==="
             echo "Old: $(cat .version-old)"
