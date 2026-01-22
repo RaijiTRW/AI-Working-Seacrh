@@ -94,7 +94,7 @@
 - OpenRouter API (Claude Sonnet 4.5)
 - httpx + BeautifulSoup (парсинг)
 - APScheduler (автопарсинг)
-- Путь: `backend/JobAISeacrh_Backend/`
+- Путь: `backend/`
 - **Только**: AI чат для поиска вакансий, парсеры, scheduler
 
 ### Next.js API Routes (всё остальное)
@@ -267,7 +267,7 @@ src/                          # Frontend (Next.js)
     ├── useSubscription.ts    # Хук подписки
     └── api.ts                # API клиент
 
-backend/JobAISeacrh_Backend/  # Backend (только AI + парсинг)
+backend/  # Backend (только AI + парсинг)
 ├── main.py                   # FastAPI app + scheduler startup
 ├── config.py                 # Настройки (OpenRouter)
 ├── api/routes/
@@ -338,7 +338,7 @@ YOOKASSA_SECRET_KEY=xxx
 YOOKASSA_RETURN_URL=https://jobaisearch.ru/subscription/success
 ```
 
-### Backend (.env in backend/JobAISeacrh_Backend/)
+### Backend (.env in backend/)
 ```
 OPENROUTER_API_KEY=sk-or-xxx
 OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
@@ -480,6 +480,6 @@ npm run diagnose
 
 **Backend:**
 - HTTP 402 при превышении лимита
-- `can_search_online: false` для Base плана (принудительно в [chat.py:237-240](backend/JobAISeacrh_Backend/api/routes/chat.py#L237-L240))
+- `can_search_online: false` для Base плана (принудительно в [chat.py:237-240](backend/api/routes/chat.py#L237-L240))
 - Админ-чат: приоритет Pro > Pro Trial > Base
 - Миграция: `015_subscription_tiers.sql` (добавлено поле `can_search_online`)

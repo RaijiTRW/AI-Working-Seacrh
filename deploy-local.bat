@@ -21,9 +21,9 @@ echo === Installing frontend dependencies ===
 call npm install
 
 echo === Installing backend dependencies ===
-cd backend\JobAISeacrh_Backend
+cd backend
 call pip install -r requirements.txt
-cd ..\..
+cd ..
 
 echo === Building Next.js ===
 set NODE_ENV=production

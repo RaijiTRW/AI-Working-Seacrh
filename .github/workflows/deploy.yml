@@ -53,19 +53,20 @@ jobs:
             echo "=== Building Next.js ==="
             npm run build
 
-            echo "=== Stopping old services ==="
-            taskkill /F /IM node.exe || echo "No node processes"
-            taskkill /F /IM python.exe || echo "No python processes"
-            sleep 3
+            echo "=== PM2 services ==="
+            # Check if PM2 processes exist, if not - start them
+            if pm2 list | grep -q "jobai-frontend"; then
+              echo "Reloading existing PM2 processes..."
+              pm2 reload all --update-env
+            else
+              echo "Starting PM2 processes for the first time..."
+              pm2 start ecosystem.config.js
+              pm2 save
+            fi
 
-            echo "=== Starting Backend ==="
-            cd /c/apps/AI-Working-Seacrh/backend
-            nohup python -m uvicorn main:app --host 0.0.0.0 --port 8000 > ../logs/backend-out.log 2>&1 &
-            sleep 3
+            echo "=== PM2 Status ==="
+            pm2 status
 
-            echo "=== Starting Frontend ==="
-            cd /c/apps/AI-Working-Seacrh
-            nohup npm run start > logs/frontend-out.log 2>&1 &
             sleep 5
 
             echo "=== Health check ==="
