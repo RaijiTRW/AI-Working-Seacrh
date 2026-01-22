@@ -28,7 +28,7 @@ module.exports = {
     {
       name: 'jobai-backend',
       script: 'uvicorn',
-      args: 'main:app --host 127.0.0.1 --port 8000',
+      args: 'main:app --host 0.0.0.0 --port 8000',
       cwd: 'C:\\apps\\AI-Working-Seacrh\\backend',
       interpreter: 'python',
       interpreter_args: '-m',
