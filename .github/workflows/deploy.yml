@@ -15,9 +15,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get commit SHA
+      - name: Get commit info
         id: vars
-        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: |
+          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "commit_msg=$(git log -1 --pretty=%B | head -1)" >> $GITHUB_OUTPUT
 
       - name: Deploy to VDS
         uses: appleboy/ssh-action@v1.0.0
@@ -26,62 +28,18 @@ jobs:
           username: ${{ secrets.VDS_USERNAME }}
           key: ${{ secrets.VDS_SSH_KEY }}
           port: ${{ secrets.VDS_PORT || 22 }}
-          command_timeout: 20m
+          command_timeout: 30m
           script: |
-            echo "=== Deployment started ==="
             cd /c/apps/AI-Working-Seacrh
+            chmod +x scripts/deploy.sh
+            bash scripts/deploy.sh
 
-            cat .version > .version-old 2>/dev/null || echo "unknown" > .version-old
-
-            echo "=== Git pull ==="
-            git fetch origin main
-            git reset --hard origin/main
-            git rev-parse --short HEAD > .version
-
-            echo "=== Cleaning cache ==="
-            rm -rf .next
-            rm -rf node_modules/.cache
-
-            echo "=== Installing dependencies ==="
-            npm ci
-
-            echo "=== Backend dependencies ==="
-            cd backend
-            pip install -r requirements.txt --quiet
-            cd ..
-
-            echo "=== Building Next.js ==="
-            npm run build
-
-            echo "=== PM2 services ==="
-            # Check if PM2 processes exist, if not - start them
-            if pm2 list | grep -q "jobai-frontend"; then
-              echo "Reloading existing PM2 processes..."
-              pm2 reload all --update-env
-            else
-              echo "Starting PM2 processes for the first time..."
-              pm2 start ecosystem.config.js
-              pm2 save
-            fi
-
-            echo "=== PM2 Status ==="
-            pm2 status
-
-            sleep 5
-
-            echo "=== Health check ==="
-            curl -s http://127.0.0.1:3000/api/version && echo " Frontend OK" || echo "Frontend not ready"
-            curl -s http://127.0.0.1:8000/health && echo " Backend OK" || echo "Backend not ready"
-
-            echo "=== Deployment complete ==="
-            echo "Old: $(cat .version-old)"
-            echo "New: $(cat .version)"
-
-      - name: Status
+      - name: Deployment Status
         if: always()
         run: |
           if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ Deploy OK: ${{ steps.vars.outputs.sha_short }}"
+            echo "✅ Deploy successful: ${{ steps.vars.outputs.sha_short }}"
+            echo "   Commit: ${{ steps.vars.outputs.commit_msg }}"
           else
-            echo "❌ Deploy FAILED"
+            echo "❌ Deploy FAILED: ${{ steps.vars.outputs.sha_short }}"
           fi
