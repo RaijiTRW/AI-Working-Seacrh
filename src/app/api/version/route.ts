@@ -20,8 +20,8 @@ export async function GET() {
       gitCommit = fs.readFileSync(versionPath, "utf-8").trim();
     }
 
-    // Формируем версию: "0.3.5" или "0.3.5 (abc1234)"
-    const version = gitCommit ? `${appVersion} (${gitCommit})` : appVersion;
+    // Версия только из package.json
+    const version = appVersion;
 
     return NextResponse.json(
       {
