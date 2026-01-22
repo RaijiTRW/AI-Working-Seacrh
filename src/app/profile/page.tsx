@@ -19,6 +19,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [version, setVersion] = useState<string | null>(null);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -27,15 +28,18 @@ export default function ProfilePage() {
         router.push("/auth");
       } else {
         setUser({ id: session.user.id, email: session.user.email });
-        // Check if user is admin
-        console.log("Checking admin status for user:", session.user.id);
         const adminStatus = await checkIsAdmin(session.access_token);
-        console.log("Admin status result:", adminStatus);
         setIsAdmin(adminStatus);
       }
       setLoading(false);
     };
     checkUser();
+
+    // Загрузка версии
+    fetch("/api/version")
+      .then(res => res.json())
+      .then(data => setVersion(data.version))
+      .catch(() => setVersion("unknown"));
   }, [router]);
 
   const handleLogout = async () => {
@@ -198,6 +202,15 @@ export default function ProfilePage() {
                   <span className="text-sm font-medium">Выйти</span>
                 </button>
               </div>
+
+              {/* Version */}
+              {version && (
+                <div className="border-t border-gray-100 mt-2 pt-3 pb-1 px-4">
+                  <p className="text-xs text-gray-400 text-center">
+                    Версия: {version}
+                  </p>
+                </div>
+              )}
             </div>
           </nav>
 
