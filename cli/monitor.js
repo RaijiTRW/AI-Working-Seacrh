@@ -217,27 +217,11 @@ function renderStatus() {
 
   console.log(`${c.bright}└──────────────────────────────────────────────────────────────┘${c.reset}`);
 
-  // PM2 процессы
-  const pm2Status = getPM2Status();
-  if (pm2Status && pm2Status.length > 0) {
-    console.log(`\n${c.bright}┌─ PM2 Процессы ───────────────────────────────────────────────┐${c.reset}`);
-    pm2Status.forEach((p) => {
-      const statusColor = p.status === 'online' ? c.green : c.red;
-      const uptime = formatUptime(p.uptime);
-      console.log(`│ ${c.yellow}${p.name.padEnd(18)}${c.reset} ${statusColor}${p.status.padEnd(8)}${c.reset} PID:${String(p.pid).padEnd(6)} RAM:${String(p.memory).padEnd(4)}MB CPU:${String(p.cpu).padEnd(3)}% Uptime:${uptime.padEnd(10)} Restarts:${p.restarts}`);
-    });
-    console.log(`${c.bright}└──────────────────────────────────────────────────────────────┘${c.reset}`);
-  }
-
-  // NSSM статус (если PM2 не найден)
-  if (!pm2Status || pm2Status.length === 0) {
-    console.log(`\n${c.bright}┌─ NSSM Сервисы ───────────────────────────────────────────────┐${c.reset}`);
-    const feSvc = getNSSMStatus(CONFIG.frontend.nssmName);
-    const beSvc = getNSSMStatus(CONFIG.backend.nssmName);
-    console.log(`│ ${c.yellow}${CONFIG.frontend.nssmName.padEnd(25)}${c.reset} ${feSvc}`);
-    console.log(`│ ${c.yellow}${CONFIG.backend.nssmName.padEnd(25)}${c.reset} ${beSvc}`);
-    console.log(`${c.bright}└──────────────────────────────────────────────────────────────┘${c.reset}`);
-  }
+  // Процессы (проверяем порты)
+  console.log(`\n${c.bright}┌─ Процессы ───────────────────────────────────────────────────┐${c.reset}`);
+  console.log(`│ ${c.yellow}Frontend (3000)${c.reset}  ${state.frontend.status === 'online' ? c.green + 'running' : c.red + 'stopped'}${c.reset}`);
+  console.log(`│ ${c.yellow}Backend (8000)${c.reset}   ${state.backend.status === 'online' ? c.green + 'running' : c.red + 'stopped'}${c.reset}`);
+  console.log(`${c.bright}└──────────────────────────────────────────────────────────────┘${c.reset}`);
 
   // Git статус
   try {
@@ -268,36 +252,55 @@ const commands = {
   async restartFrontend() {
     log.info('Перезапуск Frontend...');
     try {
-      execSync('pm2 reload jobai-frontend', { stdio: 'inherit', cwd: CONFIG.projectDir });
-      log.success('Frontend перезапущен');
-    } catch {
+      // Останавливаем старый процесс
       try {
-        execSync(`nssm restart ${CONFIG.frontend.nssmName}`, { stdio: 'inherit' });
-        log.success('Frontend перезапущен (NSSM)');
-      } catch (e) {
-        log.error(`Ошибка: ${e.message}`);
-      }
+        execSync('taskkill /F /FI "WINDOWTITLE eq npm*" 2>nul', { stdio: 'pipe' });
+      } catch {}
+
+      // Запускаем новый
+      const logOut = path.join(CONFIG.projectDir, 'logs', 'frontend-out.log');
+      const logErr = path.join(CONFIG.projectDir, 'logs', 'frontend-error.log');
+      const child = spawn('cmd', ['/c', 'npm', 'run', 'start'], {
+        cwd: CONFIG.projectDir,
+        detached: true,
+        stdio: ['ignore', fs.openSync(logOut, 'a'), fs.openSync(logErr, 'a')],
+      });
+      child.unref();
+      log.success('Frontend перезапущен');
+    } catch (e) {
+      log.error(`Ошибка: ${e.message}`);
     }
   },
 
   async restartBackend() {
     log.info('Перезапуск Backend...');
     try {
-      execSync('pm2 reload jobai-backend', { stdio: 'inherit', cwd: CONFIG.projectDir });
-      log.success('Backend перезапущен');
-    } catch {
+      // Останавливаем старый процесс на порту 8000
       try {
-        execSync(`nssm restart ${CONFIG.backend.nssmName}`, { stdio: 'inherit' });
-        log.success('Backend перезапущен (NSSM)');
-      } catch (e) {
-        log.error(`Ошибка: ${e.message}`);
-      }
+        execSync('taskkill /F /FI "IMAGENAME eq python*" 2>nul', { stdio: 'pipe' });
+      } catch {}
+
+      await new Promise(r => setTimeout(r, 1000));
+
+      // Запускаем новый
+      const logOut = path.join(CONFIG.projectDir, 'logs', 'backend-out.log');
+      const logErr = path.join(CONFIG.projectDir, 'logs', 'backend-error.log');
+      const child = spawn('python', ['-m', 'uvicorn', 'main:app', '--host', '0.0.0.0', '--port', '8000'], {
+        cwd: path.join(CONFIG.projectDir, 'backend'),
+        detached: true,
+        stdio: ['ignore', fs.openSync(logOut, 'a'), fs.openSync(logErr, 'a')],
+      });
+      child.unref();
+      log.success('Backend перезапущен');
+    } catch (e) {
+      log.error(`Ошибка: ${e.message}`);
     }
   },
 
   async restartAll() {
     log.info('Перезапуск всех сервисов...');
     await this.restartBackend();
+    await new Promise(r => setTimeout(r, 2000));
     await this.restartFrontend();
     log.success('Все сервисы перезапущены');
   },
@@ -305,16 +308,11 @@ const commands = {
   async stopAll() {
     log.warn('Остановка всех сервисов...');
     try {
-      execSync('pm2 stop all', { stdio: 'inherit', cwd: CONFIG.projectDir });
+      execSync('taskkill /F /IM node.exe 2>nul', { stdio: 'pipe' });
+      execSync('taskkill /F /IM python.exe 2>nul', { stdio: 'pipe' });
       log.success('Все сервисы остановлены');
-    } catch {
-      try {
-        execSync(`nssm stop ${CONFIG.frontend.nssmName}`, { stdio: 'inherit' });
-        execSync(`nssm stop ${CONFIG.backend.nssmName}`, { stdio: 'inherit' });
-        log.success('Все сервисы остановлены (NSSM)');
-      } catch (e) {
-        log.error(`Ошибка: ${e.message}`);
-      }
+    } catch (e) {
+      log.warn('Некоторые процессы уже остановлены');
     }
   },
 
@@ -322,19 +320,23 @@ const commands = {
     log.title('Git Pull + Rebuild');
 
     try {
-      log.info('Git fetch...');
-      execSync('git fetch origin main', { stdio: 'inherit', cwd: CONFIG.projectDir });
+      log.info('Остановка сервисов...');
+      await this.stopAll();
+      await new Promise(r => setTimeout(r, 2000));
 
       log.info('Git pull...');
-      execSync('git pull origin main', { stdio: 'inherit', cwd: CONFIG.projectDir });
+      execSync('git fetch origin main && git reset --hard origin/main', { stdio: 'inherit', cwd: CONFIG.projectDir });
+
+      log.info('Очистка кэша...');
+      execSync('rm -rf .next node_modules/.cache', { stdio: 'inherit', cwd: CONFIG.projectDir });
 
       log.info('Установка зависимостей...');
-      execSync('npm install', { stdio: 'inherit', cwd: CONFIG.projectDir });
+      execSync('npm ci', { stdio: 'inherit', cwd: CONFIG.projectDir });
 
       log.info('Сборка Next.js...');
       execSync('npm run build', { stdio: 'inherit', cwd: CONFIG.projectDir });
 
-      log.info('Перезапуск сервисов...');
+      log.info('Запуск сервисов...');
       await this.restartAll();
 
       state.lastGitPull = new Date();

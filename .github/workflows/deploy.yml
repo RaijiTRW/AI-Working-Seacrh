@@ -3,7 +3,7 @@ name: Auto Deploy to VDS
 on:
   push:
     branches:
-      - main  # Деплой при пуше в main
+      - main
 
 jobs:
   deploy:
@@ -13,9 +13,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Получаем всю историю для версионирования
+          fetch-depth: 0
 
-      - name: Get commit SHA (short)
+      - name: Get commit SHA
         id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
@@ -26,76 +26,82 @@ jobs:
           username: ${{ secrets.VDS_USERNAME }}
           key: ${{ secrets.VDS_SSH_KEY }}
           port: ${{ secrets.VDS_PORT || 22 }}
-          command_timeout: 15m
+          command_timeout: 20m
           script: |
-            echo "=== Starting deployment ==="
+            set -e
+            echo "=== Deployment started ==="
             cd /c/apps/AI-Working-Seacrh
 
-            # Сохраняем текущий коммит для проверки версии
-            git rev-parse --short HEAD > .version-old 2>/dev/null || echo "unknown" > .version-old
+            # Сохраняем старую версию
+            cat .version 2>/dev/null > .version-old || echo "unknown" > .version-old
 
-            echo "=== Pulling latest code ==="
+            echo "=== Git pull ==="
             git fetch origin main
             git reset --hard origin/main
-
-            # Сохраняем новый коммит
             git rev-parse --short HEAD > .version
 
-            echo "=== Installing Frontend dependencies ==="
-            npm ci --production=false
+            echo "=== Cleaning cache ==="
+            rm -rf .next
+            rm -rf node_modules/.cache
 
-            echo "=== Installing Backend dependencies ==="
+            echo "=== Installing dependencies ==="
+            npm ci
+
+            echo "=== Backend dependencies ==="
             cd backend
             pip install -r requirements.txt --quiet
             cd ..
 
             echo "=== Building Next.js ==="
-            export NODE_ENV=production
             npm run build
 
-            echo "=== Restarting services with PM2 (zero-downtime) ==="
-            # Проверяем, запущен ли PM2
-            if pm2 list | grep -q "jobai"; then
-              # PM2 reload для zero-downtime
-              pm2 reload ecosystem.config.js --update-env
-            else
-              # Первый запуск
-              pm2 start ecosystem.config.js
-            fi
+            echo "=== Stopping old services ==="
+            # Убиваем все node и python процессы на наших портах
+            taskkill //F //IM node.exe 2>/dev/null || true
+            sleep 2
 
-            # Сохраняем конфигурацию PM2
-            pm2 save
+            echo "=== Starting Frontend ==="
+            cd /c/apps/AI-Working-Seacrh
+            nohup npm run start > logs/frontend-out.log 2> logs/frontend-error.log &
+            sleep 5
 
-            echo "=== Waiting for services to start ==="
+            echo "=== Starting Backend ==="
+            cd /c/apps/AI-Working-Seacrh/backend
+            nohup python -m uvicorn main:app --host 0.0.0.0 --port 8000 > ../logs/backend-out.log 2> ../logs/backend-error.log &
             sleep 5
 
             echo "=== Health check ==="
-            # Frontend check
-            if curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/api/version | grep -q "200"; then
-              echo "✓ Frontend is healthy"
-            else
-              echo "⚠ Frontend health check failed, but continuing..."
-            fi
+            cd /c/apps/AI-Working-Seacrh
 
-            # Backend check
-            if curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/health | grep -q "200"; then
-              echo "✓ Backend is healthy"
-            else
-              echo "⚠ Backend health check failed, but continuing..."
-            fi
+            # Frontend
+            for i in 1 2 3 4 5; do
+              if curl -s http://127.0.0.1:3000/api/version | grep -q "version"; then
+                echo "✓ Frontend OK"
+                break
+              fi
+              echo "Waiting for frontend... ($i)"
+              sleep 3
+            done
 
-            # PM2 status
-            pm2 status
+            # Backend
+            for i in 1 2 3 4 5; do
+              if curl -s http://127.0.0.1:8000/health | grep -q "healthy"; then
+                echo "✓ Backend OK"
+                break
+              fi
+              echo "Waiting for backend... ($i)"
+              sleep 3
+            done
 
-            echo "=== Deployment completed successfully ==="
-            echo "Old version: $(cat .version-old)"
-            echo "New version: $(cat .version)"
+            echo "=== Deployment complete ==="
+            echo "Old: $(cat .version-old)"
+            echo "New: $(cat .version)"
 
-      - name: Notify deployment status
+      - name: Status
         if: always()
         run: |
           if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ Deployment successful! Version: ${{ steps.vars.outputs.sha_short }}"
+            echo "✅ Deploy OK: ${{ steps.vars.outputs.sha_short }}"
           else
-            echo "❌ Deployment failed!"
+            echo "❌ Deploy FAILED"
           fi
