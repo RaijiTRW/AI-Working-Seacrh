@@ -30,9 +30,36 @@ jobs:
           port: ${{ secrets.VDS_PORT || 22 }}
           command_timeout: 30m
           script: |
-            cd /c/apps/AI-Working-Seacrh
-            chmod +x scripts/deploy.sh
-            bash scripts/deploy.sh
+            cd C:\apps\AI-Working-Seacrh
+
+            echo === Saving current version ===
+            git rev-parse --short HEAD > .version-old 2>nul || echo unknown > .version-old
+
+            echo === Git pull ===
+            git fetch origin main
+            git reset --hard origin/main
+            git rev-parse --short HEAD > .version
+
+            echo === Installing dependencies ===
+            call npm ci --prefer-offline --no-audit
+
+            echo === Backend dependencies ===
+            cd backend
+            pip install -r requirements.txt --quiet --disable-pip-version-check
+            cd ..
+
+            echo === Building Next.js ===
+            if exist .next rmdir /s /q .next
+            call npm run build
+
+            echo === Reloading PM2 ===
+            call npx pm2 reload all --update-env || call npx pm2 start ecosystem.config.js
+            call npx pm2 save
+
+            echo === PM2 Status ===
+            call npx pm2 status
+
+            echo === Deployment complete ===
 
       - name: Deployment Status
         if: always()
