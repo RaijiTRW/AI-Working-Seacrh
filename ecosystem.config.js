@@ -3,14 +3,14 @@ module.exports = {
     {
       name: 'jobai-frontend',
       script: 'node_modules/next/dist/bin/next',
-      args: 'start -p 3001',
+      args: 'start -p 3000',
       cwd: 'C:\\apps\\AI-Working-Seacrh',
       interpreter: 'node',
       instances: 1,
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
-        PORT: 3001,
+        PORT: 3000,
       },
       autorestart: true,
       max_restarts: 10,
@@ -23,7 +23,7 @@ module.exports = {
     {
       name: 'jobai-backend',
       script: 'python',
-      args: '-m uvicorn main:app --host 0.0.0.0 --port 8001',
+      args: '-m uvicorn main:app --host 0.0.0.0 --port 8000',
       cwd: 'C:\\apps\\AI-Working-Seacrh\\backend',
       instances: 1,
       exec_mode: 'fork',

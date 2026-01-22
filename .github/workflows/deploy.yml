@@ -32,8 +32,8 @@ jobs:
           script: |
             cd C:\apps\AI-Working-Seacrh
 
-            echo === Saving current version ===
-            git rev-parse --short HEAD > .version-old 2>nul || echo unknown > .version-old
+            echo === Saving version ===
+            git rev-parse --short HEAD > .version-old
 
             echo === Git pull ===
             git fetch origin main
@@ -45,28 +45,25 @@ jobs:
 
             echo === Backend dependencies ===
             cd backend
-            pip install -r requirements.txt --quiet --disable-pip-version-check
+            pip install -r requirements.txt --quiet
             cd ..
 
-            echo === Building Next.js ===
+            echo === Clearing cache and building ===
             if exist .next rmdir /s /q .next
             call npm run build
 
-            echo === Reloading PM2 ===
-            call npx pm2 reload all --update-env || call npx pm2 start ecosystem.config.js
-            call npx pm2 save
+            echo === Restarting services via NSSM ===
+            C:\nssm-2.24\win64\nssm.exe restart jobai-backend
+            timeout /t 3 /nobreak
+            C:\nssm-2.24\win64\nssm.exe restart jobai-frontend
 
-            echo === PM2 Status ===
-            call npx pm2 status
-
-            echo === Deployment complete ===
+            echo === Done ===
 
       - name: Deployment Status
         if: always()
         run: |
           if [ "${{ job.status }}" == "success" ]; then
             echo "✅ Deploy successful: ${{ steps.vars.outputs.sha_short }}"
-            echo "   Commit: ${{ steps.vars.outputs.commit_msg }}"
           else
-            echo "❌ Deploy FAILED: ${{ steps.vars.outputs.sha_short }}"
+            echo "❌ Deploy FAILED"
           fi
