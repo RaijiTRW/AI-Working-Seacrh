@@ -47,11 +47,6 @@ jobs:
             pip install -r requirements.txt --quiet
             cd ..
 
-            echo === Stopping services ===
-            C:\nssm-2.24\win64\nssm.exe stop jobai-frontend
-            C:\nssm-2.24\win64\nssm.exe stop jobai-backend
-            timeout /t 2 /nobreak
-
             echo === Clearing all caches ===
             if exist .next rmdir /s /q .next
             if exist node_modules\.cache rmdir /s /q node_modules\.cache
@@ -62,15 +57,18 @@ jobs:
             echo === Updating version file ===
             git rev-parse --short HEAD > .version
 
-            echo === Starting services ===
-            C:\nssm-2.24\win64\nssm.exe start jobai-backend
-            timeout /t 3 /nobreak
-            C:\nssm-2.24\win64\nssm.exe start jobai-frontend
-            timeout /t 5 /nobreak
+            echo === Restarting services ===
+            echo Killing frontend process...
+            for /f "tokens=2" %%i in ('netstat -ano ^| findstr :3000 ^| findstr LISTENING') do taskkill /F /PID %%i 2>nul
+            echo Killing backend process...
+            for /f "tokens=2" %%i in ('netstat -ano ^| findstr :8001 ^| findstr LISTENING') do taskkill /F /PID %%i 2>nul
 
-            echo === Verifying services ===
-            C:\nssm-2.24\win64\nssm.exe status jobai-frontend
-            C:\nssm-2.24\win64\nssm.exe status jobai-backend
+            echo Waiting for NSSM to restart services...
+            timeout /t 10 /nobreak
+
+            echo === Health check ===
+            curl -s http://127.0.0.1:3000/api/version || echo Frontend not responding yet
+            curl -s http://127.0.0.1:8001/health || echo Backend not responding yet
 
             echo === Done ===
 
