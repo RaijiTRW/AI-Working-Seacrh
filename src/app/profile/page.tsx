@@ -35,8 +35,8 @@ export default function ProfilePage() {
     };
     checkUser();
 
-    // Загрузка версии
-    fetch("/api/version")
+    // Загрузка версии (с cache-busting)
+    fetch("/api/version", { cache: "no-store" })
       .then(res => res.json())
       .then(data => setVersion(data.version))
       .catch(() => setVersion("unknown"));

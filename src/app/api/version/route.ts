@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
+// Отключаем кеширование для этого route
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET() {
   try {
     // Читаем версию из package.json
@@ -19,12 +23,20 @@ export async function GET() {
     // Формируем версию: "0.3.5" или "0.3.5 (abc1234)"
     const version = gitCommit ? `${appVersion} (${gitCommit})` : appVersion;
 
-    return NextResponse.json({
-      version,
-      appVersion,
-      gitCommit,
-      timestamp: new Date().toISOString(),
-    });
+    return NextResponse.json(
+      {
+        version,
+        appVersion,
+        gitCommit,
+        timestamp: new Date().toISOString(),
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+          "Pragma": "no-cache",
+        },
+      }
+    );
   } catch (error) {
     console.error("[Version] Error:", error);
     return NextResponse.json(
