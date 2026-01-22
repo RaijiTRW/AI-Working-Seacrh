@@ -42,7 +42,20 @@
       "Bash(if not exist \"c:\\\\apps\\\\AI-Working-Seacrh\\\\logs\" mkdir \"c:\\\\apps\\\\AI-Working-Seacrh\\\\logs\")",
       "Bash(node:*)",
       "Bash(netsh advfirewall firewall add rule:*)",
-      "Bash(TURBOPACK=0 npx next:*)"
+      "Bash(TURBOPACK=0 npx next:*)",
+      "Bash(cmd /c \"pm2 status\")",
+      "Bash(npx pm2 status)",
+      "Bash(npx pm2:*)",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)",
+      "Bash(cmd /c \"taskkill /F /PID 22680\")",
+      "Bash(wmic process where \"name=''node.exe''\" delete)",
+      "Bash(wmic process where \"processid=22680\" delete)",
+      "Bash(wmic process:*)",
+      "Bash(C:/nssm-2.24/win64/nssm.exe status jobai-frontend)",
+      "Bash(C:/nssm-2.24/win64/nssm.exe status jobai-backend)",
+      "Bash(C:/nssm-2.24/win64/nssm.exe status jobai-caddy)",
+      "Bash(C:/nssm-2.24/win64/nssm.exe start:*)"
     ]
   }
 }

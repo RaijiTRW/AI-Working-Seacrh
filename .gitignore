@@ -44,6 +44,7 @@ yarn-error.log*
 next-env.d.ts
 
 # deployment
+/cli
 /deploy
 .version
 .version-old
