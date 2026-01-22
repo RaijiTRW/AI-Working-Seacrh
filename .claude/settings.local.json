@@ -55,7 +55,13 @@
       "Bash(C:/nssm-2.24/win64/nssm.exe status jobai-frontend)",
       "Bash(C:/nssm-2.24/win64/nssm.exe status jobai-backend)",
       "Bash(C:/nssm-2.24/win64/nssm.exe status jobai-caddy)",
-      "Bash(C:/nssm-2.24/win64/nssm.exe start:*)"
+      "Bash(C:/nssm-2.24/win64/nssm.exe start:*)",
+      "Bash(gh run:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(/c/nssm-2.24/win64/nssm.exe restart jobai-frontend)",
+      "Bash(tasklist:*)",
+      "Bash(net stop:*)",
+      "Bash(net start jobai-frontend)"
     ]
   }
 }
