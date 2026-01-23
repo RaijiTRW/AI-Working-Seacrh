@@ -43,9 +43,9 @@ jobs:
             call npm ci --prefer-offline --no-audit
 
             echo === Backend dependencies ===
-            cd backend
+            cd backend\JobAISeacrh_Backend
             pip install -r requirements.txt --quiet
-            cd ..
+            cd ..\..
 
             echo === Clearing all caches ===
             if exist .next rmdir /s /q .next
@@ -64,7 +64,7 @@ jobs:
 
             echo === Health check ===
             curl -s http://127.0.0.1:3000/api/version || echo Frontend not responding yet
-            curl -s http://127.0.0.1:8001/health || echo Backend not responding yet
+            curl -s http://127.0.0.1:8000/health || echo Backend not responding yet
 
             echo === Done ===
 

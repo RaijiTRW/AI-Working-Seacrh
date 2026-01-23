@@ -61,7 +61,7 @@ echo [4/6] Installing Frontend service...
 echo [5/6] Installing Backend service...
 %NSSM% install jobai-backend "C:\Users\Admin\AppData\Local\Programs\Python\Python314\python.exe"
 %NSSM% set jobai-backend AppParameters "-m uvicorn main:app --host 0.0.0.0 --port 8000"
-%NSSM% set jobai-backend AppDirectory "%APP_DIR%\backend"
+%NSSM% set jobai-backend AppDirectory "%APP_DIR%\backend\JobAISeacrh_Backend"
 %NSSM% set jobai-backend DisplayName "JobAI Backend (FastAPI)"
 %NSSM% set jobai-backend Description "FastAPI backend for JobAI Search"
 %NSSM% set jobai-backend Start SERVICE_AUTO_START

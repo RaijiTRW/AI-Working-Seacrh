@@ -142,9 +142,9 @@ echo [3/6] Installing dependencies...
 call npm ci --prefer-offline --no-audit
 
 echo [4/6] Backend dependencies...
-cd backend
+cd backend\JobAISeacrh_Backend
 pip install -r requirements.txt --quiet
-cd ..
+cd ..\..
 
 echo [5/6] Building frontend...
 if exist .next rmdir /s /q .next
