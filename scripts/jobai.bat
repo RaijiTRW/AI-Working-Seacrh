@@ -62,6 +62,7 @@ goto :eof
 echo Starting services...
 %NSSM% start jobai-backend
 timeout /t 2 /nobreak >nul
+call :kill_port_3000
 %NSSM% start jobai-frontend
 timeout /t 3 /nobreak >nul
 %NSSM% start jobai-caddy
@@ -72,6 +73,8 @@ goto :status
 echo Stopping services...
 %NSSM% stop jobai-caddy
 %NSSM% stop jobai-frontend
+timeout /t 1 /nobreak >nul
+call :kill_port_3000
 %NSSM% stop jobai-backend
 echo Done!
 goto :eof
@@ -80,11 +83,25 @@ goto :eof
 echo Restarting services...
 %NSSM% restart jobai-backend
 timeout /t 2 /nobreak >nul
-%NSSM% restart jobai-frontend
+
+echo Stopping frontend...
+%NSSM% stop jobai-frontend 2>nul
+timeout /t 2 /nobreak >nul
+call :kill_port_3000
+timeout /t 1 /nobreak >nul
+echo Starting frontend...
+%NSSM% start jobai-frontend
 timeout /t 3 /nobreak >nul
+
 %NSSM% restart jobai-caddy
 echo Done!
 goto :status
+
+:kill_port_3000
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":3000.*LISTENING"') do (
+    taskkill /F /PID %%a 2>nul
+)
+goto :eof
 
 :logs
 echo.
@@ -136,7 +153,11 @@ call npm run build
 echo [6/6] Restarting services...
 %NSSM% restart jobai-backend
 timeout /t 2 /nobreak >nul
-%NSSM% restart jobai-frontend
+%NSSM% stop jobai-frontend 2>nul
+timeout /t 2 /nobreak >nul
+call :kill_port_3000
+timeout /t 1 /nobreak >nul
+%NSSM% start jobai-frontend
 timeout /t 5 /nobreak >nul
 
 echo.
