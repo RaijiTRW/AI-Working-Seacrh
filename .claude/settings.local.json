@@ -63,7 +63,8 @@
       "Bash(net stop:*)",
       "Bash(net start jobai-frontend)",
       "Bash(cmd //c \"taskkill /F /PID 4992\")",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(cd:*)"
     ]
   }
 }
