@@ -2,11 +2,13 @@
 echo Restarting services...
 
 net stop jobai-frontend
-net stop jobai-backend
 timeout /t 2 /nobreak
 
-net start jobai-backend
-timeout /t 3 /nobreak
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":3000.*LISTENING"') do (
+    taskkill /F /PID %%a 2>nul
+)
+timeout /t 2 /nobreak
+
 net start jobai-frontend
 
 echo Services restarted.

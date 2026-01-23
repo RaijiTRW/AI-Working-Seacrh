@@ -20,23 +20,5 @@ module.exports = {
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
     },
-    {
-      name: 'jobai-backend',
-      script: 'python',
-      args: '-m uvicorn main:app --host 0.0.0.0 --port 8000',
-      cwd: 'C:\\apps\\AI-Working-Seacrh\\backend',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        PYTHONUNBUFFERED: '1',
-      },
-      autorestart: true,
-      max_restarts: 10,
-      min_uptime: '10s',
-      error_file: 'C:\\apps\\AI-Working-Seacrh\\logs\\backend-error.log',
-      out_file: 'C:\\apps\\AI-Working-Seacrh\\logs\\backend-out.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      merge_logs: true,
-    },
   ],
 };

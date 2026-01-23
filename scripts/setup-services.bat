@@ -23,21 +23,19 @@ set NSSM=C:\nssm-2.24\win64\nssm.exe
 set APP_DIR=C:\apps\AI-Working-Seacrh
 set CADDY_DIR=C:\caddy
 
-echo [1/6] Stopping old services...
+echo [1/5] Stopping old services...
 %NSSM% stop jobai-caddy 2>nul
 %NSSM% stop jobai-frontend 2>nul
-%NSSM% stop jobai-backend 2>nul
 net stop nginx 2>nul
 taskkill /F /IM nginx.exe 2>nul
 taskkill /F /IM caddy.exe 2>nul
 
-echo [2/6] Removing old services...
+echo [2/5] Removing old services...
 %NSSM% remove jobai-caddy confirm 2>nul
 %NSSM% remove jobai-frontend confirm 2>nul
-%NSSM% remove jobai-backend confirm 2>nul
 sc delete nginx 2>nul
 
-echo [3/6] Installing Caddy service...
+echo [3/5] Installing Caddy service...
 %NSSM% install jobai-caddy "%CADDY_DIR%\caddy.exe"
 %NSSM% set jobai-caddy AppParameters "run --config %CADDY_DIR%\Caddyfile"
 %NSSM% set jobai-caddy AppDirectory "%CADDY_DIR%"
@@ -47,7 +45,7 @@ echo [3/6] Installing Caddy service...
 %NSSM% set jobai-caddy AppStdout "%APP_DIR%\logs\caddy-out.log"
 %NSSM% set jobai-caddy AppStderr "%APP_DIR%\logs\caddy-error.log"
 
-echo [4/6] Installing Frontend service...
+echo [4/5] Installing Frontend service...
 %NSSM% install jobai-frontend "C:\Program Files\nodejs\node.exe"
 %NSSM% set jobai-frontend AppParameters "%APP_DIR%\node_modules\next\dist\bin\next" start -p 3000
 %NSSM% set jobai-frontend AppDirectory "%APP_DIR%"
@@ -58,20 +56,7 @@ echo [4/6] Installing Frontend service...
 %NSSM% set jobai-frontend AppStdout "%APP_DIR%\logs\frontend-out.log"
 %NSSM% set jobai-frontend AppStderr "%APP_DIR%\logs\frontend-error.log"
 
-echo [5/6] Installing Backend service...
-%NSSM% install jobai-backend "C:\Users\Admin\AppData\Local\Programs\Python\Python314\python.exe"
-%NSSM% set jobai-backend AppParameters "-m uvicorn main:app --host 0.0.0.0 --port 8000"
-%NSSM% set jobai-backend AppDirectory "%APP_DIR%\backend\JobAISeacrh_Backend"
-%NSSM% set jobai-backend DisplayName "JobAI Backend (FastAPI)"
-%NSSM% set jobai-backend Description "FastAPI backend for JobAI Search"
-%NSSM% set jobai-backend Start SERVICE_AUTO_START
-%NSSM% set jobai-backend AppEnvironmentExtra PYTHONUNBUFFERED=1
-%NSSM% set jobai-backend AppStdout "%APP_DIR%\logs\backend-out.log"
-%NSSM% set jobai-backend AppStderr "%APP_DIR%\logs\backend-error.log"
-
-echo [6/6] Starting services...
-%NSSM% start jobai-backend
-timeout /t 3 /nobreak >nul
+echo [5/5] Starting services...
 %NSSM% start jobai-frontend
 timeout /t 5 /nobreak >nul
 %NSSM% start jobai-caddy

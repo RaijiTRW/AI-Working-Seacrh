@@ -44,12 +44,6 @@ echo ""
 echo ">>> Installing frontend dependencies..."
 npm ci --prefer-offline --no-audit
 
-echo ""
-echo ">>> Installing backend dependencies..."
-cd backend
-pip install -r requirements.txt --quiet --disable-pip-version-check
-cd ..
-
 # Build Next.js (this is the critical part - must complete before PM2 reload)
 echo ""
 echo ">>> Building Next.js (this may take a while)..."
@@ -81,7 +75,6 @@ echo ">>> Reloading PM2 services..."
 if pm2 list 2>/dev/null | grep -q "jobai-frontend"; then
     echo "    Reloading existing processes..."
     pm2 reload jobai-frontend --update-env
-    pm2 reload jobai-backend --update-env
 else
     echo "    Starting PM2 for the first time..."
     pm2 start ecosystem.config.js
@@ -98,22 +91,13 @@ echo ""
 echo ">>> Running health checks..."
 
 FRONTEND_OK=false
-BACKEND_OK=false
 
 for i in 1 2 3 4 5; do
     echo "    Attempt $i/5..."
 
-    if curl -s -f http://127.0.0.1:3001/api/version > /dev/null 2>&1; then
+    if curl -s -f http://127.0.0.1:3000/api/version > /dev/null 2>&1; then
         FRONTEND_OK=true
         echo "    ✓ Frontend OK"
-    fi
-
-    if curl -s -f http://127.0.0.1:8001/health > /dev/null 2>&1; then
-        BACKEND_OK=true
-        echo "    ✓ Backend OK"
-    fi
-
-    if [ "$FRONTEND_OK" = true ] && [ "$BACKEND_OK" = true ]; then
         break
     fi
 
@@ -126,12 +110,11 @@ pm2 status
 
 echo ""
 echo "=========================================="
-if [ "$FRONTEND_OK" = true ] && [ "$BACKEND_OK" = true ]; then
+if [ "$FRONTEND_OK" = true ]; then
     echo "  ✓ DEPLOYMENT SUCCESSFUL"
     echo "  Old: $OLD_VERSION → New: $NEW_VERSION"
 else
     echo "  ⚠ DEPLOYMENT COMPLETED WITH WARNINGS"
-    [ "$FRONTEND_OK" = false ] && echo "  ✗ Frontend not responding"
-    [ "$BACKEND_OK" = false ] && echo "  ✗ Backend not responding"
+    echo "  ✗ Frontend not responding"
 fi
 echo "=========================================="

@@ -40,7 +40,7 @@ goto :eof
 echo.
 echo  === Service Status ===
 echo.
-for %%s in (jobai-caddy jobai-frontend jobai-backend) do (
+for %%s in (jobai-caddy jobai-frontend) do (
     for /f "tokens=*" %%i in ('%NSSM% status %%s 2^>nul') do (
         echo  %%s: %%i
     )
@@ -60,8 +60,6 @@ goto :eof
 
 :start
 echo Starting services...
-%NSSM% start jobai-backend
-timeout /t 2 /nobreak >nul
 call :kill_port_3000
 %NSSM% start jobai-frontend
 timeout /t 3 /nobreak >nul
@@ -75,14 +73,11 @@ echo Stopping services...
 %NSSM% stop jobai-frontend
 timeout /t 1 /nobreak >nul
 call :kill_port_3000
-%NSSM% stop jobai-backend
 echo Done!
 goto :eof
 
 :restart
 echo Restarting services...
-%NSSM% restart jobai-backend
-timeout /t 2 /nobreak >nul
 
 echo Stopping frontend...
 %NSSM% stop jobai-frontend 2>nul
@@ -112,13 +107,6 @@ if exist "%APP_DIR%\logs\frontend-out.log" (
     echo No logs found
 )
 echo.
-echo === Recent Backend Logs ===
-if exist "%APP_DIR%\logs\backend-out.log" (
-    powershell -Command "Get-Content '%APP_DIR%\logs\backend-out.log' -Tail 10"
-) else (
-    echo No logs found
-)
-echo.
 goto :eof
 
 :deploy
@@ -130,29 +118,22 @@ echo.
 
 cd /d %APP_DIR%
 
-echo [1/6] Saving current version...
+echo [1/5] Saving current version...
 git rev-parse --short HEAD > .version-old 2>nul
 
-echo [2/6] Pulling latest code...
+echo [2/5] Pulling latest code...
 git fetch origin main
 git reset --hard origin/main
 git rev-parse --short HEAD > .version
 
-echo [3/6] Installing dependencies...
+echo [3/5] Installing dependencies...
 call npm ci --prefer-offline --no-audit
 
-echo [4/6] Backend dependencies...
-cd backend\JobAISeacrh_Backend
-pip install -r requirements.txt --quiet
-cd ..\..
-
-echo [5/6] Building frontend...
+echo [4/5] Building frontend...
 if exist .next rmdir /s /q .next
 call npm run build
 
-echo [6/6] Restarting services...
-%NSSM% restart jobai-backend
-timeout /t 2 /nobreak >nul
+echo [5/5] Restarting frontend...
 %NSSM% stop jobai-frontend 2>nul
 timeout /t 2 /nobreak >nul
 call :kill_port_3000

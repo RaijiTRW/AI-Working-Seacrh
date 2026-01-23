@@ -10,15 +10,10 @@ if exist "%TRIGGER%" (
         echo Killing frontend PID %%a
         taskkill /F /PID %%a 2>nul
     )
-    for /f "tokens=5" %%a in ('netstat -ano ^| findstr :8001 ^| findstr LISTENING') do (
-        echo Killing backend PID %%a
-        taskkill /F /PID %%a 2>nul
-    )
 
     timeout /t 5 /nobreak >nul
 
     echo Starting services...
-    net start jobai-backend 2>nul
     net start jobai-frontend 2>nul
 
     echo Services restarted at %date% %time% >> C:\apps\AI-Working-Seacrh\logs\restart.log
