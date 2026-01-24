@@ -52,10 +52,11 @@ jobs:
             echo === Updating version file ===
             git rev-parse --short HEAD > .version
 
-            echo === Triggering restart ===
-            echo restart > .restart-needed
-            echo Waiting for watchdog to restart services...
-            timeout /t 90 /nobreak
+            echo === Restarting frontend ===
+            C:\nssm-2.24\win64\nssm.exe stop jobai-frontend
+            timeout /t 5 /nobreak
+            C:\nssm-2.24\win64\nssm.exe start jobai-frontend
+            timeout /t 5 /nobreak
 
             echo === Health check ===
             curl -s http://127.0.0.1:3000/api/version || echo Frontend not responding yet
