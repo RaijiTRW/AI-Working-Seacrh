@@ -33,7 +33,9 @@ function formatDate(dateStr?: string): string {
 function getStatusBadge(status: string) {
   const badges: Record<string, { label: string; className: string }> = {
     draft: { label: "Черновик", className: "bg-gray-100 text-gray-600" },
+    pending_review: { label: "На модерации", className: "bg-orange-100 text-orange-600" },
     published: { label: "Опубликована", className: "bg-green-100 text-green-600" },
+    rejected: { label: "Отклонена", className: "bg-red-100 text-red-600" },
     closed: { label: "Закрыта", className: "bg-red-100 text-red-600" },
   };
   return badges[status] || { label: status, className: "bg-gray-100 text-gray-600" };

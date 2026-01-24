@@ -1,7 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Backend (separate repo)
-/backend/
+# =========================
+# Frontend (Next.js)
+# =========================
 
 # dependencies
 /node_modules
@@ -13,37 +14,75 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
 # next.js
 /.next/
 /out/
 
-# production
+# production build
 /build
 
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
+# testing
+/coverage
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
 
-# deployment
+# vercel
+.vercel
+
+# =========================
+# Backend (Python/FastAPI)
+# =========================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Backend runtime data
+backend/JobAISeacrh_Backend/data/
+backend/JobAISeacrh_Backend/logs/
+
+# =========================
+# General
+# =========================
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Claude Code
+.claude/
+
+# Keys & certs
+*.pem
+*.key
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Deployment
 /cli
 /deploy
 .version

@@ -56,7 +56,7 @@ export async function GET(
       const { data: existingPayment } = await supabase
         .from("payment_history")
         .select("status")
-        .eq("payment_id", paymentId)
+        .eq("yookassa_payment_id", paymentId)
         .single();
 
       if (existingPayment?.status === "succeeded") {
@@ -120,7 +120,7 @@ export async function GET(
       await supabase
         .from("payment_history")
         .update({ status: "succeeded" })
-        .eq("payment_id", paymentId);
+        .eq("yookassa_payment_id", paymentId);
 
       return NextResponse.json({ status: "succeeded" });
     }

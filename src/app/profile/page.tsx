@@ -43,6 +43,22 @@ export default function ProfilePage() {
   }, [router]);
 
   const handleLogout = async () => {
+    // Полностью очищаем связанные аккаунты текущего пользователя при выходе
+    const LINKED_ACCOUNTS_KEY = "jobsearch_linked_accounts";
+    try {
+      const stored = localStorage.getItem(LINKED_ACCOUNTS_KEY);
+      if (stored && user?.email) {
+        const allAccounts: Record<string, unknown[]> = JSON.parse(stored);
+        delete allAccounts[user.email];
+        if (Object.keys(allAccounts).length > 0) {
+          localStorage.setItem(LINKED_ACCOUNTS_KEY, JSON.stringify(allAccounts));
+        } else {
+          localStorage.removeItem(LINKED_ACCOUNTS_KEY);
+        }
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
     await supabase.auth.signOut();
     router.push("/");
   };
@@ -119,11 +135,10 @@ export default function ProfilePage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                  activeTab === tab.id
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id
                     ? "bg-orange-500 text-white"
                     : "bg-white border border-gray-200 text-gray-600"
-                }`}
+                  }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
@@ -162,11 +177,10 @@ export default function ProfilePage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors ${
-                    activeTab === tab.id
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors ${activeTab === tab.id
                       ? "bg-orange-50 text-orange-600"
                       : "text-gray-600 hover:bg-gray-50"
-                  }`}
+                    }`}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
@@ -207,7 +221,7 @@ export default function ProfilePage() {
               {version && (
                 <div className="border-t border-gray-100 mt-2 pt-3 pb-1 px-4">
                   <p className="text-xs text-gray-400 text-center">
-                    Версия: {version}
+                    Версия: {version} alpha
                   </p>
                 </div>
               )}

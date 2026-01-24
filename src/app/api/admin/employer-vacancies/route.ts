@@ -50,19 +50,10 @@ export async function GET(request: NextRequest) {
 
   const supabase = getSupabaseAdmin();
 
-  // Get vacancies with user info
+  // Get vacancies
   const { data, error, count } = await supabase
     .from("employer_vacancies")
-    .select(
-      `
-      *,
-      profiles!employer_vacancies_user_id_fkey (
-        full_name,
-        email
-      )
-    `,
-      { count: "exact" }
-    )
+    .select("*", { count: "exact" })
     .eq("status", status)
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
@@ -71,11 +62,42 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ detail: error.message }, { status: 400 });
   }
 
+  // Get profiles for user info
+  const vacancies = data || [];
+  const userIds = [...new Set(vacancies.map((v: { user_id: string }) => v.user_id))];
+
+  let profilesMap: Record<string, { first_name: string; last_name: string }> = {};
+  if (userIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, first_name, last_name")
+      .in("user_id", userIds);
+
+    if (profiles) {
+      for (const p of profiles) {
+        profilesMap[p.user_id] = p;
+      }
+    }
+  }
+
+  // Attach profile info
+  const vacanciesWithProfiles = vacancies.map((v: { user_id: string; contact_email?: string }) => ({
+    ...v,
+    profiles: profilesMap[v.user_id]
+      ? {
+          full_name: [profilesMap[v.user_id].first_name, profilesMap[v.user_id].last_name]
+            .filter(Boolean)
+            .join(" ") || "Без имени",
+          email: v.contact_email || "",
+        }
+      : { full_name: "Без имени", email: v.contact_email || "" },
+  }));
+
   const total = count || 0;
   const pages = Math.ceil(total / limit);
 
   return NextResponse.json({
-    vacancies: data || [],
+    vacancies: vacanciesWithProfiles,
     total,
     page,
     pages,

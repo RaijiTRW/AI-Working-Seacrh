@@ -11,11 +11,51 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabaseAdmin();
 
     // Получаем подписку
-    const { data: subscription } = await supabase
+    let { data: subscription } = await supabase
       .from("user_subscriptions")
       .select("*")
       .eq("user_id", userId)
       .single();
+
+    // Проверяем истечение подписки (auto-downgrade)
+    if (subscription &&
+        (subscription.plan === "pro" || subscription.plan === "pro_trial") &&
+        subscription.status === "active" &&
+        subscription.expires_at) {
+      const expiresAt = new Date(subscription.expires_at);
+      const now = new Date();
+      if (now > expiresAt) {
+        console.log(`[Subscription] Expired for user ${userId}, downgrading to base`);
+        // Даунгрейд подписки
+        await supabase
+          .from("user_subscriptions")
+          .update({
+            plan: "base",
+            status: "active",
+            expires_at: "2099-12-31T00:00:00Z",
+            can_search_online: false,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("user_id", userId);
+
+        // Даунгрейд лимитов
+        await supabase
+          .from("user_request_limits")
+          .update({
+            daily_limit: 3,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("user_id", userId);
+
+        // Re-fetch
+        const { data: updated } = await supabase
+          .from("user_subscriptions")
+          .select("*")
+          .eq("user_id", userId)
+          .single();
+        subscription = updated;
+      }
+    }
 
     // Получаем лимиты
     const { data: limits } = await supabase

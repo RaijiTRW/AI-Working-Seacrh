@@ -77,15 +77,17 @@ export async function POST(
     );
   }
 
-  // Отправляем на модерацию в Python backend
+  // Всегда ставим pending_review — админ одобряет вручную
+  // AI модерация даёт рекомендацию (ai_approved/ai_rejection_reason), но не публикует
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+  let aiApproved: boolean | null = null;
+  let aiReason: string | null = null;
 
   try {
     const moderationResponse = await fetch(`${backendUrl}/api/employer/vacancies/${id}/moderate`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: vacancy.title,
         company: vacancy.company,
@@ -95,88 +97,45 @@ export async function POST(
       }),
     });
 
-    const moderationResult = await moderationResponse.json();
-
-    if (moderationResult.approved) {
-      // AI одобрил - публикуем
-      const { data, error } = await supabase
-        .from("employer_vacancies")
-        .update({
-          status: "published",
-          is_active: true,
-          published_at: new Date().toISOString(),
-          moderation_checked_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) {
-        return NextResponse.json(
-          { detail: error.message },
-          { status: 400 }
-        );
-      }
-
-      return NextResponse.json(data);
-    } else {
-      // AI отклонил - ставим в rejected с причиной
-      const { data, error } = await supabase
-        .from("employer_vacancies")
-        .update({
-          status: "rejected",
-          is_active: false,
-          rejection_reason: moderationResult.reason,
-          moderation_checked_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) {
-        return NextResponse.json(
-          { detail: error.message },
-          { status: 400 }
-        );
-      }
-
-      return NextResponse.json(
-        {
-          ...data,
-          moderation_status: "rejected",
-          rejection_reason: moderationResult.reason
-        },
-        { status: 200 }
-      );
+    if (moderationResponse.ok) {
+      const moderationResult = await moderationResponse.json();
+      aiApproved = moderationResult.approved;
+      aiReason = moderationResult.reason || null;
     }
   } catch (moderationError) {
-    console.error("Moderation error:", moderationError);
-
-    // При ошибке модерации - ставим pending_review для ручной проверки админом
-    const { data, error } = await supabase
-      .from("employer_vacancies")
-      .update({
-        status: "pending_review",
-        is_active: false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json(
-        { detail: error.message },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json({
-      ...data,
-      moderation_status: "pending_review",
-      message: "Вакансия отправлена на модерацию администратору"
-    });
+    console.error("AI moderation error:", moderationError);
   }
+
+  // Ставим на модерацию админу
+  const updateData: Record<string, unknown> = {
+    status: "pending_review",
+    is_active: false,
+    moderation_checked_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  // Если AI отклонил — сохраняем причину как подсказку для админа
+  if (aiApproved === false && aiReason) {
+    updateData.rejection_reason = `[AI] ${aiReason}`;
+  }
+
+  const { data, error } = await supabase
+    .from("employer_vacancies")
+    .update(updateData)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json(
+      { detail: error.message },
+      { status: 400 }
+    );
+  }
+
+  return NextResponse.json({
+    ...data,
+    moderation_status: "pending_review",
+    message: "Вакансия отправлена на модерацию"
+  });
 }

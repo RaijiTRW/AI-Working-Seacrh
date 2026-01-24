@@ -95,15 +95,21 @@ export async function POST(request: NextRequest) {
     // Сохраняем историю платежа
     await supabase.from("payment_history").insert({
       user_id: userId,
-      payment_id: payment.id,
+      yookassa_payment_id: payment.id,
+      yookassa_status: payment.status,
       amount: 99,
+      currency: "RUB",
       type: "extra_requests",
       status: "pending",
+      metadata: {
+        description: "10 дополнительных запросов",
+        created_at: new Date().toISOString(),
+      },
     });
 
     return NextResponse.json({
       payment_id: payment.id,
-      confirmation_url: payment.confirmation.confirmation_url,
+      payment_url: payment.confirmation.confirmation_url,
     });
   } catch (e) {
     console.error("[Extra] Exception:", e);

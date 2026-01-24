@@ -67,20 +67,23 @@ export default function SubscriptionSection() {
               <h3 className="text-white font-bold text-lg">
                 {is_pro ? "Pro подписка" : is_pro_trial ? "Pro Trial" : is_base ? "Base план" : "Нет подписки"}
               </h3>
-              {sub && sub.expires_at && (
+              {is_base ? (
+                <p className="text-white/80 text-sm">
+                  Бесплатный навсегда
+                </p>
+              ) : sub && sub.expires_at && (
                 <p className="text-white/80 text-sm">
                   {sub.status === "active"
                     ? `Активна до ${formatDate(sub.expires_at)}`
                     : "Истекла"}
                 </p>
               )}
-              {is_base && (
-                <p className="text-white/80 text-sm">
-                  Бесплатный навсегда
-                </p>
-              )}
             </div>
-            {sub && sub.days_left !== null && (
+            {is_base ? (
+              <div className="px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white">
+                ∞
+              </div>
+            ) : sub && sub.days_left !== null && (
               <div
                 className={`px-3 py-1 rounded-full text-sm font-medium ${
                   sub.status === "active"
@@ -93,11 +96,6 @@ export default function SubscriptionSection() {
                     ? `${sub.days_left} дн.`
                     : "Сегодня"
                   : "Истекла"}
-              </div>
-            )}
-            {is_base && (
-              <div className="px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white">
-                ∞
               </div>
             )}
           </div>

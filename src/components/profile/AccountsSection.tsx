@@ -17,6 +17,37 @@ interface AccountsSectionProps {
 
 const LINKED_ACCOUNTS_KEY = "jobsearch_linked_accounts";
 
+// Helper to get/set per-user linked accounts
+function getUserLinkedAccounts(userEmail: string): LinkedAccount[] {
+  try {
+    const stored = localStorage.getItem(LINKED_ACCOUNTS_KEY);
+    if (!stored) return [];
+    const allAccounts: Record<string, LinkedAccount[]> = JSON.parse(stored);
+    return allAccounts[userEmail] || [];
+  } catch {
+    return [];
+  }
+}
+
+function setUserLinkedAccounts(userEmail: string, accounts: LinkedAccount[]) {
+  try {
+    const stored = localStorage.getItem(LINKED_ACCOUNTS_KEY);
+    const allAccounts: Record<string, LinkedAccount[]> = stored ? JSON.parse(stored) : {};
+    if (accounts.length > 0) {
+      allAccounts[userEmail] = accounts;
+    } else {
+      delete allAccounts[userEmail];
+    }
+    if (Object.keys(allAccounts).length > 0) {
+      localStorage.setItem(LINKED_ACCOUNTS_KEY, JSON.stringify(allAccounts));
+    } else {
+      localStorage.removeItem(LINKED_ACCOUNTS_KEY);
+    }
+  } catch {
+    // Ignore localStorage errors
+  }
+}
+
 export default function AccountsSection({ currentEmail, onLogout }: AccountsSectionProps) {
   const router = useRouter();
   const [showAddForm, setShowAddForm] = useState(false);
@@ -27,38 +58,25 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([]);
 
-  // Load linked accounts and save current session
+  // Load linked accounts for current user and update tokens
   useEffect(() => {
     const initAccounts = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!session || !currentEmail) return;
 
-      const stored = localStorage.getItem(LINKED_ACCOUNTS_KEY);
-      let accounts: LinkedAccount[] = [];
+      // Get accounts linked to THIS user
+      const accounts = getUserLinkedAccounts(currentEmail);
 
-      if (stored) {
-        try {
-          accounts = JSON.parse(stored);
-        } catch {
-          accounts = [];
-        }
-      }
-
-      // Update or add current account with fresh token
+      // Update refresh token for existing accounts if current user is in the list
       const existingIndex = accounts.findIndex(a => a.email === currentEmail);
-      const currentAccount: LinkedAccount = {
-        email: currentEmail,
-        refreshToken: session.refresh_token || "",
-        addedAt: new Date().toISOString(),
-      };
-
       if (existingIndex >= 0) {
-        accounts[existingIndex] = currentAccount;
-      } else {
-        accounts.push(currentAccount);
+        accounts[existingIndex] = {
+          ...accounts[existingIndex],
+          refreshToken: session.refresh_token || "",
+        };
+        setUserLinkedAccounts(currentEmail, accounts);
       }
 
-      localStorage.setItem(LINKED_ACCOUNTS_KEY, JSON.stringify(accounts));
       setLinkedAccounts(accounts);
     };
 
@@ -81,6 +99,21 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
     setMessage(null);
 
     try {
+      // First, save current account to linked list (so we can switch back)
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      let updatedAccounts = [...linkedAccounts];
+
+      if (currentSession && currentEmail) {
+        const currentExists = updatedAccounts.find(a => a.email === currentEmail);
+        if (!currentExists) {
+          updatedAccounts.push({
+            email: currentEmail,
+            refreshToken: currentSession.refresh_token || "",
+            addedAt: new Date().toISOString(),
+          });
+        }
+      }
+
       // Sign in with new account (this will sign out current)
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -89,15 +122,18 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
 
       if (error) throw error;
 
-      // Add to linked accounts with token
+      // Add new account to linked list
       if (data.session) {
         const newAccount: LinkedAccount = {
           email,
           refreshToken: data.session.refresh_token || "",
           addedAt: new Date().toISOString(),
         };
-        const updated = [...linkedAccounts, newAccount];
-        localStorage.setItem(LINKED_ACCOUNTS_KEY, JSON.stringify(updated));
+        updatedAccounts.push(newAccount);
+
+        // Save to BOTH users' linked accounts (so both can switch to each other)
+        setUserLinkedAccounts(currentEmail, updatedAccounts);
+        setUserLinkedAccounts(email, updatedAccounts);
       }
 
       // Redirect to chat
@@ -148,7 +184,7 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
     }
 
     const updated = linkedAccounts.filter(a => a.email !== accountEmail);
-    localStorage.setItem(LINKED_ACCOUNTS_KEY, JSON.stringify(updated));
+    setUserLinkedAccounts(currentEmail, updated);
     setLinkedAccounts(updated);
     setMessage({ type: "success", text: "Аккаунт удалён из списка" });
   };
