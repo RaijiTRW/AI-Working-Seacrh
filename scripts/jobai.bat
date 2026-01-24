@@ -50,11 +50,9 @@ echo  === Port Check ===
 netstat -an | findstr ":80 " | findstr LISTENING >nul && echo  Port 80:   OK || echo  Port 80:   NOT LISTENING
 netstat -an | findstr ":443 " | findstr LISTENING >nul && echo  Port 443:  OK || echo  Port 443:  NOT LISTENING
 netstat -an | findstr ":3000 " | findstr LISTENING >nul && echo  Port 3000: OK || echo  Port 3000: NOT LISTENING
-netstat -an | findstr ":8000 " | findstr LISTENING >nul && echo  Port 8000: OK || echo  Port 8000: NOT LISTENING
 echo.
 echo  === Health Check ===
 curl -s -f http://127.0.0.1:3000/api/version >nul 2>&1 && echo  Frontend:  OK || echo  Frontend:  NOT RESPONDING
-curl -s -f http://127.0.0.1:8000/health >nul 2>&1 && echo  Backend:   OK || echo  Backend:   NOT RESPONDING
 echo.
 goto :eof
 
