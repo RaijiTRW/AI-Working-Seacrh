@@ -46,9 +46,8 @@ __pycache__/
 venv/
 ENV/
 
-# Backend runtime data
-backend/JobAISeacrh_Backend/data/
-backend/JobAISeacrh_Backend/logs/
+# Backend (managed separately)
+backend/
 
 # =========================
 # General
