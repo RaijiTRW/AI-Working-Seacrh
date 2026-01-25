@@ -41,22 +41,30 @@ jobs:
             type .version-old
 
             echo [2/6] Pulling latest code...
-            git fetch origin main
+            git fetch --all --prune
             git reset --hard origin/main
+            git clean -fd
             git rev-parse --short HEAD > .version
             type .version
 
-            echo [3/6] Installing dependencies...
-            call npm ci --prefer-offline --no-audit || exit /b 1
-
-            echo [4/6] Building frontend...
+            echo [3/6] Clearing ALL caches...
             if exist .next rmdir /s /q .next
+            if exist .next\cache rmdir /s /q .next\cache
             if exist node_modules\.cache rmdir /s /q node_modules\.cache
+            if exist .turbo rmdir /s /q .turbo
+            if exist .swc rmdir /s /q .swc
+            call npm cache clean --force
+            echo Caches cleared!
+
+            echo [4/6] Installing dependencies (fresh)...
+            call npm ci --force || exit /b 1
+
+            echo [5/7] Building frontend...
             call npm run build || exit /b 1
             if not exist .next exit /b 1
             echo Build OK!
 
-            echo [5/6] Restarting frontend...
+            echo [6/7] Restarting frontend...
             C:\nssm-2.24\win64\nssm.exe stop jobai-frontend
             timeout /t 3 /nobreak
             for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":3000.*LISTENING"') do taskkill /F /PID %%a
@@ -64,7 +72,7 @@ jobs:
             C:\nssm-2.24\win64\nssm.exe start jobai-frontend
             timeout /t 10 /nobreak
 
-            echo [6/6] Health check (10 attempts)...
+            echo [7/7] Health check (10 attempts)...
             curl -s -f http://127.0.0.1:3000/api/version && goto :deploy_ok
             timeout /t 3 /nobreak
             curl -s -f http://127.0.0.1:3000/api/version && goto :deploy_ok
