@@ -32,36 +32,71 @@ jobs:
           script: |
             cd C:\apps\AI-Working-Seacrh
 
-            echo === Saving version ===
-            git rev-parse --short HEAD > .version-old
+            echo ========================================
+            echo   DEPLOY STARTED
+            echo ========================================
 
-            echo === Git pull ===
+            echo [1/6] Saving old version...
+            git rev-parse --short HEAD > .version-old
+            type .version-old
+
+            echo [2/6] Pulling latest code...
             git fetch origin main
             git reset --hard origin/main
+            git rev-parse --short HEAD > .version
+            type .version
 
-            echo === Installing dependencies ===
-            call npm ci --prefer-offline --no-audit
+            echo [3/6] Installing dependencies...
+            call npm ci --prefer-offline --no-audit || exit /b 1
 
-            echo === Clearing all caches ===
+            echo [4/6] Building frontend...
             if exist .next rmdir /s /q .next
             if exist node_modules\.cache rmdir /s /q node_modules\.cache
+            call npm run build || exit /b 1
+            if not exist .next exit /b 1
+            echo Build OK!
 
-            echo === Building frontend ===
-            call npm run build
-
-            echo === Updating version file ===
-            git rev-parse --short HEAD > .version
-
-            echo === Restarting frontend ===
+            echo [5/6] Restarting frontend...
             C:\nssm-2.24\win64\nssm.exe stop jobai-frontend
-            timeout /t 5 /nobreak
+            timeout /t 3 /nobreak
+            for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":3000.*LISTENING"') do taskkill /F /PID %%a
+            timeout /t 2 /nobreak
             C:\nssm-2.24\win64\nssm.exe start jobai-frontend
-            timeout /t 5 /nobreak
+            timeout /t 10 /nobreak
 
-            echo === Health check ===
-            curl -s http://127.0.0.1:3000/api/version || echo Frontend not responding yet
+            echo [6/6] Health check (10 attempts)...
+            curl -s -f http://127.0.0.1:3000/api/version && goto :deploy_ok
+            timeout /t 3 /nobreak
+            curl -s -f http://127.0.0.1:3000/api/version && goto :deploy_ok
+            timeout /t 3 /nobreak
+            curl -s -f http://127.0.0.1:3000/api/version && goto :deploy_ok
+            timeout /t 3 /nobreak
+            curl -s -f http://127.0.0.1:3000/api/version && goto :deploy_ok
+            timeout /t 3 /nobreak
+            curl -s -f http://127.0.0.1:3000/api/version && goto :deploy_ok
+            timeout /t 3 /nobreak
+            curl -s -f http://127.0.0.1:3000/api/version && goto :deploy_ok
+            timeout /t 3 /nobreak
+            curl -s -f http://127.0.0.1:3000/api/version && goto :deploy_ok
+            timeout /t 3 /nobreak
+            curl -s -f http://127.0.0.1:3000/api/version && goto :deploy_ok
+            timeout /t 3 /nobreak
+            curl -s -f http://127.0.0.1:3000/api/version && goto :deploy_ok
+            timeout /t 3 /nobreak
+            curl -s -f http://127.0.0.1:3000/api/version && goto :deploy_ok
+            echo HEALTH CHECK FAILED!
+            C:\nssm-2.24\win64\nssm.exe status jobai-frontend
+            exit /b 1
 
-            echo === Done ===
+            :deploy_ok
+            echo ========================================
+            echo   DEPLOY SUCCESSFUL!
+            echo ========================================
+            echo Old version:
+            type .version-old
+            echo New version:
+            type .version
+            echo ========================================
 
       - name: Deployment Status
         if: always()
