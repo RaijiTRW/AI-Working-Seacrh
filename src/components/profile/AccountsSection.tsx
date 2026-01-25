@@ -21,10 +21,17 @@ const LINKED_ACCOUNTS_KEY = "jobsearch_linked_accounts";
 function getUserLinkedAccounts(userEmail: string): LinkedAccount[] {
   try {
     const stored = localStorage.getItem(LINKED_ACCOUNTS_KEY);
-    if (!stored) return [];
+    if (!stored) {
+      console.log("[Accounts] No data in localStorage");
+      return [];
+    }
     const allAccounts: Record<string, LinkedAccount[]> = JSON.parse(stored);
-    return allAccounts[userEmail] || [];
-  } catch {
+    const normalizedEmail = userEmail.toLowerCase();
+    const accounts = allAccounts[normalizedEmail] || [];
+    console.log("[Accounts] getUserLinkedAccounts for", normalizedEmail, ":", accounts);
+    return accounts;
+  } catch (e) {
+    console.error("[Accounts] Error reading localStorage:", e);
     return [];
   }
 }
@@ -33,18 +40,25 @@ function setUserLinkedAccounts(userEmail: string, accounts: LinkedAccount[]) {
   try {
     const stored = localStorage.getItem(LINKED_ACCOUNTS_KEY);
     const allAccounts: Record<string, LinkedAccount[]> = stored ? JSON.parse(stored) : {};
+    const normalizedEmail = userEmail.toLowerCase();
+
     if (accounts.length > 0) {
-      allAccounts[userEmail] = accounts;
+      allAccounts[normalizedEmail] = accounts;
     } else {
+      delete allAccounts[normalizedEmail];
+      // Also delete non-normalized version if exists
       delete allAccounts[userEmail];
     }
+
     if (Object.keys(allAccounts).length > 0) {
       localStorage.setItem(LINKED_ACCOUNTS_KEY, JSON.stringify(allAccounts));
+      console.log("[Accounts] Saved to localStorage:", allAccounts);
     } else {
       localStorage.removeItem(LINKED_ACCOUNTS_KEY);
+      console.log("[Accounts] Cleared localStorage");
     }
-  } catch {
-    // Ignore localStorage errors
+  } catch (e) {
+    console.error("[Accounts] Error saving to localStorage:", e);
   }
 }
 
@@ -66,9 +80,10 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
 
       // Get accounts linked to THIS user
       const accounts = getUserLinkedAccounts(currentEmail);
+      console.log("[Accounts] Loaded for", currentEmail, ":", accounts);
 
       // Update refresh token for existing accounts if current user is in the list
-      const existingIndex = accounts.findIndex(a => a.email === currentEmail);
+      const existingIndex = accounts.findIndex(a => a.email.toLowerCase() === currentEmail.toLowerCase());
       if (existingIndex >= 0) {
         accounts[existingIndex] = {
           ...accounts[existingIndex],
@@ -89,9 +104,17 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
       return;
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Check if already linked
-    if (linkedAccounts.find(a => a.email.toLowerCase() === email.toLowerCase())) {
+    if (linkedAccounts.find(a => a.email.toLowerCase() === normalizedEmail)) {
       setMessage({ type: "error", text: "Этот аккаунт уже добавлен" });
+      return;
+    }
+
+    // Check if trying to add current account
+    if (currentEmail.toLowerCase() === normalizedEmail) {
+      setMessage({ type: "error", text: "Это текущий аккаунт" });
       return;
     }
 
@@ -101,52 +124,76 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
     try {
       // First, save current account to linked list (so we can switch back)
       const { data: { session: currentSession } } = await supabase.auth.getSession();
-      let updatedAccounts = [...linkedAccounts];
 
-      if (currentSession && currentEmail) {
-        const currentExists = updatedAccounts.find(a => a.email === currentEmail);
-        if (!currentExists) {
-          updatedAccounts.push({
-            email: currentEmail,
-            refreshToken: currentSession.refresh_token || "",
-            addedAt: new Date().toISOString(),
-          });
-        }
+      if (!currentSession) {
+        setMessage({ type: "error", text: "Сессия истекла" });
+        setLoading(false);
+        return;
       }
+
+      // Build accounts list
+      const currentAccountData: LinkedAccount = {
+        email: currentEmail,
+        refreshToken: currentSession.refresh_token || "",
+        addedAt: new Date().toISOString(),
+      };
 
       // Sign in with new account (this will sign out current)
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: normalizedEmail,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("Invalid login")) {
+          setMessage({ type: "error", text: "Неверный email или пароль" });
+        } else {
+          setMessage({ type: "error", text: "Ошибка входа. Проверьте данные." });
+        }
+        setLoading(false);
+        return;
+      }
 
       // Add new account to linked list
       if (data.session) {
-        const newAccount: LinkedAccount = {
-          email,
+        const newEmail = (data.user?.email || normalizedEmail).toLowerCase();
+        const newAccountData: LinkedAccount = {
+          email: newEmail,
           refreshToken: data.session.refresh_token || "",
           addedAt: new Date().toISOString(),
         };
-        updatedAccounts.push(newAccount);
+
+        // Update current account data with normalized email
+        currentAccountData.email = currentEmail.toLowerCase();
+
+        // Build final accounts list (both accounts)
+        const finalAccounts = [currentAccountData, newAccountData];
 
         // Save to BOTH users' linked accounts (so both can switch to each other)
-        setUserLinkedAccounts(currentEmail, updatedAccounts);
-        setUserLinkedAccounts(email, updatedAccounts);
+        setUserLinkedAccounts(currentAccountData.email, finalAccounts);
+        setUserLinkedAccounts(newEmail, finalAccounts);
+
+        console.log("[Accounts] Linked accounts saved:", {
+          currentEmail: currentAccountData.email,
+          newEmail: newEmail,
+          accounts: finalAccounts,
+        });
       }
+
+      // Small delay to ensure localStorage is saved
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Redirect to chat
       router.push("/chat");
-    } catch {
+    } catch (err) {
+      console.error("[Accounts] Error:", err);
       setMessage({ type: "error", text: "Ошибка входа. Проверьте данные." });
-    } finally {
       setLoading(false);
     }
   };
 
   const handleSwitchAccount = async (account: LinkedAccount) => {
-    if (account.email === currentEmail) return;
+    if (account.email.toLowerCase() === currentEmail.toLowerCase()) return;
 
     setSwitchingTo(account.email);
     setMessage(null);
@@ -178,12 +225,12 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
   };
 
   const handleRemoveAccount = (accountEmail: string) => {
-    if (accountEmail === currentEmail) {
+    if (accountEmail.toLowerCase() === currentEmail.toLowerCase()) {
       setMessage({ type: "error", text: "Нельзя удалить текущий аккаунт" });
       return;
     }
 
-    const updated = linkedAccounts.filter(a => a.email !== accountEmail);
+    const updated = linkedAccounts.filter(a => a.email.toLowerCase() !== accountEmail.toLowerCase());
     setUserLinkedAccounts(currentEmail, updated);
     setLinkedAccounts(updated);
     setMessage({ type: "success", text: "Аккаунт удалён из списка" });
@@ -203,7 +250,7 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
   };
 
   // Other linked accounts (not current)
-  const otherAccounts = linkedAccounts.filter(a => a.email !== currentEmail);
+  const otherAccounts = linkedAccounts.filter(a => a.email.toLowerCase() !== currentEmail.toLowerCase());
 
   return (
     <div className="space-y-6">

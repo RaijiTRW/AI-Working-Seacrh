@@ -493,7 +493,7 @@ export interface AdminUserList {
 
 export interface SiteSetting {
   id: string;
-  value: { enabled: boolean };
+  value: { enabled: boolean; discount_percent?: number };
   updated_at?: string;
 }
 
@@ -734,6 +734,29 @@ export async function updateSiteSetting(
 
   if (!response.ok) {
     throw new Error("Failed to update setting");
+  }
+}
+
+/**
+ * Обновить настройку скидки
+ */
+export async function updateDiscountSetting(
+  token: string,
+  settingId: string,
+  enabled: boolean,
+  discountPercent: number
+): Promise<void> {
+  const response = await fetch(`${NEXT_API}/api/admin/settings/${settingId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ enabled, discount_percent: discountPercent }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update discount setting");
   }
 }
 
@@ -1205,8 +1228,15 @@ export interface RequestLimits {
 
 export interface SubscriptionPrices {
   subscription: number;
+  subscription_discounted?: number;
   extra_requests: number;
   extra_requests_count: number;
+}
+
+export interface DiscountInfo {
+  enabled: boolean;
+  percent: number;
+  is_first_purchase: boolean;
 }
 
 export interface SubscriptionInfo {
@@ -1218,6 +1248,7 @@ export interface SubscriptionInfo {
   is_pro: boolean;             // На Pro (платная подписка)
   is_pro_trial_expired: boolean; // Pro Trial истёк, показать модалку
   prices: SubscriptionPrices;
+  discount?: DiscountInfo;     // Информация о скидке на первую покупку
 }
 
 export interface CheckoutResponse {

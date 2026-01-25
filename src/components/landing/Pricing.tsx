@@ -1,6 +1,29 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
+interface DiscountInfo {
+  enabled: boolean;
+  percent: number;
+  regular_price: number;
+  discounted_price: number;
+}
+
 export default function Pricing() {
+  const [discount, setDiscount] = useState<DiscountInfo | null>(null);
+
+  useEffect(() => {
+    fetch("/api/discount")
+      .then(res => res.json())
+      .then(data => setDiscount(data))
+      .catch(() => setDiscount({ enabled: false, percent: 0, regular_price: 799, discounted_price: 799 }));
+  }, []);
+
+  const regularPrice = discount?.regular_price || 799;
+  const discountedPrice = discount?.discounted_price || 799;
+  const hasDiscount = discount?.enabled && discount?.percent > 0;
+
   return (
     <section className="py-16 md:py-24 px-4 sm:px-6 bg-white">
       <div className="max-w-6xl mx-auto">
@@ -168,8 +191,13 @@ export default function Pricing() {
 
           {/* Pro */}
           <div className="p-6 md:p-8 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 text-white relative overflow-hidden">
-            {/* Popular badge */}
-            <div className="absolute top-4 right-4">
+            {/* Discount badge */}
+            <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
+              {hasDiscount && (
+                <span className="inline-block px-3 py-1 text-xs font-bold bg-green-500 text-white rounded-full animate-pulse">
+                  -{discount.percent}% на 1-ю покупку
+                </span>
+              )}
               <span className="inline-block px-3 py-1 text-xs font-medium bg-white/20 rounded-full">
                 Популярный
               </span>
@@ -182,9 +210,27 @@ export default function Pricing() {
               <h3 className="text-xl md:text-2xl font-bold">Pro подписка</h3>
             </div>
 
-            <div className="flex items-baseline gap-1 mb-6">
-              <span className="text-3xl md:text-4xl font-bold">799 ₽</span>
-              <span className="text-white/70">/ месяц</span>
+            <div className="mb-6">
+              {hasDiscount ? (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg text-white/50 line-through">{regularPrice} ₽</span>
+                    <span className="px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded">
+                      -{discount.percent}%
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl md:text-4xl font-bold">{discountedPrice} ₽</span>
+                    <span className="text-white/70">/ первый месяц</span>
+                  </div>
+                  <p className="text-xs text-white/60">далее {regularPrice} ₽/мес</p>
+                </div>
+              ) : (
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl md:text-4xl font-bold">{regularPrice} ₽</span>
+                  <span className="text-white/70">/ месяц</span>
+                </div>
+              )}
             </div>
 
             <ul className="space-y-3 mb-6">
@@ -264,7 +310,7 @@ export default function Pricing() {
               href="/auth"
               className="block w-full py-3 px-4 bg-white hover:bg-gray-100 text-blue-600 font-medium rounded-xl text-center transition-colors text-sm md:text-base"
             >
-              Оформить подписку
+              {hasDiscount ? `Оформить за ${discountedPrice} ₽` : "Оформить подписку"}
             </Link>
           </div>
         </div>

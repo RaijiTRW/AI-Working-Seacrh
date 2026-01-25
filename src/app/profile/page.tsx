@@ -43,22 +43,8 @@ export default function ProfilePage() {
   }, [router]);
 
   const handleLogout = async () => {
-    // Полностью очищаем связанные аккаунты текущего пользователя при выходе
-    const LINKED_ACCOUNTS_KEY = "jobsearch_linked_accounts";
-    try {
-      const stored = localStorage.getItem(LINKED_ACCOUNTS_KEY);
-      if (stored && user?.email) {
-        const allAccounts: Record<string, unknown[]> = JSON.parse(stored);
-        delete allAccounts[user.email];
-        if (Object.keys(allAccounts).length > 0) {
-          localStorage.setItem(LINKED_ACCOUNTS_KEY, JSON.stringify(allAccounts));
-        } else {
-          localStorage.removeItem(LINKED_ACCOUNTS_KEY);
-        }
-      }
-    } catch {
-      // Ignore localStorage errors
-    }
+    // Не удаляем связанные аккаунты при выходе - они должны сохраняться
+    // чтобы при следующем входе пользователь видел свои связи
     await supabase.auth.signOut();
     router.push("/");
   };

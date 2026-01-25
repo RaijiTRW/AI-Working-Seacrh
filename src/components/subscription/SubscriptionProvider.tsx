@@ -42,6 +42,9 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         <TrialExpiredModal
           isProTrialExpired={subscription.is_pro_trial_expired}
           price={subscription.prices.subscription}
+          discountedPrice={subscription.prices.subscription_discounted}
+          discountPercent={subscription.discount?.percent}
+          hasDiscount={subscription.discount?.enabled && subscription.discount?.percent > 0}
           onCheckout={checkout}
         />
       )}

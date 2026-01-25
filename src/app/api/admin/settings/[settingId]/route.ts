@@ -26,14 +26,30 @@ export async function PUT(
     }
 
     const { settingId } = await params;
-    const { enabled } = await request.json();
+    const body = await request.json();
 
     const supabase = getSupabaseAdmin();
+
+    // Поддержка разных типов значений
+    let value;
+    if ("discount_percent" in body) {
+      // Числовой тип для скидки
+      value = {
+        enabled: body.enabled ?? true,
+        discount_percent: Math.min(100, Math.max(0, body.discount_percent || 0)),
+      };
+    } else if ("enabled" in body) {
+      // Булевый тип (старый формат)
+      value = { enabled: body.enabled };
+    } else {
+      // Произвольный формат
+      value = body.value || body;
+    }
 
     const { error } = await supabase
       .from("site_settings")
       .update({
-        value: { enabled },
+        value,
         updated_at: new Date().toISOString(),
         updated_by: userId,
       })

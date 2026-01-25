@@ -29,7 +29,45 @@ export async function POST(request: NextRequest) {
       .eq("user_id", userId)
       .single();
 
+    // Проверяем есть ли предыдущие успешные покупки подписки
+    const { count: previousPurchases } = await supabase
+      .from("payment_history")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("type", "subscription")
+      .eq("status", "succeeded");
+
+    const isFirstPurchase = (previousPurchases || 0) === 0;
+    console.log(`[Checkout] User ${userId} isFirstPurchase: ${isFirstPurchase}, previousPurchases: ${previousPurchases}`);
+
+    // Получаем настройку скидки
+    let discountPercent = 0;
+    let discountEnabled = false;
+
+    const { data: discountSetting } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("id", "first_purchase_discount")
+      .single();
+
+    if (discountSetting?.value) {
+      discountEnabled = discountSetting.value.enabled === true;
+      discountPercent = discountSetting.value.discount_percent || 0;
+    }
+
+    // Рассчитываем цену
+    const regularPrice = 799;
+    const applyDiscount = isFirstPurchase && discountEnabled && discountPercent > 0;
+    const finalPrice = applyDiscount
+      ? Math.round(regularPrice * (1 - discountPercent / 100))
+      : regularPrice;
+
+    console.log(`[Checkout] Price calculation: regular=${regularPrice}, discount=${discountPercent}%, applyDiscount=${applyDiscount}, final=${finalPrice}`);
+
     const idempotenceKey = `${userId}-pro-${Date.now()}`;
+    const description = applyDiscount
+      ? `Pro подписка на 1 месяц (скидка ${discountPercent}% на первую покупку)`
+      : "Pro подписка на 1 месяц";
 
     // Создаем платеж в YooKassa
     const response = await fetch("https://api.yookassa.ru/v3/payments", {
@@ -40,25 +78,29 @@ export async function POST(request: NextRequest) {
         Authorization: `Basic ${Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET_KEY}`).toString("base64")}`,
       },
       body: JSON.stringify({
-        amount: { value: "799.00", currency: "RUB" },
+        amount: { value: `${finalPrice}.00`, currency: "RUB" },
         capture: true,
         confirmation: {
           type: "redirect",
           return_url: YOOKASSA_RETURN_URL,
         },
-        description: "Pro подписка на 1 месяц",
+        description,
         metadata: {
           user_id: userId,
           type: "subscription",
+          is_first_purchase: isFirstPurchase,
+          discount_applied: applyDiscount,
+          discount_percent: applyDiscount ? discountPercent : 0,
+          original_price: regularPrice,
         },
         receipt: profile?.email
           ? {
               customer: { email: profile.email },
               items: [
                 {
-                  description: "Pro подписка на 1 месяц",
+                  description,
                   quantity: "1",
-                  amount: { value: "799.00", currency: "RUB" },
+                  amount: { value: `${finalPrice}.00`, currency: "RUB" },
                   vat_code: 1,
                 },
               ],
@@ -83,13 +125,17 @@ export async function POST(request: NextRequest) {
       user_id: userId,
       yookassa_payment_id: payment.id,
       yookassa_status: payment.status,
-      amount: 799,
+      amount: finalPrice,
       currency: "RUB",
       type: "subscription",
       status: "pending",
       metadata: {
-        description: "Pro подписка на 1 месяц",
+        description,
         created_at: new Date().toISOString(),
+        is_first_purchase: isFirstPurchase,
+        discount_applied: applyDiscount,
+        discount_percent: applyDiscount ? discountPercent : 0,
+        original_price: regularPrice,
       },
     });
 

@@ -6,6 +6,9 @@ import { useRouter, usePathname } from "next/navigation";
 interface TrialExpiredModalProps {
   isProTrialExpired: boolean;
   price: number;
+  discountedPrice?: number;
+  discountPercent?: number;
+  hasDiscount?: boolean;
   onCheckout: () => Promise<string | null>;
 }
 
@@ -15,6 +18,9 @@ const DISMISS_DURATION_MS = 24 * 60 * 60 * 1000; // 24 часа
 export function TrialExpiredModal({
   isProTrialExpired,
   price,
+  discountedPrice,
+  discountPercent,
+  hasDiscount,
   onCheckout,
 }: TrialExpiredModalProps) {
   const router = useRouter();
@@ -99,6 +105,24 @@ export function TrialExpiredModal({
         <p className="text-gray-600 text-center mb-6">
           Вы перешли на Base план. Оформите Pro для полного доступа к AI-поиску
         </p>
+
+        {/* Баннер скидки */}
+        {hasDiscount && discountPercent && discountedPrice && (
+          <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-xl mb-4">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded animate-pulse">
+                -{discountPercent}%
+              </span>
+              <span className="text-sm text-green-700 font-medium">
+                Скидка на первую покупку!
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-sm text-gray-400 line-through">{price} ₽</span>
+              <span className="ml-2 text-lg font-bold text-green-600">{discountedPrice} ₽</span>
+            </div>
+          </div>
+        )}
 
         {/* Сравнение планов */}
         <div className="bg-gray-50 rounded-xl p-4 mb-6">
@@ -185,6 +209,10 @@ export function TrialExpiredModal({
                 </svg>
                 Загрузка...
               </span>
+            ) : hasDiscount && discountedPrice ? (
+              <>
+                Оформить Pro — <span className="line-through opacity-60 mx-1">{price}</span> {discountedPrice} ₽
+              </>
             ) : (
               `Оформить подписку — ${price} ₽/мес`
             )}

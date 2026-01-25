@@ -31,66 +31,60 @@ export async function POST(
     const supabase = getSupabaseAdmin();
 
     // Определяем параметры подписки
-    let dailyLimit = 0;
+    let dailyLimit = 3;
     let days = 0;
+    let canSearchOnline = false;
 
-    if (subscription_type === "trial") {
+    if (subscription_type === "base") {
       dailyLimit = 3;
-      days = 3;
+      days = 0; // Бессрочно
+      canSearchOnline = false;
+    } else if (subscription_type === "pro_trial") {
+      dailyLimit = 15;
+      days = 7;
+      canSearchOnline = true;
     } else if (subscription_type === "pro") {
-      dailyLimit = 10;
+      dailyLimit = 15;
       days = 30;
+      canSearchOnline = true;
     }
 
-    if (subscription_type) {
-      const expiresAt = expires_at || new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+    // Вычисляем дату истечения
+    const expiresAt = expires_at || (
+      days > 0
+        ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
+        : "2099-12-31T00:00:00Z" // Бессрочно для base
+    );
 
-      // Upsert в user_subscriptions
-      await supabase.from("user_subscriptions").upsert({
-        user_id: userId,
-        plan: subscription_type,
-        status: "active",
-        started_at: new Date().toISOString(),
-        expires_at: expiresAt,
-      });
+    // Upsert в user_subscriptions
+    await supabase.from("user_subscriptions").upsert({
+      user_id: userId,
+      plan: subscription_type,
+      status: "active",
+      started_at: new Date().toISOString(),
+      expires_at: expiresAt,
+      can_search_online: canSearchOnline,
+      updated_at: new Date().toISOString(),
+    });
 
-      // Upsert в user_request_limits
-      await supabase.from("user_request_limits").upsert({
-        user_id: userId,
-        daily_limit: dailyLimit,
-        daily_used: 0,
-        daily_reset_at: new Date().toISOString().split("T")[0],
-        bonus_requests: 0,
-      });
+    // Upsert в user_request_limits
+    await supabase.from("user_request_limits").upsert({
+      user_id: userId,
+      daily_limit: dailyLimit,
+      daily_used: 0,
+      daily_reset_at: new Date().toISOString().split("T")[0],
+      bonus_requests: 0,
+      updated_at: new Date().toISOString(),
+    });
 
-      // Обновляем profiles для отображения
-      await supabase
-        .from("profiles")
-        .update({
-          subscription_type,
-          subscription_expires_at: expiresAt,
-        })
-        .eq("user_id", userId);
-    } else {
-      // Удаляем подписку
-      await supabase
-        .from("user_subscriptions")
-        .delete()
-        .eq("user_id", userId);
-
-      await supabase
-        .from("user_request_limits")
-        .delete()
-        .eq("user_id", userId);
-
-      await supabase
-        .from("profiles")
-        .update({
-          subscription_type: null,
-          subscription_expires_at: null,
-        })
-        .eq("user_id", userId);
-    }
+    // Обновляем profiles для отображения
+    await supabase
+      .from("profiles")
+      .update({
+        subscription_type,
+        subscription_expires_at: expiresAt,
+      })
+      .eq("user_id", userId);
 
     return NextResponse.json({ success: true, subscription_type });
   } catch (e) {

@@ -94,6 +94,38 @@ export async function GET(request: NextRequest) {
     const bonusRequests = currentLimits?.bonus_requests || 0;
     const remaining = Math.max(0, dailyLimit - dailyUsed) + bonusRequests;
 
+    // Проверяем есть ли предыдущие успешные покупки подписки
+    const { count: previousPurchases } = await supabase
+      .from("payment_history")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("type", "subscription")
+      .eq("status", "succeeded");
+
+    const isFirstPurchase = (previousPurchases || 0) === 0;
+
+    // Получаем настройку скидки
+    let discountPercent = 0;
+    let discountEnabled = false;
+
+    const { data: discountSetting } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("id", "first_purchase_discount")
+      .single();
+
+    if (discountSetting?.value) {
+      discountEnabled = discountSetting.value.enabled === true;
+      discountPercent = discountSetting.value.discount_percent || 0;
+    }
+
+    // Рассчитываем цены
+    const regularPrice = 799;
+    const showDiscount = isFirstPurchase && discountEnabled && discountPercent > 0 && !isPro;
+    const discountedPrice = showDiscount
+      ? Math.round(regularPrice * (1 - discountPercent / 100))
+      : regularPrice;
+
     return NextResponse.json({
       subscription: subscription ? {
         ...subscription,
@@ -111,9 +143,15 @@ export async function GET(request: NextRequest) {
       is_pro: isPro,
       is_pro_trial_expired: isProTrialExpired,
       prices: {
-        subscription: 799,
+        subscription: regularPrice,
+        subscription_discounted: discountedPrice,
         extra_requests: 99,
         extra_requests_count: 10,
+      },
+      discount: {
+        enabled: showDiscount,
+        percent: showDiscount ? discountPercent : 0,
+        is_first_purchase: isFirstPurchase,
       },
     });
   } catch (e) {

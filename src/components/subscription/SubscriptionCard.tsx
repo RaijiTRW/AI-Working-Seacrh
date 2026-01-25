@@ -17,8 +17,12 @@ export function SubscriptionCard({
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [isExtraLoading, setIsExtraLoading] = useState(false);
 
-  const { limits, prices, is_pro, is_pro_trial, is_base } = subscription;
+  const { limits, prices, is_pro, is_pro_trial, is_base, discount } = subscription;
   const sub = subscription.subscription;
+
+  // Проверяем есть ли скидка на первую покупку
+  const hasDiscount = discount?.enabled && discount?.percent > 0;
+  const discountedPrice = prices.subscription_discounted || prices.subscription;
 
   const handleCheckout = async () => {
     setIsCheckoutLoading(true);
@@ -160,6 +164,24 @@ export function SubscriptionCard({
           </span>
         </div>
 
+        {/* Discount banner */}
+        {!is_pro && hasDiscount && (
+          <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-xl mb-4">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded">
+                -{discount?.percent}%
+              </span>
+              <span className="text-sm text-green-700 font-medium">
+                Скидка на первую покупку!
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-sm text-gray-400 line-through">{prices.subscription} ₽</span>
+              <span className="ml-2 text-lg font-bold text-green-600">{discountedPrice} ₽</span>
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="space-y-3">
           {!is_pro && (
@@ -203,7 +225,13 @@ export function SubscriptionCard({
                       d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
                     />
                   </svg>
-                  Оформить Pro — {prices.subscription} ₽/мес
+                  {hasDiscount ? (
+                    <>
+                      Оформить Pro — <span className="line-through opacity-60 mr-1">{prices.subscription}</span>{discountedPrice} ₽
+                    </>
+                  ) : (
+                    <>Оформить Pro — {prices.subscription} ₽/мес</>
+                  )}
                 </>
               )}
             </button>

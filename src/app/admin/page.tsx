@@ -9,6 +9,7 @@ import {
   getAdminUsers,
   getSiteSettings,
   updateSiteSetting,
+  updateDiscountSetting,
   banUser,
   unbanUser,
   toggleUserVacancies,
@@ -45,7 +46,7 @@ export default function AdminPage() {
   const [showBanModal, setShowBanModal] = useState(false);
   const [banReason, setBanReason] = useState("");
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [subscriptionType, setSubscriptionType] = useState("");
+  const [subscriptionType, setSubscriptionType] = useState("base");
   const [showRequestsModal, setShowRequestsModal] = useState(false);
   const [requestsAmount, setRequestsAmount] = useState("");
 
@@ -151,7 +152,7 @@ export default function AdminPage() {
     try {
       await setUserSubscription(token, selectedUser.id, subscriptionType);
       setShowSubscriptionModal(false);
-      setSubscriptionType("");
+      setSubscriptionType("base");
       fetchUsers();
     } catch (e) {
       console.error("Failed to set subscription:", e);
@@ -249,6 +250,22 @@ export default function AdminPage() {
     chat_enabled: "AI-чат",
     vacancies_enabled: "Лента вакансий",
     vacancy_creation_enabled: "Создание вакансий",
+    first_purchase_discount: "Скидка на первую покупку",
+  };
+
+  // Обработка скидки
+  const [discountInput, setDiscountInput] = useState<string>("");
+
+  const handleUpdateDiscount = async (setting: SiteSetting, enabled: boolean, percent?: number) => {
+    if (!token) return;
+    try {
+      const discountPercent = percent ?? setting.value.discount_percent ?? 80;
+      await updateDiscountSetting(token, setting.id, enabled, discountPercent);
+      await fetchSettings();
+    } catch (e) {
+      console.error("Failed to update discount:", e);
+      alert("Ошибка при обновлении скидки");
+    }
   };
 
   if (loading) {
@@ -487,7 +504,7 @@ export default function AdminPage() {
                           <button
                             onClick={() => {
                               setSelectedUser(user);
-                              setSubscriptionType(user.subscription_type || "");
+                              setSubscriptionType(user.subscription_type || "base");
                               setShowSubscriptionModal(true);
                             }}
                             className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
@@ -547,32 +564,121 @@ export default function AdminPage() {
 
         {/* Settings Tab */}
         {activeTab === "settings" && (
-          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-200">
-            {settings.map((setting) => (
-              <div
-                key={setting.id}
-                className="flex items-center justify-between p-4"
-              >
-                <div>
-                  <div className="font-medium text-gray-900">
-                    {settingLabels[setting.id] || setting.id}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {setting.value.enabled ? "Включено" : "Выключено"}
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleToggleSetting(setting)}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${setting.value.enabled ? "bg-orange-500" : "bg-gray-200"
-                    }`}
+          <div className="space-y-4">
+            {/* Обычные настройки */}
+            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-200">
+              {settings.filter(s => s.id !== "first_purchase_discount").map((setting) => (
+                <div
+                  key={setting.id}
+                  className="flex items-center justify-between p-4"
                 >
-                  <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${setting.value.enabled ? "translate-x-5" : "translate-x-0"
+                  <div>
+                    <div className="font-medium text-gray-900">
+                      {settingLabels[setting.id] || setting.id}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {setting.value.enabled ? "Включено" : "Выключено"}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleToggleSetting(setting)}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${setting.value.enabled ? "bg-orange-500" : "bg-gray-200"
                       }`}
-                  />
-                </button>
-              </div>
-            ))}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${setting.value.enabled ? "translate-x-5" : "translate-x-0"
+                        }`}
+                    />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Настройка скидки */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <h3 className="font-medium text-gray-900 mb-4">Скидка на первую покупку подписки</h3>
+              {(() => {
+                const discountSetting = settings.find(s => s.id === "first_purchase_discount");
+                if (!discountSetting) {
+                  return (
+                    <div className="text-sm text-gray-500">
+                      Настройка не найдена. Добавьте запись &quot;first_purchase_discount&quot; в таблицу site_settings.
+                    </div>
+                  );
+                }
+                const currentPercent = discountSetting.value.discount_percent ?? 80;
+                const isEnabled = discountSetting.value.enabled;
+                const regularPrice = 799;
+                const discountedPrice = Math.round(regularPrice * (1 - currentPercent / 100));
+
+                return (
+                  <div className="space-y-4">
+                    {/* Переключатель */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm text-gray-600">Статус</div>
+                        <div className={`text-sm font-medium ${isEnabled ? "text-green-600" : "text-gray-500"}`}>
+                          {isEnabled ? "Включена" : "Выключена"}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleUpdateDiscount(discountSetting, !isEnabled)}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isEnabled ? "bg-green-500" : "bg-gray-200"
+                          }`}
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isEnabled ? "translate-x-5" : "translate-x-0"
+                            }`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Процент скидки */}
+                    <div>
+                      <label className="text-sm text-gray-600 block mb-2">Размер скидки (%)</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={discountInput || currentPercent}
+                          onChange={(e) => setDiscountInput(e.target.value)}
+                          className="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                        <span className="text-gray-500">%</span>
+                        <button
+                          onClick={() => {
+                            const newPercent = parseInt(discountInput || String(currentPercent), 10);
+                            if (!isNaN(newPercent) && newPercent >= 0 && newPercent <= 100) {
+                              handleUpdateDiscount(discountSetting, isEnabled, newPercent);
+                              setDiscountInput("");
+                            }
+                          }}
+                          className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm"
+                        >
+                          Сохранить
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Предпросмотр */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="text-sm text-gray-600 mb-2">Предпросмотр цены:</div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-gray-400 line-through">{regularPrice} ₽</span>
+                        <span className="text-2xl font-bold text-green-600">{discountedPrice} ₽</span>
+                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-sm font-medium">
+                          -{currentPercent}%
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Пользователи, которые ещё не покупали подписку, увидят цену {discountedPrice} ₽ вместо {regularPrice} ₽
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         )}
 
@@ -641,9 +747,9 @@ export default function AdminPage() {
               onChange={(e) => setSubscriptionType(e.target.value)}
               className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
             >
-              <option value="">Без подписки</option>
-              <option value="trial">Trial (3 запроса/день)</option>
-              <option value="pro">Pro (10 запросов/день)</option>
+              <option value="base">Base (3 запроса/день)</option>
+              <option value="pro_trial">Pro Trial (15 запросов/день)</option>
+              <option value="pro">Pro (15 запросов/день)</option>
             </select>
             <div className="flex justify-end gap-2 mt-4">
               <button

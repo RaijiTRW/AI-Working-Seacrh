@@ -26,8 +26,12 @@ export default function SubscriptionSection() {
     );
   }
 
-  const { limits, prices, is_pro, is_pro_trial, is_base, is_pro_trial_expired } = subscription;
+  const { limits, prices, is_pro, is_pro_trial, is_base, is_pro_trial_expired, discount } = subscription;
   const sub = subscription.subscription;
+
+  // Проверяем есть ли скидка на первую покупку
+  const hasDiscount = discount?.enabled && discount?.percent > 0;
+  const discountedPrice = prices.subscription_discounted || prices.subscription;
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString("ru-RU", {
@@ -173,6 +177,24 @@ export default function SubscriptionSection() {
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
         <h4 className="font-medium text-gray-900 mb-4">Управление подпиской</h4>
 
+        {/* Discount banner */}
+        {!is_pro && hasDiscount && (
+          <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-xl mb-4">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded animate-pulse">
+                -{discount?.percent}%
+              </span>
+              <span className="text-sm text-green-700 font-medium">
+                Скидка на первую покупку!
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-sm text-gray-400 line-through">{prices.subscription} ₽</span>
+              <span className="ml-2 text-lg font-bold text-green-600">{discountedPrice} ₽</span>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3">
           {!is_pro && (
             <button
@@ -192,7 +214,13 @@ export default function SubscriptionSection() {
                   d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
                 />
               </svg>
-              Оформить Pro подписку — {prices.subscription} ₽/мес
+              {hasDiscount ? (
+                <>
+                  Оформить Pro — <span className="line-through opacity-60 mx-1">{prices.subscription}</span> {discountedPrice} ₽
+                </>
+              ) : (
+                <>Оформить Pro подписку — {prices.subscription} ₽/мес</>
+              )}
             </button>
           )}
 
@@ -242,8 +270,22 @@ export default function SubscriptionSection() {
 
       {/* Pro benefits */}
       {!is_pro && (
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6">
-          <h4 className="font-bold text-blue-900 mb-3">Что входит в Pro:</h4>
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 relative overflow-hidden">
+          {hasDiscount && (
+            <div className="absolute top-4 right-4">
+              <span className="px-2 py-1 bg-green-500 text-white text-xs font-bold rounded animate-pulse">
+                -{discount?.percent}% на первую покупку
+              </span>
+            </div>
+          )}
+          <h4 className="font-bold text-blue-900 mb-3">
+            Что входит в Pro
+            {hasDiscount && (
+              <span className="ml-2 text-green-600">
+                — всего {discountedPrice} ₽
+              </span>
+            )}
+          </h4>
           <ul className="space-y-2">
             <li className="flex items-center gap-2 text-blue-800">
               <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

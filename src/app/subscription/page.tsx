@@ -71,20 +71,47 @@ export default function SubscriptionPage() {
 
           {/* Pro plan info */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-            <div className="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700">
+            <div className="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 relative">
               <h3 className="text-white font-bold text-lg">Pro подписка</h3>
               <p className="text-white/80 text-sm">Максимум возможностей</p>
+              {subscription?.discount?.enabled && subscription?.discount?.percent > 0 && (
+                <span className="absolute top-4 right-4 px-2 py-1 bg-green-500 text-white text-xs font-bold rounded animate-pulse">
+                  -{subscription.discount.percent}%
+                </span>
+              )}
             </div>
 
             <div className="p-6">
               <div className="mb-6">
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-3xl font-bold text-gray-900">
-                    {subscription?.prices.subscription || 799}
-                  </span>
-                  <span className="text-gray-500">₽/мес</span>
-                </div>
-                <p className="text-sm text-gray-500">Ежемесячная оплата</p>
+                {subscription?.discount?.enabled && subscription?.discount?.percent > 0 ? (
+                  <>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg text-gray-400 line-through">
+                        {subscription?.prices.subscription || 799} ₽
+                      </span>
+                      <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded">
+                        Первая покупка -{subscription.discount.percent}%
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-1 mb-1">
+                      <span className="text-3xl font-bold text-green-600">
+                        {subscription?.prices.subscription_discounted || Math.round((subscription?.prices.subscription || 799) * (1 - subscription.discount.percent / 100))}
+                      </span>
+                      <span className="text-gray-500">₽ / первый месяц</span>
+                    </div>
+                    <p className="text-sm text-gray-500">далее {subscription?.prices.subscription || 799} ₽/мес</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-baseline gap-1 mb-1">
+                      <span className="text-3xl font-bold text-gray-900">
+                        {subscription?.prices.subscription || 799}
+                      </span>
+                      <span className="text-gray-500">₽/мес</span>
+                    </div>
+                    <p className="text-sm text-gray-500">Ежемесячная оплата</p>
+                  </>
+                )}
               </div>
 
               <ul className="space-y-3 mb-6">
@@ -209,7 +236,7 @@ export default function SubscriptionPage() {
                 <strong>Base (бесплатно):</strong> 3 запроса/день, только поиск в ленте (сохранённые вакансии).
               </p>
               <p className="text-gray-600 text-sm">
-                <strong>Pro (799₽/мес):</strong> 15 запросов/день, поиск в ленте + в сети (живой парсинг с HH, SuperJob, Avito),
+                <strong>Pro ({subscription?.prices.subscription || 799}₽/мес{subscription?.discount?.enabled ? `, скидка ${subscription.discount.percent}% на первую покупку` : ""}):</strong> 15 запросов/день, поиск в ленте + в сети (живой парсинг с HH, SuperJob, Avito),
                 возможность докупить запросы, приоритетная поддержка.
               </p>
             </div>
