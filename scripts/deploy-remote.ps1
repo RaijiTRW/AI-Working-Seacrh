@@ -22,27 +22,50 @@ Set-Content -Path ".version-old" -Value $oldVersion
 # Step 2: STOP SERVICE FIRST (to unlock node_modules files)
 Write-Host ""
 Write-Host "[2/8] Stopping frontend service..."
+
+# First stop NSSM service
+Write-Host "  Stopping NSSM service..."
 & "C:\nssm-2.24\win64\nssm.exe" stop jobai-frontend 2>&1 | Out-Null
+Start-Sleep -Seconds 5
+
+# Force kill ALL node processes (aggressive cleanup)
+Write-Host "  Force killing ALL node processes..."
+Get-Process -Name "node" -ErrorAction SilentlyContinue | ForEach-Object {
+    Write-Host "    Killing node PID $($_.Id)"
+    Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+}
 Start-Sleep -Seconds 3
 
-# Kill any process on port 3000
-Write-Host "  Killing processes on port 3000..."
-try {
-    $connections = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue
-    if ($connections) {
-        $pids = $connections | Select-Object -ExpandProperty OwningProcess -Unique
-        foreach ($p in $pids) {
-            if ($p -ne 0) {
-                Write-Host "    Killing PID $p"
-                Stop-Process -Id $p -Force -ErrorAction SilentlyContinue
-            }
+# Double-check: Kill any process on port 3000
+Write-Host "  Checking port 3000..."
+$attempts = 0
+while ($attempts -lt 5) {
+    $connections = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Listen' }
+    if (-not $connections) {
+        Write-Host "  Port 3000 is free!"
+        break
+    }
+    foreach ($conn in $connections) {
+        $pid = $conn.OwningProcess
+        if ($pid -ne 0) {
+            Write-Host "    Force killing PID $pid on port 3000"
+            taskkill /F /PID $pid 2>&1 | Out-Null
         }
     }
-} catch {
-    Write-Host "  No processes on port 3000"
+    Start-Sleep -Seconds 2
+    $attempts++
 }
-Start-Sleep -Seconds 2
-Write-Host "Service stopped!"
+
+# Verify port is free
+$finalCheck = Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Listen' }
+if ($finalCheck) {
+    Write-Host "WARNING: Port 3000 still occupied after cleanup attempts!"
+    foreach ($conn in $finalCheck) {
+        Write-Host "  PID: $($conn.OwningProcess)"
+    }
+} else {
+    Write-Host "Service stopped!"
+}
 
 # Step 3: Pull latest code
 Write-Host ""
@@ -97,9 +120,27 @@ Write-Host "Build OK!"
 # Step 7: Start service
 Write-Host ""
 Write-Host "[7/8] Starting frontend service..."
+
+# Ensure no stale node process before starting
+$staleNode = Get-Process -Name "node" -ErrorAction SilentlyContinue
+if ($staleNode) {
+    Write-Host "  WARNING: Found stale node process, killing..."
+    $staleNode | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 2
+}
+
 & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend
 Write-Host "Waiting for service to start..."
 Start-Sleep -Seconds 10
+
+# Verify new process is running
+$newNode = Get-Process -Name "node" -ErrorAction SilentlyContinue
+if ($newNode) {
+    Write-Host "  Node process started with PID: $($newNode.Id)"
+    Write-Host "  Started at: $($newNode.StartTime)"
+} else {
+    Write-Host "  WARNING: No node process found after service start!"
+}
 
 # Step 8: Health check
 Write-Host ""
@@ -125,6 +166,30 @@ if (-not $healthOk) {
     & "C:\nssm-2.24\win64\nssm.exe" status jobai-frontend
     Write-Host "ERROR: Frontend not responding after 10 attempts"
     exit 1
+}
+
+# Step 8b: Verify chunks are being served correctly
+Write-Host ""
+Write-Host "Verifying static assets..."
+$buildId = Get-Content ".next/BUILD_ID" -ErrorAction SilentlyContinue
+Write-Host "  Build ID: $buildId"
+
+# Get a sample chunk hash from disk
+$sampleChunk = Get-ChildItem ".next/static/chunks" -Filter "*.js" -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($sampleChunk) {
+    $chunkName = $sampleChunk.Name
+    Write-Host "  Sample chunk on disk: $chunkName"
+
+    # Try to fetch the chunk
+    try {
+        $chunkUrl = "http://127.0.0.1:3000/_next/static/chunks/$chunkName"
+        $chunkResponse = Invoke-WebRequest -Uri $chunkUrl -UseBasicParsing -TimeoutSec 5
+        if ($chunkResponse.StatusCode -eq 200) {
+            Write-Host "  Chunk fetch: OK (200)"
+        }
+    } catch {
+        Write-Host "  WARNING: Could not fetch chunk - $_"
+    }
 }
 
 Write-Host ""
