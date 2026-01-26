@@ -21,7 +21,49 @@ jobs:
           echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           echo "commit_msg=$(git log -1 --pretty=%B | head -1)" >> $GITHUB_OUTPUT
 
-      - name: Deploy to VDS
+      - name: Create deploy archive
+        run: |
+          echo "${{ steps.vars.outputs.sha_short }}" > .version
+          echo "Creating deploy archive for commit: ${{ steps.vars.outputs.sha_short }}"
+          # Create tar excluding node_modules, .next, .git and other large dirs
+          tar -czf deploy.tar.gz \
+            --exclude='node_modules' \
+            --exclude='.next' \
+            --exclude='.git' \
+            --exclude='*.tar.gz' \
+            --exclude='.turbo' \
+            --exclude='.swc' \
+            .
+          ls -lh deploy.tar.gz
+          echo "Archive created successfully"
+
+      - name: Stop service on VDS
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VDS_HOST }}
+          username: ${{ secrets.VDS_USERNAME }}
+          key: ${{ secrets.VDS_SSH_KEY }}
+          port: ${{ secrets.VDS_PORT || 22 }}
+          command_timeout: 5m
+          script: |
+            echo === STOPPING SERVICE ===
+            C:\nssm-2.24\win64\nssm.exe stop jobai-frontend
+            timeout /t 5 /nobreak >nul
+            taskkill /F /IM node.exe 2>nul
+            timeout /t 3 /nobreak >nul
+            echo Service stopped
+
+      - name: Copy archive to VDS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VDS_HOST }}
+          username: ${{ secrets.VDS_USERNAME }}
+          key: ${{ secrets.VDS_SSH_KEY }}
+          port: ${{ secrets.VDS_PORT || 22 }}
+          source: "deploy.tar.gz"
+          target: "C:/apps/"
+
+      - name: Extract and build on VDS
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.VDS_HOST }}
@@ -30,23 +72,52 @@ jobs:
           port: ${{ secrets.VDS_PORT || 22 }}
           command_timeout: 30m
           script: |
-            echo "=== DEPLOY START ==="
-            echo "Target commit: ${{ steps.vars.outputs.sha_short }}"
+            echo === DEPLOY START ===
+            echo Target commit: ${{ steps.vars.outputs.sha_short }}
+
             cd C:\apps\AI-Working-Seacrh
-            echo "Current dir: %CD%"
-            echo "Current HEAD:"
-            git rev-parse --short HEAD
-            echo "Fetching..."
-            git fetch --all --prune
-            echo "Remote origin/main:"
-            git rev-parse --short origin/main
-            echo "Resetting to origin/main..."
-            git reset --hard origin/main
-            echo "New HEAD:"
-            git rev-parse --short HEAD
-            echo "Running PowerShell deploy script..."
-            powershell -ExecutionPolicy Bypass -File scripts\deploy-remote.ps1
-            echo "=== DEPLOY END ==="
+
+            echo Saving .env.local...
+            if exist .env.local copy .env.local ..\env.local.backup >nul
+
+            echo Cleaning old build artifacts...
+            if exist .next rmdir /s /q .next
+            if exist .turbo rmdir /s /q .turbo
+            if exist .swc rmdir /s /q .swc
+
+            echo Extracting new code...
+            tar -xzf ..\deploy.tar.gz --overwrite
+            del ..\deploy.tar.gz
+
+            echo Restoring .env.local...
+            if exist ..\env.local.backup (
+              copy ..\env.local.backup .env.local >nul
+              del ..\env.local.backup
+            )
+
+            echo Version:
+            type .version
+
+            echo Installing dependencies...
+            call npm ci
+            if %ERRORLEVEL% neq 0 exit /b 1
+
+            echo Building...
+            call npm run build
+            if %ERRORLEVEL% neq 0 exit /b 1
+
+            if not exist .next exit /b 1
+
+            echo Starting service...
+            C:\nssm-2.24\win64\nssm.exe start jobai-frontend
+
+            timeout /t 10 /nobreak >nul
+
+            echo Health check:
+            curl -s http://127.0.0.1:3000/api/version
+
+            echo.
+            echo === DEPLOY COMPLETE ===
 
       - name: Deployment Status
         if: always()
