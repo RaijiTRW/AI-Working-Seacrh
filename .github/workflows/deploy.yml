@@ -9,18 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup git credentials on VDS
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.VDS_HOST }}
-          username: ${{ secrets.VDS_USERNAME }}
-          key: ${{ secrets.VDS_SSH_KEY }}
-          port: ${{ secrets.VDS_PORT }}
-          script: |
-            cd C:\apps\AI-Working-Seacrh
-            git remote set-url origin https://${{ secrets.GH_DEPLOY_TOKEN }}@github.com/RaijiTRW/AI-Working-Seacrh.git
-
-      - name: Run deploy script
+      - name: Deploy
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VDS_HOST }}
@@ -30,16 +19,27 @@ jobs:
           command_timeout: 30m
           script: |
             cd C:\apps\AI-Working-Seacrh
-            powershell -ExecutionPolicy Bypass -File scripts\deploy-remote.ps1
-
-      - name: Reset git remote
-        if: always()
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.VDS_HOST }}
-          username: ${{ secrets.VDS_USERNAME }}
-          key: ${{ secrets.VDS_SSH_KEY }}
-          port: ${{ secrets.VDS_PORT }}
-          script: |
-            cd C:\apps\AI-Working-Seacrh
+            echo === STOPPING SERVICE ===
+            C:\nssm-2.24\win64\nssm.exe stop jobai-frontend
+            ping -n 5 127.0.0.1 > nul
+            taskkill /F /IM node.exe 2> nul
+            ping -n 3 127.0.0.1 > nul
+            echo === UPDATING CODE ===
+            git remote set-url origin https://${{ secrets.GH_DEPLOY_TOKEN }}@github.com/RaijiTRW/AI-Working-Seacrh.git
+            git fetch origin main
+            git reset --hard origin/main
             git remote set-url origin https://github.com/RaijiTRW/AI-Working-Seacrh.git
+            echo === VERSION ===
+            git rev-parse --short HEAD
+            git rev-parse --short HEAD > .version
+            echo === INSTALLING ===
+            call npm ci
+            echo === BUILDING ===
+            call npm run build
+            echo === STARTING ===
+            C:\nssm-2.24\win64\nssm.exe start jobai-frontend
+            ping -n 10 127.0.0.1 > nul
+            echo === HEALTH CHECK ===
+            curl -s http://127.0.0.1:3000/api/version
+            echo.
+            echo === DONE ===
