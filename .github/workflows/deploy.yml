@@ -1,144 +1,76 @@
-name: Build and Deploy to VDS
+name: Deploy to VDS
 
 on:
   push:
     branches:
       - main
 
-env:
-  NODE_VERSION: '20'
-  # Public env vars for build (these are embedded in client bundle anyway)
-  NEXT_PUBLIC_SUPABASE_URL: https://pakzojxyudiiztniqayd.supabase.co
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBha3pvanh5dWRpaXp0bmlxYXlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4ODI4OTcsImV4cCI6MjA4MzQ1ODg5N30.Hw-n9FSzYdTnJfXFZrS9fuO1FsIKfuZ8lAMm5Qm-hFU
-  NEXT_PUBLIC_SITE_URL: https://jobaisearch.ru
-  NEXT_PUBLIC_API_URL: http://127.0.0.1:8000
-  # Server-side placeholders (real values are in .env.local on server)
-  SUPABASE_SERVICE_ROLE_KEY: build-placeholder
-  YOOKASSA_SHOP_ID: build-placeholder
-  YOOKASSA_SECRET_KEY: build-placeholder
-  YOOKASSA_RETURN_URL: https://jobaisearch.ru/subscription/success
-
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Get version info
+      - name: Get commit info
         id: version
         run: |
-          COMMIT_SHA=$(git rev-parse --short HEAD)
-          COMMIT_MSG=$(git log -1 --pretty=%B | head -1)
-          VERSION=$(node -p "require('./package.json').version")
-          echo "commit=$COMMIT_SHA" >> $GITHUB_OUTPUT
-          echo "message=$COMMIT_MSG" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Version: $VERSION | Commit: $COMMIT_SHA"
+          echo "commit=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "short=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build Next.js
-        run: |
-          echo "${{ steps.version.outputs.commit }}" > .version
-          npm run build
-          echo "Build complete"
-          ls -la .next/
-
-      - name: Create deployment package
-        run: |
-          echo "Creating deployment archive..."
-          tar -czf deploy.tar.gz \
-            --exclude='node_modules' \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='*.tar.gz' \
-            . || true
-          ls -lh deploy.tar.gz
-          test -f deploy.tar.gz && echo "Archive OK"
-
-      - name: Stop VDS service
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          GH_TOKEN: ${{ secrets.GH_DEPLOY_TOKEN }}
         with:
           host: ${{ secrets.VDS_HOST }}
           username: ${{ secrets.VDS_USERNAME }}
           key: ${{ secrets.VDS_SSH_KEY }}
           port: ${{ secrets.VDS_PORT }}
-          script_stop: false
-          script: |
-            echo [1/5] Stopping service...
-            C:\nssm-2.24\win64\nssm.exe stop jobai-frontend 2>nul
-            ping -n 5 127.0.0.1 >nul
-            taskkill /F /IM node.exe 2>nul
-            ping -n 3 127.0.0.1 >nul
-            echo Done
-
-      - name: Upload to VDS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VDS_HOST }}
-          username: ${{ secrets.VDS_USERNAME }}
-          key: ${{ secrets.VDS_SSH_KEY }}
-          port: ${{ secrets.VDS_PORT }}
-          source: deploy.tar.gz
-          target: /apps/AI-Working-Seacrh
-          strip_components: 0
-
-      - name: Deploy on VDS
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.VDS_HOST }}
-          username: ${{ secrets.VDS_USERNAME }}
-          key: ${{ secrets.VDS_SSH_KEY }}
-          port: ${{ secrets.VDS_PORT }}
+          envs: GH_TOKEN
           command_timeout: 30m
           script: |
-            echo [2/5] Extracting files...
+            echo ========================================
+            echo   DEPLOY STARTED
+            echo ========================================
+
             cd /d C:\apps\AI-Working-Seacrh
 
-            echo Checking archive...
-            dir deploy.tar.gz
+            echo.
+            echo [1/6] Stopping service...
+            C:\nssm-2.24\win64\nssm.exe stop jobai-frontend 2>nul
+            ping -n 3 127.0.0.1 >nul
+            taskkill /F /IM node.exe 2>nul
+            ping -n 2 127.0.0.1 >nul
 
-            if exist .env.local copy .env.local C:\apps\env.backup >nul
+            echo.
+            echo [2/6] Syncing code from GitHub...
+            git remote set-url origin https://%GH_TOKEN%@github.com/RaijiTRW/AI-Working-Seacrh.git
+            git fetch origin main
+            git reset --hard origin/main
+            git remote set-url origin https://github.com/RaijiTRW/AI-Working-Seacrh.git
 
-            echo Extracting...
-            tar -xzf deploy.tar.gz
-            del deploy.tar.gz
-
-            if exist C:\apps\env.backup copy C:\apps\env.backup .env.local >nul
-            if exist C:\apps\env.backup del C:\apps\env.backup
-
-            echo Version file:
+            echo.
+            echo [3/6] Writing version...
+            git rev-parse --short HEAD > .version
             type .version
 
-            echo [3/5] Installing dependencies...
+            echo.
+            echo [4/6] Installing dependencies...
             call npm ci
 
-            echo [4/5] Starting service...
-            C:\nssm-2.24\win64\nssm.exe start jobai-frontend
+            echo.
+            echo [5/6] Building...
+            call npm run build
 
+            echo.
+            echo [6/6] Starting service...
+            C:\nssm-2.24\win64\nssm.exe start jobai-frontend
             ping -n 10 127.0.0.1 >nul
 
-            echo [5/5] Health check...
+            echo.
+            echo Health check:
             curl -s http://127.0.0.1:3000/api/version
 
             echo.
-            echo === DEPLOY COMPLETE ===
-
-      - name: Deployment result
-        if: always()
-        run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            echo "Deploy OK: ${{ steps.version.outputs.commit }}"
-          else
-            echo "Deploy FAILED"
-            exit 1
-          fi
+            echo ========================================
+            echo   DEPLOY COMPLETE
+            echo ========================================
