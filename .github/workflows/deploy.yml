@@ -89,7 +89,8 @@ jobs:
           key: ${{ secrets.VDS_SSH_KEY }}
           port: ${{ secrets.VDS_PORT }}
           source: deploy.tar.gz
-          target: C:\apps\
+          target: /apps/AI-Working-Seacrh
+          strip_components: 0
 
       - name: Deploy on VDS
         uses: appleboy/ssh-action@v1.2.0
@@ -101,17 +102,21 @@ jobs:
           command_timeout: 30m
           script: |
             echo [2/5] Extracting files...
-            cd C:\apps\AI-Working-Seacrh
+            cd /d C:\apps\AI-Working-Seacrh
+
+            echo Checking archive...
+            dir deploy.tar.gz
 
             if exist .env.local copy .env.local C:\apps\env.backup >nul
 
-            tar -xzf C:\apps\deploy.tar.gz
-            del C:\apps\deploy.tar.gz
+            echo Extracting...
+            tar -xzf deploy.tar.gz
+            del deploy.tar.gz
 
             if exist C:\apps\env.backup copy C:\apps\env.backup .env.local >nul
             if exist C:\apps\env.backup del C:\apps\env.backup
 
-            echo Version:
+            echo Version file:
             type .version
 
             echo [3/5] Installing dependencies...
@@ -126,7 +131,7 @@ jobs:
             curl -s http://127.0.0.1:3000/api/version
 
             echo.
-            echo DEPLOY COMPLETE
+            echo === DEPLOY COMPLETE ===
 
       - name: Deployment result
         if: always()
