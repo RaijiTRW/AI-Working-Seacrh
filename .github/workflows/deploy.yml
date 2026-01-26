@@ -1,129 +1,132 @@
-name: Auto Deploy to VDS
+name: Build and Deploy to VDS
 
 on:
   push:
     branches:
       - main
 
+env:
+  NODE_VERSION: '20'
+
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          fetch-depth: 0
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
 
-      - name: Get commit info
-        id: vars
+      - name: Get version info
+        id: version
         run: |
-          echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          echo "commit_msg=$(git log -1 --pretty=%B | head -1)" >> $GITHUB_OUTPUT
+          COMMIT_SHA=$(git rev-parse --short HEAD)
+          COMMIT_MSG=$(git log -1 --pretty=%B | head -1)
+          VERSION=$(node -p "require('./package.json').version")
+          echo "commit=$COMMIT_SHA" >> $GITHUB_OUTPUT
+          echo "message=$COMMIT_MSG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Version: $VERSION"
+          echo "📝 Commit: $COMMIT_SHA - $COMMIT_MSG"
 
-      - name: Create deploy archive
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Next.js
         run: |
-          echo "${{ steps.vars.outputs.sha_short }}" > .version
-          echo "Creating deploy archive for commit: ${{ steps.vars.outputs.sha_short }}"
-          # Create tar excluding node_modules, .next, .git and other large dirs
+          echo "${{ steps.version.outputs.commit }}" > .version
+          npm run build
+          echo "✅ Build complete"
+          ls -la .next/
+
+      - name: Create deployment package
+        run: |
+          echo "📦 Creating deployment archive..."
           tar -czf deploy.tar.gz \
             --exclude='node_modules' \
-            --exclude='.next' \
             --exclude='.git' \
+            --exclude='.github' \
             --exclude='*.tar.gz' \
-            --exclude='.turbo' \
-            --exclude='.swc' \
             .
           ls -lh deploy.tar.gz
-          echo "Archive created successfully"
+          echo "✅ Archive created"
 
-      - name: Stop service on VDS
-        uses: appleboy/ssh-action@v1.0.0
+      - name: Stop VDS service
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VDS_HOST }}
           username: ${{ secrets.VDS_USERNAME }}
           key: ${{ secrets.VDS_SSH_KEY }}
-          port: ${{ secrets.VDS_PORT || 22 }}
-          command_timeout: 5m
+          port: ${{ secrets.VDS_PORT }}
+          script_stop: false
           script: |
-            echo === STOPPING SERVICE ===
-            C:\nssm-2.24\win64\nssm.exe stop jobai-frontend
-            timeout /t 5 /nobreak >nul
+            echo [1/5] Stopping service...
+            C:\nssm-2.24\win64\nssm.exe stop jobai-frontend 2>nul
+            ping -n 5 127.0.0.1 >nul
             taskkill /F /IM node.exe 2>nul
-            timeout /t 3 /nobreak >nul
+            ping -n 3 127.0.0.1 >nul
             echo Service stopped
 
-      - name: Copy archive to VDS
+      - name: Upload to VDS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VDS_HOST }}
           username: ${{ secrets.VDS_USERNAME }}
           key: ${{ secrets.VDS_SSH_KEY }}
-          port: ${{ secrets.VDS_PORT || 22 }}
-          source: "deploy.tar.gz"
-          target: "C:/apps/"
+          port: ${{ secrets.VDS_PORT }}
+          source: deploy.tar.gz
+          target: C:\apps\
 
-      - name: Extract and build on VDS
-        uses: appleboy/ssh-action@v1.0.0
+      - name: Deploy on VDS
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VDS_HOST }}
           username: ${{ secrets.VDS_USERNAME }}
           key: ${{ secrets.VDS_SSH_KEY }}
-          port: ${{ secrets.VDS_PORT || 22 }}
+          port: ${{ secrets.VDS_PORT }}
           command_timeout: 30m
           script: |
-            echo === DEPLOY START ===
-            echo Target commit: ${{ steps.vars.outputs.sha_short }}
-
+            echo [2/5] Extracting files...
             cd C:\apps\AI-Working-Seacrh
 
-            echo Saving .env.local...
-            if exist .env.local copy .env.local ..\env.local.backup >nul
+            if exist .env.local copy .env.local C:\apps\env.backup >nul
 
-            echo Cleaning old build artifacts...
-            if exist .next rmdir /s /q .next
-            if exist .turbo rmdir /s /q .turbo
-            if exist .swc rmdir /s /q .swc
+            tar -xzf C:\apps\deploy.tar.gz
+            del C:\apps\deploy.tar.gz
 
-            echo Extracting new code...
-            tar -xzf ..\deploy.tar.gz --overwrite
-            del ..\deploy.tar.gz
+            if exist C:\apps\env.backup copy C:\apps\env.backup .env.local >nul
+            if exist C:\apps\env.backup del C:\apps\env.backup
 
-            echo Restoring .env.local...
-            if exist ..\env.local.backup (
-              copy ..\env.local.backup .env.local >nul
-              del ..\env.local.backup
-            )
-
-            echo Version:
+            echo Version deployed:
             type .version
 
-            echo Installing dependencies...
+            echo [3/5] Installing dependencies...
             call npm ci
-            if %ERRORLEVEL% neq 0 exit /b 1
 
-            echo Building...
-            call npm run build
-            if %ERRORLEVEL% neq 0 exit /b 1
-
-            if not exist .next exit /b 1
-
-            echo Starting service...
+            echo [4/5] Starting service...
             C:\nssm-2.24\win64\nssm.exe start jobai-frontend
 
-            timeout /t 10 /nobreak >nul
+            ping -n 10 127.0.0.1 >nul
 
-            echo Health check:
+            echo [5/5] Health check...
             curl -s http://127.0.0.1:3000/api/version
-
             echo.
             echo === DEPLOY COMPLETE ===
 
-      - name: Deployment Status
-        if: always()
+      - name: Verify deployment
+        if: success()
         run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ Deploy successful: ${{ steps.vars.outputs.sha_short }}"
-          else
-            echo "❌ Deploy FAILED"
-          fi
+          echo "🚀 Deployment successful!"
+          echo "Version: ${{ steps.version.outputs.version }}"
+          echo "Commit: ${{ steps.version.outputs.commit }}"
+
+      - name: Report failure
+        if: failure()
+        run: |
+          echo "❌ Deployment FAILED"
+          exit 1
