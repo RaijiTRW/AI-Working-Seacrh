@@ -8,14 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Get commit info
-        id: version
-        run: |
-          echo "commit=${{ github.sha }}" >> $GITHUB_OUTPUT
-          echo "short=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -25,49 +18,51 @@ jobs:
           port: ${{ secrets.VDS_PORT }}
           command_timeout: 30m
           script: |
-            echo ========================================
-            echo   DEPLOY STARTED
-            echo ========================================
+            powershell -Command "
+              Write-Host '========================================'
+              Write-Host '  DEPLOY STARTED'
+              Write-Host '========================================'
 
-            cd /d C:\apps\AI-Working-Seacrh
+              Set-Location 'C:\apps\AI-Working-Seacrh'
 
-            echo.
-            echo [1/6] Stopping service...
-            C:\nssm-2.24\win64\nssm.exe stop jobai-frontend 2>nul
-            ping -n 3 127.0.0.1 >nul
-            taskkill /F /IM node.exe 2>nul
-            ping -n 2 127.0.0.1 >nul
+              Write-Host ''
+              Write-Host '[1/6] Stopping service...'
+              & 'C:\nssm-2.24\win64\nssm.exe' stop jobai-frontend 2>$null
+              Start-Sleep -Seconds 3
+              Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+              Start-Sleep -Seconds 2
 
-            echo.
-            echo [2/6] Syncing code from GitHub...
-            git remote set-url origin https://${{ secrets.GH_DEPLOY_TOKEN }}@github.com/RaijiTRW/AI-Working-Seacrh.git
-            git fetch origin main
-            git reset --hard origin/main
-            git remote set-url origin https://github.com/RaijiTRW/AI-Working-Seacrh.git
+              Write-Host ''
+              Write-Host '[2/6] Syncing code from GitHub...'
+              git remote set-url origin 'https://${{ secrets.GH_DEPLOY_TOKEN }}@github.com/RaijiTRW/AI-Working-Seacrh.git'
+              git fetch origin main
+              git reset --hard origin/main
+              git remote set-url origin 'https://github.com/RaijiTRW/AI-Working-Seacrh.git'
 
-            echo.
-            echo [3/6] Writing version...
-            git rev-parse --short HEAD > .version
-            type .version
+              Write-Host ''
+              Write-Host '[3/6] Writing version...'
+              git rev-parse --short HEAD | Out-File -FilePath '.version' -Encoding ascii -NoNewline
+              Get-Content '.version'
 
-            echo.
-            echo [4/6] Installing dependencies...
-            call npm ci
+              Write-Host ''
+              Write-Host '[4/6] Installing dependencies...'
+              npm ci
 
-            echo.
-            echo [5/6] Building...
-            call npm run build
+              Write-Host ''
+              Write-Host '[5/6] Building...'
+              npm run build
 
-            echo.
-            echo [6/6] Starting service...
-            C:\nssm-2.24\win64\nssm.exe start jobai-frontend
-            ping -n 10 127.0.0.1 >nul
+              Write-Host ''
+              Write-Host '[6/6] Starting service...'
+              & 'C:\nssm-2.24\win64\nssm.exe' start jobai-frontend
+              Start-Sleep -Seconds 10
 
-            echo.
-            echo Health check:
-            curl -s http://127.0.0.1:3000/api/version
+              Write-Host ''
+              Write-Host 'Health check:'
+              Invoke-WebRequest -Uri 'http://127.0.0.1:3000/api/version' -UseBasicParsing | Select-Object -ExpandProperty Content
 
-            echo.
-            echo ========================================
-            echo   DEPLOY COMPLETE
-            echo ========================================
+              Write-Host ''
+              Write-Host '========================================'
+              Write-Host '  DEPLOY COMPLETE'
+              Write-Host '========================================'
+            "
