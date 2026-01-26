@@ -78,10 +78,10 @@ export default function Hero({ defaultMode = "jobseeker", hideToggle = false, on
     jobseeker: {
       title: (
         <>
-          Мы ищем{" "}
+          Получи{" "}
           <span className="relative inline-block">
             <span className="relative z-10 italic text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">
-              работу за тебя
+              10 подходящих вакансий
             </span>
             <svg
               className="absolute -bottom-2 left-0 w-full h-3 text-orange-400"
@@ -97,11 +97,13 @@ export default function Hero({ defaultMode = "jobseeker", hideToggle = false, on
                 fill="none"
               />
             </svg>
-          </span>
+          </span>{" "}
+          за 5 минут
         </>
       ),
-      subtitle: "Быстрый и надёжный поиск вакансий с помощью ИИ.",
-      cta: user ? "Перейти к поиску" : "Найти вакансии",
+      subtitle: "ИИ анализирует hh.ru, Avito, SuperJob и подбирает только релевантные предложения. Без часов скролла и дубликатов.",
+      cta: user ? "Перейти к поиску" : "Попробовать бесплатно",
+      microCopy: "7 дней Pro бесплатно. Без карты.",
       ctaLink: user ? "/chat" : "/auth",
       ctaColor: "from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-orange-500/25 hover:shadow-orange-500/30",
       bgGradient: "from-orange-50/50 via-white to-white",
@@ -140,6 +142,7 @@ export default function Hero({ defaultMode = "jobseeker", hideToggle = false, on
       ),
       subtitle: "AI-фильтрация резюме и встроенный чат с соискателями.",
       cta: user ? "Разместить вакансию" : "Начать подбор",
+      microCopy: "Бесплатный тариф навсегда",
       ctaLink: user ? "/vacancies/create" : "/auth",
       ctaColor: "from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-blue-500/25 hover:shadow-blue-500/30",
       bgGradient: "from-blue-50/50 via-white to-white",
@@ -243,18 +246,30 @@ export default function Hero({ defaultMode = "jobseeker", hideToggle = false, on
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-6">
           {currentContent.title}
         </h1>
-        <p className="text-lg md:text-xl text-muted max-w-xl mx-auto mb-10">
+        <p className="text-lg md:text-xl text-muted max-w-xl mx-auto mb-8">
           {currentContent.subtitle}
         </p>
-        <a
-          href={currentContent.ctaLink}
-          className={`inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r ${currentContent.ctaColor} text-white rounded-full text-lg font-medium transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5`}
-        >
-          {currentContent.cta}
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
+
+        {/* CTA с микрокопирайтингом */}
+        <div className="flex flex-col items-center gap-3">
+          <a
+            href={currentContent.ctaLink}
+            className={`inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r ${currentContent.ctaColor} text-white rounded-full text-lg font-medium transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5`}
+          >
+            {currentContent.cta}
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+
+          {/* Микрокопирайтинг снижения риска */}
+          <p className="text-sm text-muted flex items-center gap-2">
+            <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            {currentContent.microCopy}
+          </p>
+        </div>
       </div>
     </section>
   );

@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense, useEffect, useState, useRef } from "react";
+import { Suspense, useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/useAuth";
-import { checkPaymentStatus } from "@/lib/api";
+import { checkPaymentStatus, cancelPayment } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 
 interface ReceiptData {
@@ -33,13 +33,73 @@ function SuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
-  const [status, setStatus] = useState<"loading" | "success" | "pending" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "success" | "pending" | "canceled" | "error">("loading");
   const [message, setMessage] = useState("");
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [loadingReceipt, setLoadingReceipt] = useState(false);
+  const [canceling, setCanceling] = useState(false);
+  const [checkCount, setCheckCount] = useState(0);
   const receiptRef = useRef<HTMLDivElement>(null);
+  const paymentIdRef = useRef<string | null>(null);
+  const statusRef = useRef<string>("loading");
 
   const paymentId = searchParams.get("payment_id");
+  paymentIdRef.current = paymentId;
+
+  // Обновляем ref при изменении статуса
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  const handleCancel = useCallback(async () => {
+    if (!paymentIdRef.current || canceling) return;
+
+    setCanceling(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setStatus("error");
+        setMessage("Ошибка авторизации");
+        return;
+      }
+
+      await cancelPayment(session.access_token, paymentIdRef.current);
+      setStatus("canceled");
+      setMessage("Платёж отменён");
+    } catch (err) {
+      console.error("Cancel error:", err);
+      // Всё равно показываем как отменённый
+      setStatus("canceled");
+      setMessage("Платёж отменён");
+    } finally {
+      setCanceling(false);
+    }
+  }, [canceling]);
+
+  // Отмена при уходе со страницы
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      // Отменяем только если статус pending
+      if (statusRef.current === "pending" && paymentIdRef.current) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          // Fire and forget - не ждём ответа
+          fetch(`/api/subscription/cancel/${paymentIdRef.current}`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            keepalive: true, // Важно для beforeunload
+          }).catch(() => {});
+        }
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -53,7 +113,12 @@ function SuccessContent() {
       return;
     }
 
+    let timeoutId: NodeJS.Timeout;
+    let isMounted = true;
+
     const checkStatus = async () => {
+      if (!isMounted) return;
+
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) {
@@ -64,6 +129,8 @@ function SuccessContent() {
 
         const result = await checkPaymentStatus(session.access_token, paymentId);
 
+        if (!isMounted) return;
+
         if (result.status === "succeeded") {
           setStatus("success");
           setMessage(
@@ -71,20 +138,29 @@ function SuccessContent() {
               ? "Pro подписка успешно оформлена!"
               : "Запросы успешно добавлены!"
           );
-          // Загружаем чек
           loadReceipt(session.access_token);
+        } else if (result.status === "canceled") {
+          setStatus("canceled");
+          setMessage("Платёж был отменён");
         } else if (result.status === "pending" || result.status === "waiting_for_capture") {
           setStatus("pending");
           setMessage("Платёж обрабатывается...");
-          setTimeout(checkStatus, 3000);
+          setCheckCount(c => c + 1);
+
+          // Продолжаем проверять только первые 20 раз (60 секунд)
+          if (checkCount < 20) {
+            timeoutId = setTimeout(checkStatus, 3000);
+          }
         } else {
           setStatus("error");
           setMessage("Платёж не удался. Попробуйте ещё раз.");
         }
       } catch (err) {
         console.error("Payment check error:", err);
-        setStatus("error");
-        setMessage("Ошибка проверки платежа");
+        if (isMounted) {
+          setStatus("error");
+          setMessage("Ошибка проверки платежа");
+        }
       }
     };
 
@@ -98,17 +174,28 @@ function SuccessContent() {
         });
         if (response.ok) {
           const data = await response.json();
-          setReceipt(data);
+          if (isMounted) {
+            setReceipt(data);
+          }
         }
       } catch (err) {
         console.error("Receipt load error:", err);
       } finally {
-        setLoadingReceipt(false);
+        if (isMounted) {
+          setLoadingReceipt(false);
+        }
       }
     };
 
     checkStatus();
-  }, [user, authLoading, paymentId, router]);
+
+    return () => {
+      isMounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [user, authLoading, paymentId, router, checkCount]);
 
   const handlePrintReceipt = () => {
     if (!receiptRef.current) return;
@@ -232,9 +319,20 @@ function SuccessContent() {
                 </svg>
               </div>
               <h1 className="text-xl font-bold text-gray-900 mb-2">
-                Проверяем платёж...
+                {status === "pending" ? "Ожидаем оплату..." : "Проверяем платёж..."}
               </h1>
-              <p className="text-gray-600">{message || "Пожалуйста, подождите"}</p>
+              <p className="text-gray-600 mb-6">{message || "Пожалуйста, подождите"}</p>
+
+              {/* Кнопка отмены для pending */}
+              {status === "pending" && (
+                <button
+                  onClick={handleCancel}
+                  disabled={canceling}
+                  className="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {canceling ? "Отмена..." : "Отменить платёж"}
+                </button>
+              )}
             </>
           ) : status === "success" ? (
             <>
@@ -269,6 +367,42 @@ function SuccessContent() {
                   className="block w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors"
                 >
                   Управление подпиской
+                </Link>
+              </div>
+            </>
+          ) : status === "canceled" ? (
+            <>
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg
+                  className="w-8 h-8 text-gray-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </div>
+              <h1 className="text-xl font-bold text-gray-900 mb-2">
+                Платёж отменён
+              </h1>
+              <p className="text-gray-600 mb-6">{message}</p>
+              <div className="space-y-3">
+                <Link
+                  href="/subscription"
+                  className="block w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-xl transition-colors"
+                >
+                  Попробовать снова
+                </Link>
+                <Link
+                  href="/"
+                  className="block w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors"
+                >
+                  На главную
                 </Link>
               </div>
             </>

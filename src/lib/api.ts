@@ -1247,6 +1247,7 @@ export interface SubscriptionInfo {
   is_base: boolean;            // На Base (бесплатный навсегда)
   is_pro: boolean;             // На Pro (платная подписка)
   is_pro_trial_expired: boolean; // Pro Trial истёк, показать модалку
+  is_pro_expired: boolean;     // Платная Pro подписка истекла
   prices: SubscriptionPrices;
   discount?: DiscountInfo;     // Информация о скидке на первую покупку
 }
@@ -1342,6 +1343,31 @@ export async function checkPaymentStatus(
 
   if (!response.ok) {
     throw new Error("Failed to check payment status");
+  }
+
+  return response.json();
+}
+
+/**
+ * Отменить pending платёж
+ */
+export async function cancelPayment(
+  token: string,
+  paymentId: string
+): Promise<{ status: string; message?: string }> {
+  const response = await fetch(
+    `${NEXT_API}/api/subscription/cancel/${paymentId}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to cancel payment");
   }
 
   return response.json();

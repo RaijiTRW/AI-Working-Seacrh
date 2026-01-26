@@ -2,24 +2,28 @@ import type { JSX } from "react";
 
 const benefits = [
   {
-    title: "Экономия времени",
-    description: "Не нужно сидеть часами на разных сайтах. Мы делаем это за тебя.",
+    title: "3+ часа в день на себя",
+    description: "Пока другие скроллят hh.ru, ты занимаешься важным. Мы ищем за тебя.",
     icon: "clock",
+    metric: "В среднем экономят наши пользователи",
   },
   {
-    title: "Без шума",
-    description: "Убираем дубликаты, фейки и нерелевантные предложения.",
+    title: "Только стоящие вакансии",
+    description: "ИИ отсекает дубликаты, фейки и вакансии с подвохом. Ты видишь только настоящие предложения.",
     icon: "filter",
+    metric: "87% вакансий отсеиваем как нерелевантные",
   },
   {
-    title: "Все сайты в одном месте",
-    description: "Avito, hh, SuperJob и другие площадки — в одной выдаче.",
+    title: "Все площадки в одной ленте",
+    description: "hh, Avito, SuperJob, Работа.ру — не нужно прыгать между сайтами. Всё в одном месте.",
     icon: "grid",
+    metric: "5+ площадок под контролем",
   },
   {
-    title: "Персональный фильтр",
-    description: "ИИ учитывает твои предпочтения и исключает ненужное.",
+    title: "ИИ помнит твои предпочтения",
+    description: "Один раз настроил — получаешь релевантное. Без повторных фильтров каждый день.",
     icon: "user",
+    metric: "Точность подбора 94%",
   },
 ];
 
@@ -57,13 +61,24 @@ export default function Benefits() {
           {benefits.map((benefit, index) => (
             <div
               key={index}
-              className="p-4 md:p-6 rounded-xl md:rounded-2xl bg-white border border-gray-100 hover:border-orange-200 hover:shadow-lg hover:shadow-orange-500/5 transition-all duration-300"
+              className="p-5 md:p-6 rounded-xl md:rounded-2xl bg-white border border-gray-100 hover:border-orange-200 hover:shadow-lg hover:shadow-orange-500/5 transition-all duration-300"
             >
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center mb-3 md:mb-4">
+              <div className="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center mb-4">
                 {icons[benefit.icon]}
               </div>
-              <h3 className="text-lg md:text-xl font-semibold mb-1.5 md:mb-2">{benefit.title}</h3>
-              <p className="text-sm md:text-base text-muted">{benefit.description}</p>
+
+              <h3 className="text-lg md:text-xl font-semibold mb-2">
+                {benefit.title}
+              </h3>
+
+              <p className="text-sm md:text-base text-muted mb-3">
+                {benefit.description}
+              </p>
+
+              {/* Метрика */}
+              <p className="text-xs text-orange-600 font-medium">
+                {benefit.metric}
+              </p>
             </div>
           ))}
         </div>

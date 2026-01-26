@@ -5,16 +5,18 @@ interface FooterProps {
 export default function Footer({ mode = "jobseeker" }: FooterProps) {
   const content = {
     jobseeker: {
-      title: "Готов найти работу без головной боли?",
-      subtitle: "Начни бесплатно — первый подбор за нас.",
-      cta: "Попробовать бесплатно",
+      title: "Хватит тратить время на поиск работы",
+      subtitle: "Зарегистрируйся за 30 секунд и получи первые вакансии через 5 минут. Бесплатно.",
+      cta: "Начать бесплатно",
+      microCopy: "7 дней Pro • Без карты • Отменить можно всегда",
       ctaLink: "/auth",
       ctaColor: "from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-orange-500/25 hover:shadow-orange-500/30",
     },
     employer: {
       title: "Готовы найти лучших кандидатов?",
-      subtitle: "Начните бесплатно — разместите первую вакансию.",
+      subtitle: "Начните бесплатно — разместите первую вакансию и получите отклики.",
       cta: "Разместить вакансию",
+      microCopy: "Бесплатный тариф навсегда",
       ctaLink: "/auth",
       ctaColor: "from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-blue-500/25 hover:shadow-blue-500/30",
     },
@@ -31,18 +33,28 @@ export default function Footer({ mode = "jobseeker" }: FooterProps) {
         <p className="text-base md:text-lg text-muted mb-8 md:mb-10">
           {currentContent.subtitle}
         </p>
-        <a
-          href={currentContent.ctaLink}
-          className={`inline-flex items-center gap-2 px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r ${currentContent.ctaColor} text-white rounded-full text-base md:text-lg font-medium transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 mb-12 md:mb-16`}
-        >
-          {currentContent.cta}
-          <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </a>
+
+        {/* CTA с микрокопирайтингом */}
+        <div className="flex flex-col items-center gap-3 mb-12 md:mb-16">
+          <a
+            href={currentContent.ctaLink}
+            className={`inline-flex items-center gap-2 px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r ${currentContent.ctaColor} text-white rounded-full text-base md:text-lg font-medium transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5`}
+          >
+            {currentContent.cta}
+            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+
+          {/* Микрокопирайтинг */}
+          <p className="text-sm text-muted">
+            {currentContent.microCopy}
+          </p>
+        </div>
+
         <div className="border-t border-gray-200 pt-6 md:pt-8 text-xs md:text-sm text-muted">
-          <p>Контакты: telegram / email (добавить позже)</p>
-          <p className="mt-2">2026 Job Search Все права защищены.</p>
+          <p>Контакты: telegram / email</p>
+          <p className="mt-2">2026 Job Search AI. Все права защищены.</p>
         </div>
       </div>
     </footer>

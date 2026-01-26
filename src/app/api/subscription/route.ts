@@ -25,12 +25,14 @@ export async function GET(request: NextRequest) {
       const expiresAt = new Date(subscription.expires_at);
       const now = new Date();
       if (now > expiresAt) {
-        console.log(`[Subscription] Expired for user ${userId}, downgrading to base`);
-        // Даунгрейд подписки
+        const previousPlan = subscription.plan; // Сохраняем какой план истёк
+        console.log(`[Subscription] Expired for user ${userId}, downgrading from ${previousPlan} to base`);
+        // Даунгрейд подписки с сохранением previous_plan
         await supabase
           .from("user_subscriptions")
           .update({
             plan: "base",
+            previous_plan: previousPlan, // Сохраняем предыдущий план
             status: "active",
             expires_at: "2099-12-31T00:00:00Z",
             can_search_online: false,
@@ -86,13 +88,6 @@ export async function GET(request: NextRequest) {
     const isProTrial = plan === "pro_trial" && status === "active";
     const isBase = plan === "base";
     const isPro = plan === "pro" && status === "active";
-    // Pro Trial истёк = сейчас на base (после истечения pro_trial)
-    const isProTrialExpired = isBase;
-
-    const dailyLimit = currentLimits?.daily_limit || 3;
-    const dailyUsed = currentLimits?.daily_used || 0;
-    const bonusRequests = currentLimits?.bonus_requests || 0;
-    const remaining = Math.max(0, dailyLimit - dailyUsed) + bonusRequests;
 
     // Проверяем есть ли предыдущие успешные покупки подписки
     const { count: previousPurchases } = await supabase
@@ -101,6 +96,50 @@ export async function GET(request: NextRequest) {
       .eq("user_id", userId)
       .eq("type", "subscription")
       .eq("status", "succeeded");
+
+    // Определяем какой план истёк
+    let expiredPlanType: "pro_trial" | "pro" | null = null;
+    if (isBase) {
+      // Сначала проверяем previous_plan (самый надёжный способ)
+      if (subscription?.previous_plan === "pro") {
+        expiredPlanType = "pro";
+      } else if (subscription?.previous_plan === "pro_trial") {
+        expiredPlanType = "pro_trial";
+      }
+      // Фоллбэк на payment_history если previous_plan не установлен
+      else if ((previousPurchases || 0) > 0) {
+        // Была платная подписка, которая истекла
+        expiredPlanType = "pro";
+      } else if (subscription?.created_at) {
+        // Проверяем прошло ли 7 дней с создания (период trial)
+        const createdAt = new Date(subscription.created_at);
+        const now = new Date();
+        const daysSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSinceCreation > 7) {
+          // Trial истёк
+          expiredPlanType = "pro_trial";
+        }
+      }
+    }
+
+    const isProTrialExpired = expiredPlanType === "pro_trial";
+    const isProExpired = expiredPlanType === "pro";
+
+    // Debug log
+    console.log(`[Subscription] Debug for user ${userId}:`, {
+      plan,
+      isBase,
+      previous_plan: subscription?.previous_plan,
+      previousPurchases,
+      expiredPlanType,
+      isProTrialExpired,
+      isProExpired,
+    });
+
+    const dailyLimit = currentLimits?.daily_limit || 3;
+    const dailyUsed = currentLimits?.daily_used || 0;
+    const bonusRequests = currentLimits?.bonus_requests || 0;
+    const remaining = Math.max(0, dailyLimit - dailyUsed) + bonusRequests;
 
     const isFirstPurchase = (previousPurchases || 0) === 0;
 
@@ -142,6 +181,7 @@ export async function GET(request: NextRequest) {
       is_base: isBase,
       is_pro: isPro,
       is_pro_trial_expired: isProTrialExpired,
+      is_pro_expired: isProExpired,
       prices: {
         subscription: regularPrice,
         subscription_discounted: discountedPrice,

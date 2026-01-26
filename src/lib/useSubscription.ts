@@ -35,6 +35,7 @@ const DEFAULT_SUBSCRIPTION: SubscriptionInfo = {
   is_base: true,  // По умолчанию считаем Base
   is_pro: false,
   is_pro_trial_expired: false,
+  is_pro_expired: false,
   prices: {
     subscription: 799,
     extra_requests: 99,

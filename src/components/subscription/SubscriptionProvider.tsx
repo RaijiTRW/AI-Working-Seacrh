@@ -37,10 +37,11 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
     >
       {children}
 
-      {/* Модальное окно истекшего Pro Trial (переход на Base) */}
+      {/* Модальное окно истекшей подписки (Trial или платной) */}
       {subscription && (
         <TrialExpiredModal
           isProTrialExpired={subscription.is_pro_trial_expired}
+          isProExpired={subscription.is_pro_expired}
           price={subscription.prices.subscription}
           discountedPrice={subscription.prices.subscription_discounted}
           discountPercent={subscription.discount?.percent}

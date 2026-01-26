@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 
 interface TrialExpiredModalProps {
   isProTrialExpired: boolean;
+  isProExpired: boolean;
   price: number;
   discountedPrice?: number;
   discountPercent?: number;
@@ -12,11 +13,12 @@ interface TrialExpiredModalProps {
   onCheckout: () => Promise<string | null>;
 }
 
-const DISMISS_STORAGE_KEY = "pro_trial_expired_dismissed_at";
+const DISMISS_STORAGE_KEY = "subscription_expired_dismissed_at";
 const DISMISS_DURATION_MS = 24 * 60 * 60 * 1000; // 24 часа
 
 export function TrialExpiredModal({
   isProTrialExpired,
+  isProExpired,
   price,
   discountedPrice,
   discountPercent,
@@ -28,12 +30,15 @@ export function TrialExpiredModal({
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Показываем если истёк либо Trial, либо платная подписка
+  const hasExpiredSubscription = isProTrialExpired || isProExpired;
+
   // Не показываем на страницах подписки и авторизации
   const excludedPaths = ["/subscription", "/auth"];
   const shouldShow = !excludedPaths.some((p) => pathname?.startsWith(p));
 
   useEffect(() => {
-    if (!isProTrialExpired || !shouldShow) {
+    if (!hasExpiredSubscription || !shouldShow) {
       setIsOpen(false);
       return;
     }
@@ -48,7 +53,7 @@ export function TrialExpiredModal({
     }
 
     setIsOpen(true);
-  }, [isProTrialExpired, shouldShow]);
+  }, [hasExpiredSubscription, shouldShow]);
 
   const handleDismiss = () => {
     localStorage.setItem(DISMISS_STORAGE_KEY, Date.now().toString());
@@ -98,12 +103,15 @@ export function TrialExpiredModal({
 
         {/* Заголовок */}
         <h2 className="text-xl font-bold text-center text-gray-900 mb-2">
-          Pro Trial закончился
+          {isProExpired ? "Pro подписка закончилась" : "Pro Trial закончился"}
         </h2>
 
         {/* Описание */}
         <p className="text-gray-600 text-center mb-6">
-          Вы перешли на Base план. Оформите Pro для полного доступа к AI-поиску
+          {isProExpired
+            ? "Продлите подписку, чтобы сохранить доступ к AI-поиску и всем возможностям Pro"
+            : "Вы перешли на Base план. Оформите Pro для полного доступа к AI-поиску"
+          }
         </p>
 
         {/* Баннер скидки */}
