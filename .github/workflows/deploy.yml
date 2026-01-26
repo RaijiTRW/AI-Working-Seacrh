@@ -30,10 +30,23 @@ jobs:
           port: ${{ secrets.VDS_PORT || 22 }}
           command_timeout: 30m
           script: |
+            echo "=== DEPLOY START ==="
+            echo "Target commit: ${{ steps.vars.outputs.sha_short }}"
             cd C:\apps\AI-Working-Seacrh
+            echo "Current dir: %CD%"
+            echo "Current HEAD:"
+            git rev-parse --short HEAD
+            echo "Fetching..."
             git fetch --all --prune
+            echo "Remote origin/main:"
+            git rev-parse --short origin/main
+            echo "Resetting to origin/main..."
             git reset --hard origin/main
+            echo "New HEAD:"
+            git rev-parse --short HEAD
+            echo "Running PowerShell deploy script..."
             powershell -ExecutionPolicy Bypass -File scripts\deploy-remote.ps1
+            echo "=== DEPLOY END ==="
 
       - name: Deployment Status
         if: always()

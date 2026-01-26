@@ -70,12 +70,50 @@ if ($finalCheck) {
 # Step 3: Pull latest code
 Write-Host ""
 Write-Host "[3/8] Pulling latest code..."
-& git fetch --all --prune 2>&1 | Out-Host
-& git reset --hard origin/main 2>&1 | Out-Host
+
+# Show git remote info
+Write-Host "  Git remote: $(git remote get-url origin)"
+Write-Host "  Current HEAD: $(git rev-parse --short HEAD)"
+
+# Fetch with error checking
+Write-Host "  Running git fetch..."
+$fetchOutput = & git fetch --all --prune 2>&1
+Write-Host $fetchOutput
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: git fetch failed with exit code $LASTEXITCODE"
+    Write-Host "This usually means git credentials are not configured on the server."
+    & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+    exit 1
+}
+
+# Show what origin/main points to
+$remoteHead = git rev-parse --short origin/main 2>&1
+Write-Host "  Remote origin/main: $remoteHead"
+
+# Reset with error checking
+Write-Host "  Running git reset --hard origin/main..."
+$resetOutput = & git reset --hard origin/main 2>&1
+Write-Host $resetOutput
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: git reset failed with exit code $LASTEXITCODE"
+    & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+    exit 1
+}
+
 & git clean -fd 2>&1 | Out-Null
+
 $newVersion = git rev-parse --short HEAD
-Write-Host "New version: $newVersion"
+Write-Host "  New version: $newVersion"
 Set-Content -Path ".version" -Value $newVersion
+
+# CRITICAL: Verify version actually changed (unless first deploy)
+if ($oldVersion -eq $newVersion) {
+    Write-Host ""
+    Write-Host "WARNING: Version did not change! ($oldVersion -> $newVersion)"
+    Write-Host "This might indicate git fetch did not get new commits."
+    Write-Host "Checking remote commits..."
+    & git log --oneline origin/main -3 2>&1 | Out-Host
+}
 
 # Step 4: Clear ALL caches + delete node_modules
 Write-Host ""
