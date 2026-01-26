@@ -7,6 +7,16 @@ on:
 
 env:
   NODE_VERSION: '20'
+  # Public env vars for build (these are embedded in client bundle anyway)
+  NEXT_PUBLIC_SUPABASE_URL: https://pakzojxyudiiztniqayd.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBha3pvanh5dWRpaXp0bmlxYXlkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4ODI4OTcsImV4cCI6MjA4MzQ1ODg5N30.Hw-n9FSzYdTnJfXFZrS9fuO1FsIKfuZ8lAMm5Qm-hFU
+  NEXT_PUBLIC_SITE_URL: https://jobaisearch.ru
+  NEXT_PUBLIC_API_URL: http://127.0.0.1:8000
+  # Server-side placeholders (real values are in .env.local on server)
+  SUPABASE_SERVICE_ROLE_KEY: build-placeholder
+  YOOKASSA_SHOP_ID: build-placeholder
+  YOOKASSA_SECRET_KEY: build-placeholder
+  YOOKASSA_RETURN_URL: https://jobaisearch.ru/subscription/success
 
 jobs:
   build-and-deploy:
@@ -31,8 +41,7 @@ jobs:
           echo "commit=$COMMIT_SHA" >> $GITHUB_OUTPUT
           echo "message=$COMMIT_MSG" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "📦 Version: $VERSION"
-          echo "📝 Commit: $COMMIT_SHA - $COMMIT_MSG"
+          echo "Version: $VERSION | Commit: $COMMIT_SHA"
 
       - name: Install dependencies
         run: npm ci
@@ -41,12 +50,12 @@ jobs:
         run: |
           echo "${{ steps.version.outputs.commit }}" > .version
           npm run build
-          echo "✅ Build complete"
+          echo "Build complete"
           ls -la .next/
 
       - name: Create deployment package
         run: |
-          echo "📦 Creating deployment archive..."
+          echo "Creating deployment archive..."
           tar -czf deploy.tar.gz \
             --exclude='node_modules' \
             --exclude='.git' \
@@ -54,7 +63,6 @@ jobs:
             --exclude='*.tar.gz' \
             .
           ls -lh deploy.tar.gz
-          echo "✅ Archive created"
 
       - name: Stop VDS service
         uses: appleboy/ssh-action@v1.2.0
@@ -70,7 +78,7 @@ jobs:
             ping -n 5 127.0.0.1 >nul
             taskkill /F /IM node.exe 2>nul
             ping -n 3 127.0.0.1 >nul
-            echo Service stopped
+            echo Done
 
       - name: Upload to VDS
         uses: appleboy/scp-action@v0.1.7
@@ -102,7 +110,7 @@ jobs:
             if exist C:\apps\env.backup copy C:\apps\env.backup .env.local >nul
             if exist C:\apps\env.backup del C:\apps\env.backup
 
-            echo Version deployed:
+            echo Version:
             type .version
 
             echo [3/5] Installing dependencies...
@@ -115,18 +123,16 @@ jobs:
 
             echo [5/5] Health check...
             curl -s http://127.0.0.1:3000/api/version
+
             echo.
-            echo === DEPLOY COMPLETE ===
+            echo DEPLOY COMPLETE
 
-      - name: Verify deployment
-        if: success()
+      - name: Deployment result
+        if: always()
         run: |
-          echo "🚀 Deployment successful!"
-          echo "Version: ${{ steps.version.outputs.version }}"
-          echo "Commit: ${{ steps.version.outputs.commit }}"
-
-      - name: Report failure
-        if: failure()
-        run: |
-          echo "❌ Deployment FAILED"
-          exit 1
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "Deploy OK: ${{ steps.version.outputs.commit }}"
+          else
+            echo "Deploy FAILED"
+            exit 1
+          fi
