@@ -87,3 +87,4 @@ yarn-error.log*
 .version
 .version-old
 /logs
+deploy.tar.gz
