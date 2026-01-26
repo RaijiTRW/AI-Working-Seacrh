@@ -18,14 +18,11 @@ jobs:
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
-        env:
-          GH_TOKEN: ${{ secrets.GH_DEPLOY_TOKEN }}
         with:
           host: ${{ secrets.VDS_HOST }}
           username: ${{ secrets.VDS_USERNAME }}
           key: ${{ secrets.VDS_SSH_KEY }}
           port: ${{ secrets.VDS_PORT }}
-          envs: GH_TOKEN
           command_timeout: 30m
           script: |
             echo ========================================
@@ -43,7 +40,7 @@ jobs:
 
             echo.
             echo [2/6] Syncing code from GitHub...
-            git remote set-url origin https://%GH_TOKEN%@github.com/RaijiTRW/AI-Working-Seacrh.git
+            git remote set-url origin https://${{ secrets.GH_DEPLOY_TOKEN }}@github.com/RaijiTRW/AI-Working-Seacrh.git
             git fetch origin main
             git reset --hard origin/main
             git remote set-url origin https://github.com/RaijiTRW/AI-Working-Seacrh.git
