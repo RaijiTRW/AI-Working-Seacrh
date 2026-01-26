@@ -9,7 +9,18 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy
+      - name: Setup git credentials on VDS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VDS_HOST }}
+          username: ${{ secrets.VDS_USERNAME }}
+          key: ${{ secrets.VDS_SSH_KEY }}
+          port: ${{ secrets.VDS_PORT }}
+          script: |
+            cd C:\apps\AI-Working-Seacrh
+            git remote set-url origin https://${{ secrets.GH_DEPLOY_TOKEN }}@github.com/RaijiTRW/AI-Working-Seacrh.git
+
+      - name: Run deploy script
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VDS_HOST }}
@@ -18,37 +29,17 @@ jobs:
           port: ${{ secrets.VDS_PORT }}
           command_timeout: 30m
           script: |
-            powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& {
-              Set-Location 'C:\apps\AI-Working-Seacrh'
+            cd C:\apps\AI-Working-Seacrh
+            powershell -ExecutionPolicy Bypass -File scripts\deploy-remote.ps1
 
-              Write-Output 'Stopping service...'
-              Start-Process -FilePath 'C:\nssm-2.24\win64\nssm.exe' -ArgumentList 'stop','jobai-frontend' -Wait -NoNewWindow
-              Start-Sleep -Seconds 3
-              Stop-Process -Name node -Force -ErrorAction SilentlyContinue
-              Start-Sleep -Seconds 2
-
-              Write-Output 'Fetching code...'
-              $token = '${{ secrets.GH_DEPLOY_TOKEN }}'
-              $url = 'https://' + $token + '@github.com/RaijiTRW/AI-Working-Seacrh.git'
-              git remote set-url origin $url
-              git fetch origin main --force
-              git reset --hard origin/main
-              git remote set-url origin 'https://github.com/RaijiTRW/AI-Working-Seacrh.git'
-
-              $version = git rev-parse --short HEAD
-              Write-Output \"Version: $version\"
-              $version | Out-File '.version' -Encoding ASCII -NoNewline
-
-              Write-Output 'Installing...'
-              npm ci
-
-              Write-Output 'Building...'
-              npm run build
-
-              Write-Output 'Starting...'
-              Start-Process -FilePath 'C:\nssm-2.24\win64\nssm.exe' -ArgumentList 'start','jobai-frontend' -Wait -NoNewWindow
-              Start-Sleep -Seconds 8
-
-              Write-Output 'Done!'
-              (Invoke-WebRequest -Uri 'http://127.0.0.1:3000/api/version' -UseBasicParsing).Content
-            }"
+      - name: Reset git remote
+        if: always()
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VDS_HOST }}
+          username: ${{ secrets.VDS_USERNAME }}
+          key: ${{ secrets.VDS_SSH_KEY }}
+          port: ${{ secrets.VDS_PORT }}
+          script: |
+            cd C:\apps\AI-Working-Seacrh
+            git remote set-url origin https://github.com/RaijiTRW/AI-Working-Seacrh.git
