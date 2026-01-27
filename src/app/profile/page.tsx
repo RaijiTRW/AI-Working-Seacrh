@@ -21,6 +21,15 @@ export default function ProfilePage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [version, setVersion] = useState<string | null>(null);
 
+  // Read tab from URL query param on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get("tab");
+    if (tabParam && ["profile", "resume", "subscription", "security", "accounts"].includes(tabParam)) {
+      setActiveTab(tabParam as Tab);
+    }
+  }, []);
+
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();

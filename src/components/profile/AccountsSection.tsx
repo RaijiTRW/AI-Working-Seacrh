@@ -290,7 +290,7 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
       await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=/profile`,
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/profile?tab=accounts")}`,
         },
       });
     } catch {
