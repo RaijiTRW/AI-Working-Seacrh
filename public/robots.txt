@@ -1,21 +1,36 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
 Allow: /
+Allow: /vacancies/
+Allow: /vacancies/*
+
+# Disallow admin, API and auth routes
+Disallow: /admin
+Disallow: /api/
+Disallow: /auth
+Disallow: /vacancies/create
+Disallow: /vacancies/edit/
+Disallow: /vacancies/my
 
 # Sitemap
 Sitemap: https://jobaisearch.ru/sitemap.xml
 
-# Disallow admin and API routes
-Disallow: /admin
-Disallow: /api/
-Disallow: /auth
-
-# Allow Yandex and Google bots
-User-agent: Yandex
+# Allow major search engine bots
+User-agent: Googlebot
 Allow: /
 
-User-agent: Googlebot
+User-agent: Yandex
 Allow: /
 
 User-agent: Bingbot
 Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+# Crawl-delay for less important bots
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10

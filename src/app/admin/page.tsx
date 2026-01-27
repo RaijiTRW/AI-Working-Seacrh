@@ -49,6 +49,9 @@ export default function AdminPage() {
   const [subscriptionType, setSubscriptionType] = useState("base");
   const [showRequestsModal, setShowRequestsModal] = useState(false);
   const [requestsAmount, setRequestsAmount] = useState("");
+  const [showVacancyBanModal, setShowVacancyBanModal] = useState(false);
+  const [vacancyBanReason, setVacancyBanReason] = useState("");
+  const [vacancyBanLoading, setVacancyBanLoading] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -139,11 +142,39 @@ export default function AdminPage() {
 
   const handleToggleVacancies = async (user: AdminUser) => {
     if (!token) return;
+
+    if (user.can_create_vacancies) {
+      // Banning: show modal with reason
+      setSelectedUser(user);
+      setVacancyBanReason("");
+      setShowVacancyBanModal(true);
+    } else {
+      // Unbanning: just toggle
+      try {
+        await toggleUserVacancies(token, user.id);
+        fetchUsers();
+      } catch (e) {
+        console.error("Failed to unban vacancies:", e);
+      }
+    }
+  };
+
+  const handleVacancyBan = async () => {
+    if (!token || !selectedUser || !vacancyBanReason.trim()) return;
+
+    setVacancyBanLoading(true);
     try {
-      await toggleUserVacancies(token, user.id, !user.can_create_vacancies);
+      await toggleUserVacancies(token, selectedUser.id, vacancyBanReason);
+      alert("Пользователю запрещено создавать вакансии. Все активные вакансии сняты.");
+      setShowVacancyBanModal(false);
+      setSelectedUser(null);
+      setVacancyBanReason("");
       fetchUsers();
     } catch (e) {
-      console.error("Failed to toggle vacancies:", e);
+      console.error("Failed to ban vacancies:", e);
+      alert("Ошибка при запрете вакансий");
+    } finally {
+      setVacancyBanLoading(false);
     }
   };
 
@@ -726,6 +757,65 @@ export default function AdminPage() {
                 className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
               >
                 Забанить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vacancy Ban Modal */}
+      {showVacancyBanModal && selectedUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  Запретить создание вакансий
+                </h3>
+                <p className="text-sm text-gray-500">{selectedUser.email}</p>
+              </div>
+            </div>
+
+            <div className="mb-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+              <p className="text-sm text-yellow-800">
+                Все активные и ожидающие модерации вакансии будут сняты с публикации и переведены в черновик. Пользователь больше не сможет создавать новые вакансии.
+              </p>
+            </div>
+
+            <label className="block mb-4">
+              <span className="text-sm font-medium text-gray-700 mb-2 block">
+                Причина запрета
+              </span>
+              <textarea
+                placeholder="Укажите причину запрета (будет видна пользователю)"
+                value={vacancyBanReason}
+                onChange={(e) => setVacancyBanReason(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 resize-none h-24"
+              />
+            </label>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowVacancyBanModal(false);
+                  setSelectedUser(null);
+                  setVacancyBanReason("");
+                }}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleVacancyBan}
+                disabled={!vacancyBanReason.trim() || vacancyBanLoading}
+                className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {vacancyBanLoading ? "Запрет..." : "Запретить"}
               </button>
             </div>
           </div>

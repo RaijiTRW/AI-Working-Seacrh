@@ -28,29 +28,75 @@ export async function POST(
     const { userId } = await params;
     const supabase = getSupabaseAdmin();
 
-    // Получаем текущее состояние
+    // Parse body for optional reason
+    let reason = "";
+    try {
+      const body = await request.json();
+      reason = body.reason || "";
+    } catch {
+      // No body is fine for simple toggle
+    }
+
+    // Get current state
     const { data: profile } = await supabase
       .from("profiles")
       .select("can_create_vacancies")
       .eq("user_id", userId)
       .single();
 
-    const newValue = !(profile?.can_create_vacancies ?? true);
+    const currentValue = profile?.can_create_vacancies ?? true;
+    const newValue = !currentValue;
 
-    const { error } = await supabase
+    // Update profile with ban status and reason
+    const updateData: Record<string, unknown> = {
+      can_create_vacancies: newValue,
+    };
+
+    if (!newValue) {
+      // Banning: save reason
+      updateData.vacancy_ban_reason = reason || "Нарушение правил публикации вакансий";
+    } else {
+      // Unbanning: clear reason
+      updateData.vacancy_ban_reason = null;
+    }
+
+    const { error: profileError } = await supabase
       .from("profiles")
-      .update({ can_create_vacancies: newValue })
+      .update(updateData)
       .eq("user_id", userId);
 
-    if (error) {
-      console.error("[Toggle Vacancies] Error:", error);
+    if (profileError) {
+      console.error("[Toggle Vacancies] Profile update error:", profileError);
       return NextResponse.json(
         { error: "Failed to toggle vacancies" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true, can_create_vacancies: newValue });
+    // If banning: deactivate all active/published vacancies → move to draft
+    if (!newValue) {
+      const { data: deactivated, error: vacError } = await supabase
+        .from("employer_vacancies")
+        .update({
+          status: "draft",
+          is_active: false,
+        })
+        .eq("user_id", userId)
+        .in("status", ["published", "pending_review", "active"])
+        .select("id");
+
+      if (vacError) {
+        console.error("[Toggle Vacancies] Deactivate vacancies error:", vacError);
+      } else {
+        console.log(`[Toggle Vacancies] Deactivated ${deactivated?.length || 0} vacancies for user ${userId}`);
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      can_create_vacancies: newValue,
+      reason: !newValue ? (reason || "Нарушение правил публикации вакансий") : null,
+    });
   } catch (e) {
     console.error("[Toggle Vacancies] Exception:", e);
     return NextResponse.json(

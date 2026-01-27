@@ -581,13 +581,13 @@ export async function unbanUser(token: string, userId: string): Promise<void> {
 }
 
 /**
- * Переключить возможность создания вакансий
+ * Забанить/разбанить создание вакансий (с причиной)
  */
 export async function toggleUserVacancies(
   token: string,
   userId: string,
-  canCreate: boolean
-): Promise<void> {
+  reason?: string
+): Promise<{ success: boolean; can_create_vacancies: boolean; reason?: string | null }> {
   const response = await fetch(
     `${NEXT_API}/api/admin/users/${userId}/toggle-vacancies`,
     {
@@ -596,13 +596,15 @@ export async function toggleUserVacancies(
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ can_create: canCreate }),
+      body: JSON.stringify({ reason }),
     }
   );
 
   if (!response.ok) {
     throw new Error("Failed to toggle vacancies");
   }
+
+  return response.json();
 }
 
 /**

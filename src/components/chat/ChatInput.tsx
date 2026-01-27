@@ -162,9 +162,9 @@ export default function ChatInput({
               ?
             </button>
 
-            {/* Help tooltip */}
+            {/* Help tooltip - открывается вверх когда инпут внизу */}
             {showSearchHelp && (
-              <div className="absolute right-0 top-7 w-64 bg-white rounded-lg shadow-xl border border-gray-200 p-3 z-50">
+              <div className={`absolute right-0 w-64 bg-white rounded-lg shadow-xl border border-gray-200 p-3 z-50 ${centered ? "top-7" : "bottom-full mb-2"}`}>
                 <div className="text-xs space-y-2">
                   <div className="flex items-start gap-2">
                     <div className="w-4 h-4 rounded bg-orange-100 flex-shrink-0 mt-0.5" />

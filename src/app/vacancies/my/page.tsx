@@ -49,6 +49,8 @@ export default function MyVacanciesPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(false);
+  const [vacancyBanned, setVacancyBanned] = useState(false);
+  const [vacancyBanReason, setVacancyBanReason] = useState("");
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -58,6 +60,18 @@ export default function MyVacanciesPage() {
         return;
       }
       setToken(session.access_token);
+
+      // Check vacancy ban status
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("can_create_vacancies, vacancy_ban_reason")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (profile?.can_create_vacancies === false) {
+        setVacancyBanned(true);
+        setVacancyBanReason(profile.vacancy_ban_reason || "Нарушение правил публикации");
+      }
     };
     checkAuth();
   }, [router]);
@@ -124,6 +138,31 @@ export default function MyVacanciesPage() {
 
       <main className="pt-24 pb-12">
         <div className="max-w-4xl mx-auto px-6">
+          {/* Vacancy Ban Notice */}
+          {vacancyBanned && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl p-5">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-red-800 mb-1">
+                    Создание вакансий заблокировано
+                  </h3>
+                  <p className="text-sm text-red-700 mb-2">
+                    Вам запрещено создавать новые вакансии. Все ваши активные вакансии были сняты с публикации.
+                  </p>
+                  <div className="bg-white/60 rounded-lg p-3">
+                    <p className="text-xs font-medium text-red-600 uppercase mb-1">Причина</p>
+                    <p className="text-sm text-red-700">{vacancyBanReason}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -132,15 +171,17 @@ export default function MyVacanciesPage() {
                 {total > 0 ? `${total} вакансий` : "У вас пока нет вакансий"}
               </p>
             </div>
-            <Link
-              href="/vacancies/create"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white text-sm font-medium rounded-xl hover:bg-orange-600 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Создать вакансию
-            </Link>
+            {!vacancyBanned && (
+              <Link
+                href="/vacancies/create"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-orange-500 text-white text-sm font-medium rounded-xl hover:bg-orange-600 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Создать вакансию
+              </Link>
+            )}
           </div>
 
           {/* Vacancies list */}
@@ -230,7 +271,7 @@ export default function MyVacanciesPage() {
                       >
                         Редактировать
                       </Link>
-                      {vacancy.status === "draft" && (
+                      {vacancy.status === "draft" && !vacancyBanned && (
                         <button
                           onClick={() => handlePublish(vacancy.id)}
                           className="px-4 py-2 text-sm font-medium text-green-600 hover:bg-green-50 rounded-lg transition-colors"

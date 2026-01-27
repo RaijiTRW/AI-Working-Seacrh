@@ -87,6 +87,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const supabase = getSupabaseAdmin();
+
+  // Check if user is banned from creating vacancies
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("can_create_vacancies, vacancy_ban_reason")
+    .eq("user_id", userId)
+    .single();
+
+  if (profile && profile.can_create_vacancies === false) {
+    return NextResponse.json(
+      {
+        detail: "Вам запрещено создавать вакансии",
+        vacancy_banned: true,
+        ban_reason: profile.vacancy_ban_reason || "Нарушение правил публикации",
+      },
+      { status: 403 }
+    );
+  }
+
   const body = await request.json();
 
   // Validate required fields
@@ -114,8 +134,6 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-
-  const supabase = getSupabaseAdmin();
 
   const vacancyData = {
     user_id: userId,

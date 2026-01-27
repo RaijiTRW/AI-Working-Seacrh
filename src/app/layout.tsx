@@ -106,7 +106,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const jsonLd = {
+  const webAppJsonLd = {
     "@context": "https://schema.org",
     "@type": "WebApplication",
     name: "JobAISearch",
@@ -123,13 +123,48 @@ export default function RootLayout({
     },
   };
 
+  const webSiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "JobAISearch",
+    url: siteUrl,
+    description:
+      "Быстрый поиск работы с ИИ. Вакансии с hh.ru, Avito, SuperJob.",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${siteUrl}/vacancies?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
+  };
+
+  const orgJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "JobAISearch",
+    url: siteUrl,
+    logo: `${siteUrl}/favicon-master-512.png`,
+    description:
+      "Платформа для поиска работы с помощью искусственного интеллекта.",
+  };
+
   return (
     <html lang="ru">
       <head>
         <link rel="apple-touch-icon" href="/favicon-master-512.png?v=2" />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
         />
       </head>
       <body

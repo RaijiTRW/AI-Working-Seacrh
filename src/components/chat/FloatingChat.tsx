@@ -748,6 +748,20 @@ export default function FloatingChat() {
                 </div>
               )}
 
+              {/* Connect to Human Button */}
+              {viewMode === "chat" && !isSupport && (
+                <button
+                  onClick={connectToAdmin}
+                  disabled={isLoading}
+                  className="flex items-center justify-center gap-1.5 w-full px-3 py-1.5 mb-3 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full text-xs text-blue-600 transition-colors disabled:opacity-50"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                  Связаться с человеком
+                </button>
+              )}
+
               {/* Input */}
               <div className="flex gap-2">
                 <input

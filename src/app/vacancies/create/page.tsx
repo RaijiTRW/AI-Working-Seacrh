@@ -39,6 +39,8 @@ export default function CreateVacancyPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [vacancyBanned, setVacancyBanned] = useState(false);
+  const [vacancyBanReason, setVacancyBanReason] = useState("");
 
   const [formData, setFormData] = useState<EmployerVacancyCreate>({
     title: "",
@@ -65,18 +67,23 @@ export default function CreateVacancyPage() {
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    const checkAdmin = async () => {
+    const checkProfile = async () => {
       if (user?.id) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("role")
+          .select("role, can_create_vacancies, vacancy_ban_reason")
           .eq("user_id", user.id)
           .single();
 
         setIsAdmin(profile?.role === "admin");
+
+        if (profile?.can_create_vacancies === false) {
+          setVacancyBanned(true);
+          setVacancyBanReason(profile.vacancy_ban_reason || "Нарушение правил публикации");
+        }
       }
     };
-    checkAdmin();
+    checkProfile();
   }, [user]);
 
   const handleChange = (
@@ -153,6 +160,33 @@ export default function CreateVacancyPage() {
 
   if (!user) {
     return null;
+  }
+
+  if (vacancyBanned && !isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-20">
+          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Создание вакансий заблокировано
+            </h1>
+            <p className="text-gray-600 mb-4">
+              Вам запрещено создавать вакансии администратором.
+            </p>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-left">
+              <p className="text-xs font-medium text-red-600 uppercase mb-1">Причина</p>
+              <p className="text-sm text-red-700">{vacancyBanReason}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!settings.vacancy_creation_enabled && !isAdmin) {
