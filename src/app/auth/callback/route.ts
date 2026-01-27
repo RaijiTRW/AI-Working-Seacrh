@@ -14,6 +14,12 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  // Redirect to chat page after successful auth
-  return NextResponse.redirect(new URL("/chat", requestUrl.origin));
+  // Use forwarded host (behind nginx/proxy) or fall back to env/request origin
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
+  const origin = forwardedHost
+    ? `${forwardedProto}://${forwardedHost}`
+    : process.env.NEXT_PUBLIC_SITE_URL || requestUrl.origin;
+
+  return NextResponse.redirect(new URL("/chat", origin));
 }
