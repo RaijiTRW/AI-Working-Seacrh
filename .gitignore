@@ -70,6 +70,7 @@ Thumbs.db
 
 # Claude Code
 .claude/
+Video/
 
 # Keys & certs
 *.pem
