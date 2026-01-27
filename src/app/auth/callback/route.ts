@@ -21,5 +21,9 @@ export async function GET(request: Request) {
     ? `${forwardedProto}://${forwardedHost}`
     : process.env.NEXT_PUBLIC_SITE_URL || requestUrl.origin;
 
-  return NextResponse.redirect(new URL("/chat", origin));
+  // Support ?next= param for redirecting to specific page (e.g. /profile after account linking)
+  const next = requestUrl.searchParams.get("next");
+  const redirectPath = next && next.startsWith("/") ? next : "/chat";
+
+  return NextResponse.redirect(new URL(redirectPath, origin));
 }

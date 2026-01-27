@@ -72,11 +72,49 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([]);
 
-  // Load linked accounts for current user and update tokens
+  // Load linked accounts for current user and complete pending Google link
   useEffect(() => {
     const initAccounts = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session || !currentEmail) return;
+
+      // Check for pending Google link (returning from OAuth)
+      const pendingRaw = localStorage.getItem("jobsearch_pending_google_link");
+      if (pendingRaw) {
+        try {
+          const pending = JSON.parse(pendingRaw);
+          // Only process if less than 5 minutes old
+          if (Date.now() - pending.timestamp < 5 * 60 * 1000) {
+            const previousEmail = pending.email.toLowerCase();
+            const newEmail = currentEmail.toLowerCase();
+
+            if (previousEmail !== newEmail) {
+              // Complete linking: save both accounts
+              const previousAccount: LinkedAccount = {
+                email: previousEmail,
+                refreshToken: pending.refreshToken,
+                addedAt: new Date().toISOString(),
+              };
+              const newAccount: LinkedAccount = {
+                email: newEmail,
+                refreshToken: session.refresh_token || "",
+                addedAt: new Date().toISOString(),
+              };
+
+              const finalAccounts = [previousAccount, newAccount];
+              setUserLinkedAccounts(previousEmail, finalAccounts);
+              setUserLinkedAccounts(newEmail, finalAccounts);
+              setLinkedAccounts(finalAccounts);
+
+              console.log("[Accounts] Google link completed:", previousEmail, "↔", newEmail);
+            }
+          }
+        } catch (e) {
+          console.error("[Accounts] Error processing pending link:", e);
+        }
+        localStorage.removeItem("jobsearch_pending_google_link");
+        return;
+      }
 
       // Get accounts linked to THIS user
       const accounts = getUserLinkedAccounts(currentEmail);
@@ -238,10 +276,21 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
 
   const handleGoogleLogin = async () => {
     try {
+      // Save current account before redirect so we can link after return
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (currentSession && currentEmail) {
+        const pendingLink = {
+          email: currentEmail.toLowerCase(),
+          refreshToken: currentSession.refresh_token || "",
+          timestamp: Date.now(),
+        };
+        localStorage.setItem("jobsearch_pending_google_link", JSON.stringify(pendingLink));
+      }
+
       await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?next=/profile`,
         },
       });
     } catch {
