@@ -39,8 +39,10 @@ function getUserLinkedAccounts(userEmail: string): LinkedAccount[] {
 function setUserLinkedAccounts(userEmail: string, accounts: LinkedAccount[]) {
   try {
     const stored = localStorage.getItem(LINKED_ACCOUNTS_KEY);
+    console.log("[Accounts] setUserLinkedAccounts - stored before:", stored);
     const allAccounts: Record<string, LinkedAccount[]> = stored ? JSON.parse(stored) : {};
     const normalizedEmail = userEmail.toLowerCase();
+    console.log("[Accounts] setUserLinkedAccounts - normalizedEmail:", normalizedEmail, "accounts:", accounts.length);
 
     if (accounts.length > 0) {
       allAccounts[normalizedEmail] = accounts;
@@ -50,9 +52,12 @@ function setUserLinkedAccounts(userEmail: string, accounts: LinkedAccount[]) {
       delete allAccounts[userEmail];
     }
 
+    console.log("[Accounts] setUserLinkedAccounts - allAccounts keys:", Object.keys(allAccounts));
+
     if (Object.keys(allAccounts).length > 0) {
-      localStorage.setItem(LINKED_ACCOUNTS_KEY, JSON.stringify(allAccounts));
-      console.log("[Accounts] Saved to localStorage:", allAccounts);
+      const jsonStr = JSON.stringify(allAccounts);
+      localStorage.setItem(LINKED_ACCOUNTS_KEY, jsonStr);
+      console.log("[Accounts] Saved to localStorage:", jsonStr);
     } else {
       localStorage.removeItem(LINKED_ACCOUNTS_KEY);
       console.log("[Accounts] Cleared localStorage");
@@ -102,9 +107,22 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
               };
 
               const finalAccounts = [previousAccount, newAccount];
+
+              // Save for BOTH emails
+              console.log("[Accounts] Saving for previous:", previousEmail);
               setUserLinkedAccounts(previousEmail, finalAccounts);
+              console.log("[Accounts] Saving for new:", newEmail);
               setUserLinkedAccounts(newEmail, finalAccounts);
+
+              // Verify saves worked
+              const verifyPrev = getUserLinkedAccounts(previousEmail);
+              const verifyNew = getUserLinkedAccounts(newEmail);
+              console.log("[Accounts] Verify previous:", previousEmail, "=>", verifyPrev);
+              console.log("[Accounts] Verify new:", newEmail, "=>", verifyNew);
+              console.log("[Accounts] Full localStorage:", localStorage.getItem(LINKED_ACCOUNTS_KEY));
+
               setLinkedAccounts(finalAccounts);
+              setMessage({ type: "success", text: `Аккаунты связаны: ${previousEmail} ↔ ${newEmail}` });
 
               console.log("[Accounts] Google link completed:", previousEmail, "↔", newEmail);
             }
@@ -117,8 +135,10 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
       }
 
       // Get accounts linked to THIS user
+      console.log("[Accounts] Loading for currentEmail:", currentEmail);
+      console.log("[Accounts] Full localStorage:", localStorage.getItem(LINKED_ACCOUNTS_KEY));
       const accounts = getUserLinkedAccounts(currentEmail);
-      console.log("[Accounts] Loaded for", currentEmail, ":", accounts);
+      console.log("[Accounts] Loaded accounts:", accounts);
 
       // Update refresh token for existing accounts if current user is in the list
       const existingIndex = accounts.findIndex(a => a.email.toLowerCase() === currentEmail.toLowerCase());
@@ -208,14 +228,24 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
         const finalAccounts = [currentAccountData, newAccountData];
 
         // Save to BOTH users' linked accounts (so both can switch to each other)
+        console.log("[Accounts] === LINKING START ===");
+        console.log("[Accounts] Current email:", currentAccountData.email);
+        console.log("[Accounts] New email:", newEmail);
+
         setUserLinkedAccounts(currentAccountData.email, finalAccounts);
         setUserLinkedAccounts(newEmail, finalAccounts);
 
-        console.log("[Accounts] Linked accounts saved:", {
-          currentEmail: currentAccountData.email,
-          newEmail: newEmail,
-          accounts: finalAccounts,
-        });
+        // Verify both saves worked
+        const rawStorage = localStorage.getItem(LINKED_ACCOUNTS_KEY);
+        console.log("[Accounts] === AFTER BOTH SAVES ===");
+        console.log("[Accounts] Raw localStorage:", rawStorage);
+        if (rawStorage) {
+          const parsed = JSON.parse(rawStorage);
+          console.log("[Accounts] Parsed keys:", Object.keys(parsed));
+          console.log("[Accounts] Data for current:", parsed[currentAccountData.email]);
+          console.log("[Accounts] Data for new:", parsed[newEmail]);
+        }
+        console.log("[Accounts] === LINKING END ===");
       }
 
       // Small delay to ensure localStorage is saved
