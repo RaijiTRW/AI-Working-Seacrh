@@ -53,8 +53,8 @@ export default function Footer({ mode = "jobseeker" }: FooterProps) {
         </div>
 
         <div className="border-t border-gray-200 pt-6 md:pt-8 text-xs md:text-sm text-muted">
-          <p>Контакты: telegram / email</p>
-          <p className="mt-2">2026 Job Search AI. Все права защищены.</p>
+          <p>Контакты: help@jobaisearch.ru</p>
+          <p className="mt-2">2026 Job Search. Все права защищены.</p>
         </div>
       </div>
     </footer>
