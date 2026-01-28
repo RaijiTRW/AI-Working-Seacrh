@@ -40,7 +40,20 @@ function setUserLinkedAccounts(userEmail: string, accounts: LinkedAccount[]) {
   try {
     const stored = localStorage.getItem(LINKED_ACCOUNTS_KEY);
     console.log("[Accounts] setUserLinkedAccounts - stored before:", stored);
-    const allAccounts: Record<string, LinkedAccount[]> = stored ? JSON.parse(stored) : {};
+
+    // Handle corrupted data: if stored is an array (old format), convert to object
+    let allAccounts: Record<string, LinkedAccount[]> = {};
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        // Old/corrupted format - it's an array, clear it and start fresh
+        console.log("[Accounts] WARNING: Found array in localStorage, converting to object format");
+        allAccounts = {};
+      } else if (typeof parsed === 'object' && parsed !== null) {
+        allAccounts = parsed;
+      }
+    }
+
     const normalizedEmail = userEmail.toLowerCase();
     console.log("[Accounts] setUserLinkedAccounts - normalizedEmail:", normalizedEmail, "accounts:", accounts.length);
 
