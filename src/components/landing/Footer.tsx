@@ -1,23 +1,29 @@
+"use client";
+
+import { useAuth } from "@/lib/useAuth";
+
 interface FooterProps {
   mode?: "jobseeker" | "employer";
 }
 
 export default function Footer({ mode = "jobseeker" }: FooterProps) {
+  const { user } = useAuth();
+
   const content = {
     jobseeker: {
       title: "Хватит тратить время на поиск работы",
       subtitle: "Зарегистрируйся за 30 секунд и получи первые вакансии через 5 минут. Бесплатно.",
-      cta: "Начать бесплатно",
+      cta: user ? "Перейти к поиску" : "Начать бесплатно",
       microCopy: "7 дней Pro • Без карты • Отменить можно всегда",
-      ctaLink: "/auth",
+      ctaLink: user ? "/chat" : "/auth",
       ctaColor: "from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-orange-500/25 hover:shadow-orange-500/30",
     },
     employer: {
       title: "Готовы найти лучших кандидатов?",
       subtitle: "Начните бесплатно — разместите первую вакансию и получите отклики.",
-      cta: "Разместить вакансию",
+      cta: user ? "Разместить вакансию" : "Начать подбор",
       microCopy: "Бесплатный тариф навсегда",
-      ctaLink: "/auth",
+      ctaLink: user ? "/vacancies/create" : "/auth",
       ctaColor: "from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-blue-500/25 hover:shadow-blue-500/30",
     },
   };
