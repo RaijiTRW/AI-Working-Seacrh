@@ -1,5 +1,7 @@
 "use client";
 
+import { motion } from "framer-motion";
+
 const pains = [
   {
     emoji: "😩",
@@ -25,7 +27,12 @@ const pains = [
 
 export default function PainPoints() {
   return (
-    <section className="py-16 md:py-24 px-4 sm:px-6 bg-gradient-to-b from-white to-gray-50">
+    <section
+      className="py-16 md:py-24 px-4 sm:px-6"
+      style={{
+        background: "linear-gradient(180deg, #ffffff, #f5f5f0)"
+      }}
+    >
       <div className="max-w-5xl mx-auto">
         {/* Заголовок */}
         <div className="text-center mb-12">
@@ -37,13 +44,30 @@ export default function PainPoints() {
           </p>
         </div>
 
-        {/* Карточки с болями */}
+        {/* Карточки с болями - Neumorphic */}
         <div className="grid sm:grid-cols-2 gap-4 md:gap-6">
           {pains.map((pain, index) => (
-            <div
+            <motion.div
               key={index}
-              className="p-5 md:p-6 rounded-xl md:rounded-2xl bg-white border border-gray-100 hover:border-red-100 hover:shadow-lg transition-all duration-300"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              whileHover={{ y: -4 }}
+              className="p-5 md:p-6 rounded-2xl relative overflow-hidden"
+              style={{
+                background: "linear-gradient(145deg, #ffffff, #f0f0f0)",
+                boxShadow: "12px 12px 24px rgba(160,160,160,0.3), -12px -12px 24px rgba(255,255,255,0.8), inset 0 2px 4px rgba(255,255,255,0.6)",
+              }}
             >
+              {/* Top highlight */}
+              <div
+                className="absolute top-0 left-4 right-4 h-6 rounded-b-full blur-sm pointer-events-none"
+                style={{
+                  background: "linear-gradient(180deg, rgba(255,255,255,0.6), transparent)",
+                }}
+              />
+
               <div className="text-3xl mb-3">{pain.emoji}</div>
               <h3 className="text-lg md:text-xl font-semibold mb-2 text-gray-900">
                 {pain.title}
@@ -51,17 +75,27 @@ export default function PainPoints() {
               <p className="text-sm md:text-base text-muted">
                 {pain.description}
               </p>
-            </div>
+            </motion.div>
           ))}
         </div>
 
         {/* Переход к решению */}
         <div className="mt-12 text-center">
-          <p className="text-lg font-medium text-orange-600">
+          <motion.p
+            className="text-lg font-medium text-orange-600"
+            animate={{ opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
             А что если ИИ сделает это за тебя?
-          </p>
+          </motion.p>
           <div className="mt-4">
-            <svg className="w-8 h-8 mx-auto text-orange-400 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-8 h-8 mx-auto text-orange-400 animate-bounce"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              style={{ filter: "drop-shadow(0 4px 8px rgba(249,115,22,0.2))" }}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
             </svg>
           </div>

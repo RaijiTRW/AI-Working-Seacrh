@@ -1,3 +1,6 @@
+"use client";
+
+import { motion } from "framer-motion";
 import type { JSX } from "react";
 
 const benefits = [
@@ -27,7 +30,13 @@ const benefits = [
   },
 ];
 
-const icons: Record<string, JSX.Element> = {
+const icons: Record<string, JSX.Element> = (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const iconComponents: Record<string, JSX.Element> = {
   clock: (
     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -52,19 +61,48 @@ const icons: Record<string, JSX.Element> = {
 
 export default function Benefits() {
   return (
-    <section className="py-16 md:py-24 px-4 sm:px-6 bg-gradient-to-b from-gray-50 to-white">
+    <section
+      className="py-16 md:py-24 px-4 sm:px-6"
+      style={{
+        background: "linear-gradient(180deg, #ffffff, #f8f8f8)"
+      }}
+    >
       <div className="max-w-5xl mx-auto">
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-10 md:mb-16">
           Почему мы
         </h2>
         <div className="grid sm:grid-cols-2 gap-4 md:gap-6">
           {benefits.map((benefit, index) => (
-            <div
+            <motion.div
               key={index}
-              className="p-5 md:p-6 rounded-xl md:rounded-2xl bg-white border border-gray-100 hover:border-orange-200 hover:shadow-lg hover:shadow-orange-500/5 transition-all duration-300"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              whileHover={{ y: -4 }}
+              className="p-5 md:p-6 rounded-2xl relative overflow-hidden"
+              style={{
+                background: "linear-gradient(145deg, #ffffff, #f0f0f0)",
+                boxShadow: "12px 12px 24px rgba(160,160,160,0.25), -12px -12px 24px rgba(255,255,255,0.8), inset 0 2px 4px rgba(255,255,255,0.5)",
+              }}
             >
-              <div className="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center mb-4">
-                {icons[benefit.icon]}
+              {/* Top highlight */}
+              <div
+                className="absolute top-0 left-4 right-4 h-6 rounded-b-full blur-sm pointer-events-none"
+                style={{
+                  background: "linear-gradient(180deg, rgba(255,255,255,0.5), transparent)",
+                }}
+              />
+
+              {/* Icon - Neumorphic raised */}
+              <div
+                className="w-11 h-11 md:w-12 md:h-12 rounded-xl text-orange-500 flex items-center justify-center mb-4 relative"
+                style={{
+                  background: "linear-gradient(145deg, #fff7ed, #fed7aa)",
+                  boxShadow: "4px 4px 10px rgba(200,100,0,0.12), -3px -3px 8px rgba(255,220,180,0.5), inset 0 1px 2px rgba(255,255,255,0.6)"
+                }}
+              >
+                {iconComponents[benefit.icon]}
               </div>
 
               <h3 className="text-lg md:text-xl font-semibold mb-2">
@@ -75,11 +113,17 @@ export default function Benefits() {
                 {benefit.description}
               </p>
 
-              {/* Метрика */}
-              <p className="text-xs text-orange-600 font-medium">
+              {/* Метрика - Neumorphic inset */}
+              <div
+                className="inline-block px-3 py-1.5 rounded-full text-xs font-medium text-orange-600"
+                style={{
+                  background: "linear-gradient(145deg, #fff7ed, #ffedd5)",
+                  boxShadow: "inset 2px 2px 4px rgba(200,100,0,0.08), inset -2px -2px 4px rgba(255,255,255,0.7)"
+                }}
+              >
                 {benefit.metric}
-              </p>
-            </div>
+              </div>
+            </motion.div>
           ))}
         </div>
       </div>
