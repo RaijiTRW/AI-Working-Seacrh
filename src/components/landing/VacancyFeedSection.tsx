@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 
 const mockVacancies = [
   {
@@ -46,20 +48,45 @@ function MockVacancyCard({ vacancy, index }: { vacancy: typeof mockVacancies[0];
   }, [index]);
 
   return (
-    <div
-      className={`bg-white rounded-xl p-3 border border-gray-100 shadow-sm transition-all duration-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-        }`}
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={visible ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
+      className="p-3 rounded-2xl relative overflow-hidden"
+      style={{
+        background: "linear-gradient(145deg, #ffffff, #f0f0f0)",
+        boxShadow: "12px 12px 24px rgba(160,160,160,0.25), -12px -12px 24px rgba(255,255,255,0.9), inset 0 2px 4px rgba(255,255,255,0.7)"
+      }}
     >
-      <div className="flex items-start justify-between mb-2">
+      {/* Top highlight */}
+      <div
+        className="absolute top-0 left-3 right-3 h-4 rounded-b-full blur-sm pointer-events-none"
+        style={{
+          background: "linear-gradient(180deg, rgba(255,255,255,0.6), transparent)",
+        }}
+      />
+
+      <div className="flex items-start justify-between mb-2 relative z-10">
         <div className="flex-1">
           <h4 className="font-semibold text-sm text-gray-900 mb-0.5">{vacancy.title}</h4>
           <p className="text-xs text-gray-500">{vacancy.company}</p>
         </div>
         <span
-          className={`text-[10px] px-1.5 py-0.5 rounded-full ${vacancy.source === "platform"
-            ? "bg-orange-100 text-orange-600"
-            : "bg-gray-100 text-gray-600"
-            }`}
+          className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+            vacancy.source === "platform"
+              ? "text-orange-600"
+              : vacancy.source === "hh"
+              ? "text-blue-600"
+              : "text-gray-600"
+          }`}
+          style={{
+            background: vacancy.source === "platform"
+              ? "linear-gradient(145deg, #fff7ed, #ffedd5)"
+              : vacancy.source === "hh"
+              ? "linear-gradient(145deg, #eff6ff, #dbeafe)"
+              : "linear-gradient(145deg, #fafafa, #e5e5e5)",
+            boxShadow: "inset 2px 2px 4px rgba(150,150,150,0.12), inset -2px -2px 4px rgba(255,255,255,0.6)"
+          }}
         >
           {vacancy.source === "platform" ? "Наши" : vacancy.source === "hh" ? "hh.ru" : "SJ"}
         </span>
@@ -76,12 +103,20 @@ function MockVacancyCard({ vacancy, index }: { vacancy: typeof mockVacancies[0];
       </div>
       <div className="flex gap-1">
         {vacancy.tags.map((tag) => (
-          <span key={tag} className="text-[10px] px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+          <span
+            key={tag}
+            className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+            style={{
+              background: "linear-gradient(145deg, #fafafa, #e5e5e5)",
+              color: "#6b7280",
+              boxShadow: "inset 2px 2px 4px rgba(150,150,150,0.12), inset -2px -2px 4px rgba(255,255,255,0.7)"
+            }}
+          >
             {tag}
           </span>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -100,65 +135,124 @@ function FeedMockup() {
   }, []);
 
   return (
-    <div className="bg-gray-50 rounded-2xl shadow-2xl border border-gray-200 overflow-hidden w-full max-w-[320px] sm:w-80">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5 }}
+      className="rounded-3xl overflow-hidden w-full max-w-[320px] sm:w-80 relative"
+      style={{
+        background: "linear-gradient(145deg, #ffffff, #f0f0f0)",
+        boxShadow: "20px 20px 40px rgba(160,160,160,0.25), -20px -20px 40px rgba(255,255,255,0.9), inset 0 2px 4px rgba(255,255,255,0.8)"
+      }}
+    >
+      {/* Top highlight */}
+      <div
+        className="absolute top-0 left-4 right-4 h-6 rounded-b-full blur-sm pointer-events-none"
+        style={{
+          background: "linear-gradient(180deg, rgba(255,255,255,0.7), transparent)",
+        }}
+      />
+
       {/* Header */}
-      <div className="bg-white px-4 py-3 border-b border-gray-100">
+      <div className="px-4 py-3 border-b relative z-10" style={{ borderColor: "rgba(200,200,200,0.3)" }}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-gray-900">Лента вакансий</h3>
           <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <motion.div
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-2 h-2 rounded-full bg-green-400"
+            />
             <span className="text-xs text-gray-500">Live</span>
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Stats - Neumorphic inset */}
         <div className="flex gap-2 mb-3">
-          <div className="flex-1 bg-orange-50 rounded-lg px-2 py-1.5 text-center">
+          <div
+            className="flex-1 px-2 py-1.5 text-center rounded-xl"
+            style={{
+              background: "linear-gradient(145deg, #fff7ed, #fed7aa)",
+              boxShadow: "inset 3px 3px 6px rgba(200,100,0,0.12), inset -3px -3px 6px rgba(255,255,255,0.5)"
+            }}
+          >
             <div className="text-lg font-bold text-orange-600">127</div>
             <div className="text-[10px] text-orange-600/70">Наши</div>
           </div>
-          <div className="flex-1 bg-gray-100 rounded-lg px-2 py-1.5 text-center">
+          <div
+            className="flex-1 px-2 py-1.5 text-center rounded-xl"
+            style={{
+              background: "linear-gradient(145deg, #fafafa, #e5e5e5)",
+              boxShadow: "inset 3px 3px 6px rgba(150,150,150,0.15), inset -3px -3px 6px rgba(255,255,255,0.5)"
+            }}
+          >
             <div className="text-lg font-bold text-gray-600">2,340</div>
             <div className="text-[10px] text-gray-500">В сети</div>
           </div>
-          <div className="flex-1 bg-blue-50 rounded-lg px-2 py-1.5 text-center">
+          <div
+            className="flex-1 px-2 py-1.5 text-center rounded-xl"
+            style={{
+              background: "linear-gradient(145deg, #eff6ff, #dbeafe)",
+              boxShadow: "inset 3px 3px 6px rgba(30,80,200,0.12), inset -3px -3px 6px rgba(255,255,255,0.5)"
+            }}
+          >
             <div className="text-lg font-bold text-blue-600">2,467</div>
             <div className="text-[10px] text-blue-600/70">Всего</div>
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Filters - Neumorphic buttons */}
         <div className="flex gap-1">
           {[
             { id: "all", label: "Все" },
             { id: "platform", label: "Наши" },
             { id: "network", label: "В сети" },
           ].map((filter) => (
-            <button
+            <motion.button
               key={filter.id}
-              className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${activeFilter === filter.id
-                ? "bg-orange-500 text-white"
-                : "bg-gray-100 text-gray-600"
-                }`}
+              whileHover={{ scale: 1.02, y: -1 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setActiveFilter(filter.id)}
+              className={`flex-1 px-2 py-1.5 rounded-xl text-xs font-medium transition-all relative overflow-hidden ${
+                activeFilter === filter.id
+                  ? "text-white"
+                  : "text-gray-600"
+              }`}
+              style={{
+                background: activeFilter === filter.id
+                  ? "linear-gradient(135deg, #f97316, #ea580c)"
+                  : "linear-gradient(145deg, #fafafa, #e5e5e5)",
+                boxShadow: activeFilter === filter.id
+                  ? "0 6px 14px rgba(200,80,0,0.3), -3px -3px 8px rgba(255,200,150,0.4), inset 0 1px 0 rgba(255,255,255,0.25)"
+                  : "6px 6px 12px rgba(150,150,150,0.12), -6px -6px 12px rgba(255,255,255,0.8), inset 0 1px 2px rgba(255,255,255,0.6)"
+              }}
             >
               {filter.label}
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>
 
       {/* Vacancy list */}
-      <div className="p-3 space-y-2 max-h-72 overflow-hidden">
+      <div className="p-3 space-y-2 max-h-72 overflow-y-auto relative z-10" style={{ background: "linear-gradient(180deg, #fafafa, #f0f0f0)" }}>
         {mockVacancies.map((vacancy, i) => (
           <MockVacancyCard key={i} vacancy={vacancy} index={i} />
         ))}
       </div>
 
-      {/* Footer */}
-      <div className="bg-white px-4 py-2 border-t border-gray-100 text-center">
-        <span className="text-xs text-gray-400">Обновляется каждые 2 часа</span>
+      {/* Footer - Neumorphic inset */}
+      <div
+        className="px-4 py-2 text-center border-t relative z-10"
+        style={{
+          borderColor: "rgba(200,200,200,0.3)"
+        }}
+      >
+        <span className="text-xs text-gray-400">
+          Обновляется каждые 2 часа
+        </span>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -166,24 +260,64 @@ export default function VacancyFeedSection() {
   return (
     <section className="py-16 md:py-24 px-4 sm:px-6 relative overflow-hidden">
       {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-white via-orange-50/30 to-white pointer-events-none" />
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: "linear-gradient(180deg, rgba(255,247,237,0.4), rgba(255,255,255,0))"
+        }}
+      />
 
-      {/* Decorative blurs */}
+      {/* Decorative blurs with enhanced glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 -right-32 w-64 md:w-96 h-64 md:h-96 bg-orange-200/30 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 -left-32 w-48 md:w-64 h-48 md:h-64 bg-blue-100/20 rounded-full blur-3xl" />
+        <motion.div
+          animate={{
+            scale: [1, 1.05, 1],
+            opacity: [0.3, 0.5, 0.3]
+          }}
+          transition={{ duration: 4, repeat: Infinity }}
+          className="absolute top-20 -right-32 w-64 md:w-96 h-64 md:h-96 rounded-full blur-3xl"
+          style={{ background: "rgba(249,115,22,0.25)" }}
+        />
+        <motion.div
+          animate={{
+            scale: [1, 1.03, 1],
+            opacity: [0.2, 0.4, 0.2]
+          }}
+          transition={{ duration: 5, repeat: Infinity, delay: 1 }}
+          className="absolute bottom-20 -left-32 w-48 md:w-64 h-48 md:h-64 rounded-full blur-3xl"
+          style={{ background: "rgba(59,130,246,0.2)" }}
+        />
       </div>
 
       <div className="max-w-6xl mx-auto relative z-10">
         <div className="flex flex-col lg:flex-row items-center gap-8 md:gap-12 lg:gap-20">
           {/* Left - Text content */}
           <div className="flex-1 text-center lg:text-left order-2 lg:order-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-600 rounded-full text-sm font-medium mb-4 md:mb-6">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {/* Badge - Neumorphic raised */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4 }}
+              className="inline-flex items-center gap-2 px-3 py-1 mb-4 md:mb-6 rounded-full relative overflow-hidden"
+              style={{
+                background: "linear-gradient(145deg, #fff7ed, #ffedd5)",
+                boxShadow: "6px 6px 12px rgba(200,100,0,0.18), -6px -6px 12px rgba(255,220,180,0.6), inset 0 2px 4px rgba(255,255,255,0.5)"
+              }}
+            >
+              {/* Top highlight */}
+              <div
+                className="absolute top-0 left-2 right-2 h-3 rounded-b-full blur-sm pointer-events-none"
+                style={{
+                  background: "linear-gradient(180deg, rgba(255,255,255,0.7), transparent)",
+                }}
+              />
+              <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
               </svg>
-              Новая функция
-            </div>
+              <span className="text-sm font-medium text-orange-600 relative z-10">Новая функция</span>
+            </motion.div>
+
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 md:mb-6">
               Лента вакансий{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">
@@ -209,15 +343,29 @@ export default function VacancyFeedSection() {
               ))}
             </div>
 
-            <a
+            {/* CTA - Neumorphic raised */}
+            <motion.a
               href="/vacancies"
-              className="inline-flex items-center gap-2 px-5 md:px-6 py-2.5 md:py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full text-sm md:text-base font-medium hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/30"
+              whileHover={{ scale: 1.02, y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              className="inline-flex items-center gap-2 px-5 md:px-6 py-2.5 md:py-3 rounded-full text-sm md:text-base font-medium text-white relative overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, #f97316, #ea580c)",
+                boxShadow: "10px 10px 24px rgba(200,80,0,0.3), -6px -6px 18px rgba(255,200,150,0.4), inset 0 2px 4px rgba(255,255,255,0.25)"
+              }}
             >
-              Открыть ленту
-              <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {/* Top highlight */}
+              <div
+                className="absolute top-0 left-4 right-4 h-4 rounded-b-full blur-sm pointer-events-none"
+                style={{
+                  background: "linear-gradient(180deg, rgba(255,255,255,0.4), transparent)",
+                }}
+              />
+              <span className="relative z-10">Открыть ленту</span>
+              <svg className="w-4 h-4 md:w-5 md:h-5 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-            </a>
+            </motion.a>
           </div>
 
           {/* Right - Feed mockup with tilt on desktop */}
