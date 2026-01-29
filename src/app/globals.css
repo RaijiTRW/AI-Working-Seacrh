@@ -6,6 +6,26 @@
   --accent: #2563eb;
   --secondary: #f5f5f5;
   --muted: #6b7280;
+
+  /* Soft UI Colors - Orange */
+  --soft-orange-light: #fff7ed;
+  --soft-orange-base: #f97316;
+  --soft-orange-dark: #ea580c;
+  --soft-orange-glow: rgba(249, 115, 22, 0.18);
+  --soft-orange-shadow: rgba(249, 115, 22, 0.12);
+  --soft-orange-glow-blur: rgba(249, 115, 22, 0.08);
+
+  /* Soft UI Colors - Blue */
+  --soft-blue-light: #eff6ff;
+  --soft-blue-base: #3b82f6;
+  --soft-blue-dark: #2563eb;
+  --soft-blue-glow: rgba(59, 130, 246, 0.18);
+  --soft-blue-shadow: rgba(59, 130, 246, 0.12);
+  --soft-blue-glow-blur: rgba(59, 130, 246, 0.08);
+
+  /* Soft UI Neutral */
+  --soft-neutral-light: #fafafa;
+  --soft-neutral-base: #e5e5e5;
 }
 
 @theme inline {
@@ -107,4 +127,82 @@ html {
 
 .animate-slide-in-from-right {
   animation: slide-in-from-right 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Soft UI Animations */
+@keyframes soft-glow-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes soft-glow-spread {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: var(--glow-opacity, 0.6); transform: scale(1); }
+}
+
+/* Soft UI Button Base Styles */
+.soft-button-base {
+  position: relative;
+  border-radius: 9999px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.soft-button-orange {
+  box-shadow:
+    0 18px 40px var(--soft-orange-glow),
+    0 8px 18px rgba(0,0,0,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.9),
+    inset 0 -8px 20px var(--soft-orange-shadow);
+}
+
+.soft-button-orange:hover {
+  box-shadow:
+    0 22px 50px var(--soft-orange-glow),
+    0 10px 22px rgba(0,0,0,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.9),
+    inset 0 -8px 20px var(--soft-orange-shadow);
+}
+
+.soft-button-blue {
+  box-shadow:
+    0 18px 40px var(--soft-blue-glow),
+    0 8px 18px rgba(0,0,0,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.9),
+    inset 0 -8px 20px var(--soft-blue-shadow);
+}
+
+.soft-button-blue:hover {
+  box-shadow:
+    0 22px 50px var(--soft-blue-glow),
+    0 10px 22px rgba(0,0,0,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.9),
+    inset 0 -8px 20px var(--soft-blue-shadow);
+}
+
+/* Soft UI Card Base Styles */
+.soft-card-base {
+  position: relative;
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.92));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.soft-card-orange {
+  box-shadow:
+    0 12px 32px var(--soft-orange-glow-blur),
+    0 4px 12px rgba(0,0,0,0.05),
+    inset 0 1px 0 rgba(255,255,255,0.95),
+    inset 0 -4px 12px rgba(249,115,22,0.04);
+}
+
+.soft-card-blue {
+  box-shadow:
+    0 12px 32px var(--soft-blue-glow-blur),
+    0 4px 12px rgba(0,0,0,0.05),
+    inset 0 1px 0 rgba(255,255,255,0.95),
+    inset 0 -4px 12px rgba(59,130,246,0.04);
 }

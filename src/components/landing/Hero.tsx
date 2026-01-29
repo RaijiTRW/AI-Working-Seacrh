@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/useAuth";
+import { motion } from "framer-motion";
 import ChatCard from "./hero/ChatCard";
 import VacancyCard from "./hero/VacancyCard";
 import ResumeCard from "./hero/ResumeCard";
@@ -210,20 +211,34 @@ export default function Hero({ defaultMode = "jobseeker", hideToggle = false, on
       <div className="max-w-2xl mx-auto text-center relative z-10">
         {/* Toggle */}
         {!hideToggle && (
-          <div className="mb-8 inline-flex p-1 bg-white/80 backdrop-blur-sm rounded-full shadow-lg border border-gray-200">
-            <button
+          <div className="mb-8 inline-flex p-1.5 rounded-full soft-button-base shadow-[0_8px_24px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.8)] border border-white/40">
+            <motion.button
               onClick={() => handleModeChange("jobseeker")}
-              className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
+              whileHover={{ scale: 1.02, y: -1 }}
+              whileTap={{ scale: 0.97 }}
+              className={`relative px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
                 mode === "jobseeker"
                   ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md"
                   : "text-gray-600 hover:text-gray-900"
               }`}
             >
-              Ищу работу
-            </button>
-            <button
+              {mode === "jobseeker" && (
+                <motion.span
+                  className="absolute inset-0 rounded-full"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  style={{
+                    boxShadow: "0 0 20px rgba(249, 115, 22, 0.3), inset 0 1px 0 rgba(255,255,255,0.3)"
+                  }}
+                />
+              )}
+              <span className="relative z-10">Ищу работу</span>
+            </motion.button>
+            <motion.button
               onClick={() => handleModeChange("employer")}
               disabled={!isAdmin}
+              whileHover={isAdmin ? { scale: 1.02, y: -1 } : {}}
+              whileTap={isAdmin ? { scale: 0.97 } : {}}
               className={`relative px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
                 mode === "employer"
                   ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
@@ -233,13 +248,23 @@ export default function Hero({ defaultMode = "jobseeker", hideToggle = false, on
               }`}
               title={!isAdmin ? "Функционал работодателей скоро будет доступен" : ""}
             >
-              Ищу сотрудников
+              {mode === "employer" && (
+                <motion.span
+                  className="absolute inset-0 rounded-full"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  style={{
+                    boxShadow: "0 0 20px rgba(59, 130, 246, 0.3), inset 0 1px 0 rgba(255,255,255,0.3)"
+                  }}
+                />
+              )}
+              <span className="relative z-10">Ищу сотрудников</span>
               {!isAdmin && (
-                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded">
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded shadow-lg">
                   Скоро
                 </span>
               )}
-            </button>
+            </motion.button>
           </div>
         )}
 
@@ -252,15 +277,48 @@ export default function Hero({ defaultMode = "jobseeker", hideToggle = false, on
 
         {/* CTA с микрокопирайтингом */}
         <div className="flex flex-col items-center gap-3">
-          <a
+          <motion.a
             href={currentContent.ctaLink}
-            className={`inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r ${currentContent.ctaColor} text-white rounded-full text-lg font-medium transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5`}
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            className={`
+              relative inline-flex items-center gap-2 px-8 py-4 rounded-full text-lg font-medium
+              bg-gradient-to-r ${currentContent.ctaColor}
+              transition-all duration-300
+            `}
+            style={{
+              boxShadow: mode === "jobseeker"
+                ? "0 18px 40px rgba(249,115,22,0.25), 0 8px 18px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -4px 12px rgba(249,115,22,0.15)"
+                : "0 18px 40px rgba(59,130,246,0.25), 0 8px 18px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -4px 12px rgba(59,130,246,0.15)"
+            }}
           >
-            {currentContent.cta}
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {/* Gradient Border Effect */}
+            <span
+              className="absolute inset-0 rounded-full opacity-0 hover:opacity-100 transition-opacity duration-300"
+              style={{
+                background: mode === "jobseeker"
+                  ? "linear-gradient(90deg, rgba(249,115,22,0.4), rgba(255,255,255,0.6), rgba(249,115,22,0.4))"
+                  : "linear-gradient(90deg, rgba(59,130,246,0.4), rgba(255,255,255,0.6), rgba(59,130,246,0.4))",
+                padding: "1px",
+                WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                WebkitMaskComposite: "xor",
+                maskComposite: "exclude",
+              }}
+            />
+            {/* Ambient Glow */}
+            <span
+              className="absolute inset-0 rounded-full blur-xl opacity-50 -z-10"
+              style={{
+                background: mode === "jobseeker"
+                  ? "radial-gradient(circle at 30% 50%, rgba(249,115,22,0.4), transparent 60%)"
+                  : "radial-gradient(circle at 30% 50%, rgba(59,130,246,0.4), transparent 60%)",
+              }}
+            />
+            <span className="relative z-10">{currentContent.cta}</span>
+            <svg className="w-5 h-5 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-          </a>
+          </motion.a>
 
           {/* Микрокопирайтинг снижения риска */}
           <p className="text-sm text-muted flex items-center gap-2">
