@@ -309,43 +309,71 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-100">
+      {/* Header with Soft UI */}
+      <header
+        className="border-b"
+        style={{
+          background: "linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85))",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          borderColor: "rgba(200,200,200,0.3)",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)"
+        }}
+      >
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="text-xl font-bold text-gray-900">
             Job Search
           </Link>
-          <nav className="flex items-center gap-4">
+          <nav className="flex items-center gap-3">
             <Link
               href="/vacancies"
-              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              className="px-4 py-2 rounded-full text-sm font-medium text-gray-600 relative overflow-hidden transition-all hover:-translate-y-0.5"
+              style={{
+                background: "linear-gradient(145deg, #fafafa, #e5e5e5)",
+                boxShadow: "4px 4px 10px rgba(150,150,150,0.12), -4px -4px 10px rgba(255,255,255,0.8), inset 0 1px 2px rgba(255,255,255,0.6)"
+              }}
             >
-              Вакансии
+              <span className="relative z-10">Вакансии</span>
             </Link>
             <div className="flex items-center gap-3">
               <Link
                 href="/messages"
-                className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
+                className="flex items-center gap-2 px-4 py-2.5 text-gray-700 rounded-full text-sm font-medium relative overflow-hidden transition-all hover:-translate-y-0.5 active:scale-95"
+                style={{
+                  background: "linear-gradient(145deg, #fafafa, #e5e5e5)",
+                  boxShadow: "4px 4px 10px rgba(150,150,150,0.12), -4px -4px 10px rgba(255,255,255,0.8), inset 0 1px 2px rgba(255,255,255,0.6)"
+                }}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
-                <span className="hidden sm:inline">Сообщения</span>
+                <span className="hidden sm:inline relative z-10">Сообщения</span>
               </Link>
               <Link
                 href="/profile"
-                className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
+                className="flex items-center gap-2 px-4 py-2.5 text-gray-700 rounded-full text-sm font-medium relative overflow-hidden transition-all hover:-translate-y-0.5 active:scale-95"
+                style={{
+                  background: "linear-gradient(145deg, #fafafa, #e5e5e5)",
+                  boxShadow: "4px 4px 10px rgba(150,150,150,0.12), -4px -4px 10px rgba(255,255,255,0.8), inset 0 1px 2px rgba(255,255,255,0.6)"
+                }}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                <span className="hidden sm:inline">Профиль</span>
+                <span className="hidden sm:inline relative z-10">Профиль</span>
               </Link>
-              <span className="flex items-center gap-2 px-4 py-2.5 bg-red-100 text-red-600 rounded-full text-sm font-medium">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span
+                className="flex items-center gap-2 px-4 py-2.5 text-red-600 rounded-full text-sm font-medium relative overflow-hidden"
+                style={{
+                  background: "linear-gradient(145deg, #fef2f2, #fee2e2)",
+                  boxShadow: "4px 4px 10px rgba(200,30,30,0.12), -4px -4px 10px rgba(255,100,100,0.5), inset 0 1px 2px rgba(255,255,255,0.6)"
+                }}
+              >
+                <div className="absolute top-0 left-2 right-2 h-2 rounded-b-full blur-sm pointer-events-none" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.6), transparent)" }} />
+                <svg className="w-4 h-4 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                 </svg>
-                <span className="hidden sm:inline">Админ</span>
+                <span className="hidden sm:inline relative z-10">Админ</span>
               </span>
             </div>
           </nav>
