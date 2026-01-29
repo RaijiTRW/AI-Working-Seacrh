@@ -30,49 +30,45 @@ export default function ResumeCard({ resume, index }: ResumeCardProps) {
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="relative rounded-3xl p-5 w-56 overflow-hidden"
+      className="relative rounded-3xl p-5 w-56"
       style={{
-        background: "linear-gradient(145deg, #ffffff, #f8f8f8)",
+        background: "linear-gradient(145deg, #ffffff, #f0f0f0)",
         boxShadow: isHovered
-          ? "0 20px 50px rgba(59,130,246,0.25), 0 8px 20px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -2px 8px rgba(59,130,246,0.08)"
-          : "0 15px 35px rgba(59,130,246,0.15), 0 5px 12px rgba(0,0,0,0.06), inset 0 2px 0 rgba(255,255,255,0.95), inset 0 -1px 4px rgba(59,130,246,0.04)",
-        transform: isHovered ? "scale(1.03) translateX(6px) translateY(-4px)" : "scale(1)",
+          ? "24px 24px 48px rgba(100,140,200,0.3), -24px -24px 48px rgba(255,255,255,0.9), inset 0 2px 4px rgba(255,255,255,0.8)"
+          : "20px 20px 40px rgba(100,140,200,0.25), -20px -20px 40px rgba(255,255,255,0.85), inset 0 1px 2px rgba(255,255,255,0.6)",
+        transform: isHovered ? "scale(1.02) translateY(-8px)" : "scale(1)",
+        transition: "all 0.3s cubic-bezier(0.22, 1, 0.36, 1)",
       }}
     >
-      {/* Gradient Border */}
-      <div
-        className="absolute inset-0 rounded-3xl pointer-events-none"
-        style={{
-          padding: "1px",
-          background: isHovered
-            ? "linear-gradient(135deg, rgba(59,130,246,0.4), rgba(255,255,255,0.3), rgba(59,130,246,0.4))"
-            : "linear-gradient(135deg, rgba(59,130,246,0.1), rgba(255,255,255,0.5), rgba(59,130,246,0.1))",
-          WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-          WebkitMaskComposite: "xor",
-          maskComposite: "exclude",
-        }}
-      />
-
-      {/* Ambient Glow */}
+      {/* Ambient Blue Glow */}
       <motion.div
-        className="absolute inset-0 rounded-3xl blur-2xl -z-10"
+        className="absolute inset-0 rounded-3xl blur-3xl -z-10"
         animate={{
-          opacity: isHovered ? 0.8 : 0.3,
-          scale: isHovered ? 1.1 : 1,
+          opacity: isHovered ? 0.6 : 0,
+          scale: isHovered ? 1.2 : 0.8,
         }}
         transition={{ duration: 0.4 }}
         style={{
-          background: "radial-gradient(circle at 50% 30%, rgba(59,130,246,0.35), transparent 65%)",
+          background: "radial-gradient(circle at 50% 20%, rgba(59,130,246,0.4), transparent 60%)",
+        }}
+      />
+
+      {/* Top highlight streak */}
+      <div
+        className="absolute top-0 left-4 right-4 h-8 rounded-b-full blur-md pointer-events-none"
+        style={{
+          background: "linear-gradient(180deg, rgba(255,255,255,0.8), transparent)",
+          opacity: isHovered ? 0.7 : 0.5,
         }}
       />
 
       <div className="flex items-center gap-2 mb-3">
         <motion.div
           whileHover={{ scale: 1.1, rotate: 8 }}
-          className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg relative overflow-hidden"
+          className="w-10 h-10 rounded-full flex items-center justify-center relative overflow-hidden"
           style={{
-            background: "linear-gradient(135deg, #60a5fa, #2563eb)",
-            boxShadow: "0 6px 16px rgba(59,130,246,0.35), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 4px rgba(0,0,0,0.1)"
+            background: "linear-gradient(145deg, #60a5fa, #1d4ed8)",
+            boxShadow: "6px 6px 12px rgba(30,80,200,0.3), -3px -3px 8px rgba(150,200,255,0.3), inset 0 2px 4px rgba(255,255,255,0.3)"
           }}
         >
           {/* Shimmer effect */}
@@ -87,7 +83,7 @@ export default function ResumeCard({ resume, index }: ResumeCardProps) {
               repeatDelay: 2,
             }}
             style={{
-              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)",
+              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)",
             }}
           />
           <span className="text-white text-xs font-bold relative z-10">
@@ -107,24 +103,22 @@ export default function ResumeCard({ resume, index }: ResumeCardProps) {
         <span className="font-medium">Навыки:</span> {resume.skills}
       </p>
 
+      {/* 3D Raised Button */}
       <motion.button
-        whileHover={{ scale: 1.05, y: -2 }}
-        whileTap={{ scale: 0.97 }}
-        className="relative px-4 py-2 rounded-full text-xs font-medium text-white overflow-hidden"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.96 }}
+        className="relative px-5 py-2.5 rounded-full text-xs font-medium text-white"
         style={{
-          background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-          boxShadow: "0 8px 24px rgba(59,130,246,0.35), 0 2px 6px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 4px rgba(0,0,0,0.1)",
+          background: "linear-gradient(145deg, #60a5fa, #1d4ed8)",
+          boxShadow: isHovered
+            ? "8px 8px 16px rgba(30,80,200,0.3), -4px -4px 12px rgba(150,200,255,0.3), inset 0 1px 2px rgba(255,255,255,0.4), inset 0 -1px 2px rgba(0,0,0,0.2)"
+            : "6px 6px 12px rgba(30,80,200,0.25), -4px -4px 10px rgba(150,200,255,0.25), inset 0 1px 2px rgba(255,255,255,0.3), inset 0 -1px 2px rgba(0,0,0,0.15)",
         }}
       >
-        {/* Button Gradient Border */}
         <div
-          className="absolute inset-0 rounded-full"
+          className="absolute top-0 left-3 right-3 h-3 rounded-b-full blur-sm pointer-events-none"
           style={{
-            padding: "1px",
-            background: "linear-gradient(90deg, rgba(255,255,255,0.4), rgba(255,255,255,0.1), rgba(255,255,255,0.4))",
-            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-            WebkitMaskComposite: "xor",
-            maskComposite: "exclude",
+            background: "linear-gradient(180deg, rgba(255,255,255,0.4), transparent)",
           }}
         />
         <span className="relative z-10">Пригласить</span>

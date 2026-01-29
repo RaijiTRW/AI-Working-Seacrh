@@ -11,29 +11,25 @@ const stats = [
 export default function EmployerStatsCard() {
   return (
     <div
-      className="relative rounded-3xl p-5 w-64 overflow-hidden"
+      className="relative rounded-3xl p-5 w-64"
       style={{
-        background: "linear-gradient(145deg, #ffffff, #f8f8f8)",
-        boxShadow: "0 20px 45px rgba(59,130,246,0.15), 0 8px 18px rgba(0,0,0,0.06), inset 0 2px 0 rgba(255,255,255,0.95), inset 0 -1px 4px rgba(59,130,246,0.04)",
+        background: "linear-gradient(145deg, #ffffff, #f0f0f0)",
+        boxShadow: "24px 24px 48px rgba(100,140,200,0.25), -24px -24px 48px rgba(255,255,255,0.9), inset 0 2px 4px rgba(255,255,255,0.6)",
       }}
     >
-      {/* Gradient Border */}
+      {/* Ambient Blue Glow */}
       <div
-        className="absolute inset-0 rounded-3xl pointer-events-none"
+        className="absolute inset-0 rounded-3xl blur-3xl -z-10"
         style={{
-          padding: "1px",
-          background: "linear-gradient(135deg, rgba(59,130,246,0.15), rgba(255,255,255,0.4), rgba(59,130,246,0.15))",
-          WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-          WebkitMaskComposite: "xor",
-          maskComposite: "exclude",
+          background: "radial-gradient(circle at 50% 20%, rgba(59,130,246,0.3), transparent 60%)",
         }}
       />
 
-      {/* Ambient Glow */}
+      {/* Top highlight streak */}
       <div
-        className="absolute inset-0 rounded-3xl blur-2xl -z-10"
+        className="absolute top-0 left-4 right-4 h-8 rounded-b-full blur-md pointer-events-none"
         style={{
-          background: "radial-gradient(circle at 50% 20%, rgba(59,130,246,0.25), transparent 60%)",
+          background: "linear-gradient(180deg, rgba(255,255,255,0.7), transparent)",
         }}
       />
 
@@ -43,8 +39,8 @@ export default function EmployerStatsCard() {
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
           className="w-9 h-9 rounded-full flex items-center justify-center relative overflow-hidden"
           style={{
-            background: "linear-gradient(135deg, #60a5fa, #2563eb)",
-            boxShadow: "0 6px 16px rgba(59,130,246,0.35), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 4px rgba(0,0,0,0.1)"
+            background: "linear-gradient(145deg, #60a5fa, #1d4ed8)",
+            boxShadow: "6px 6px 12px rgba(30,80,200,0.3), -3px -3px 8px rgba(150,200,255,0.3), inset 0 2px 4px rgba(255,255,255,0.3)"
           }}
         >
           <motion.div
@@ -58,7 +54,7 @@ export default function EmployerStatsCard() {
               repeatDelay: 2,
             }}
             style={{
-              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)",
+              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)",
             }}
           />
           <span className="text-white text-xs font-bold relative z-10">📊</span>
@@ -77,11 +73,11 @@ export default function EmployerStatsCard() {
               delay: i * 0.2,
               ease: [0.22, 1, 0.36, 1]
             }}
-            whileHover={{ scale: 1.02, y: -2 }}
+            whileHover={{ scale: 1.02, translateY: -2 }}
             className="p-3 rounded-xl relative overflow-hidden"
             style={{
               background: "linear-gradient(145deg, #eff6ff, #dbeafe)",
-              boxShadow: "0 3px 10px rgba(59,130,246,0.12), inset 0 1px 0 rgba(255,255,255,0.8)",
+              boxShadow: "4px 4px 10px rgba(30,80,200,0.12), -3px -3px 8px rgba(200,230,255,0.5), inset 0 1px 2px rgba(255,255,255,0.6)",
               border: "1px solid rgba(59,130,246,0.15)"
             }}
           >
@@ -92,7 +88,7 @@ export default function EmployerStatsCard() {
               whileHover={{ x: "100%" }}
               transition={{ duration: 0.6 }}
               style={{
-                background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)",
+                background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)",
               }}
             />
             <div className="flex items-center justify-between relative z-10">
@@ -113,19 +109,18 @@ export default function EmployerStatsCard() {
       </div>
 
       <div className="mt-4 pt-3 border-t border-blue-100/50">
-        <motion.div
-          whileHover={{ scale: 1.01 }}
+        <div
           className="flex items-center gap-2 px-3 py-2.5 rounded-full text-sm text-gray-400"
           style={{
-            background: "linear-gradient(145deg, #fafafa, #f0f0f0)",
-            boxShadow: "inset 0 2px 4px rgba(0,0,0,0.06), 0 1px 0 rgba(255,255,255,0.8)"
+            background: "linear-gradient(145deg, #fafafa, #e5e5e5)",
+            boxShadow: "inset 3px 3px 6px rgba(150,150,150,0.15), inset -2px -2px 4px rgba(255,255,255,0.7)"
           }}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
           <span>Быстрый подбор</span>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

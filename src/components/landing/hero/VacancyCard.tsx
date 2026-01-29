@@ -30,39 +30,36 @@ export default function VacancyCard({ vacancy, index }: VacancyCardProps) {
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="relative rounded-3xl p-5 w-56 overflow-hidden"
+      className="relative rounded-3xl p-5 w-56"
       style={{
-        background: "linear-gradient(145deg, #ffffff, #f8f8f8)",
+        background: "linear-gradient(145deg, #ffffff, #f0f0f0)",
+        // Явные outset тени для 3D эффекта
         boxShadow: isHovered
-          ? "0 20px 50px rgba(249,115,22,0.25), 0 8px 20px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -2px 8px rgba(249,115,22,0.08)"
-          : "0 15px 35px rgba(249,115,22,0.15), 0 5px 12px rgba(0,0,0,0.06), inset 0 2px 0 rgba(255,255,255,0.95), inset 0 -1px 4px rgba(249,115,22,0.04)",
-        transform: isHovered ? "scale(1.03) translateX(-6px) translateY(-4px)" : "scale(1)",
+          ? "24px 24px 48px rgba(160,160,160,0.4), -24px -24px 48px rgba(255,255,255,0.9), inset 0 2px 4px rgba(255,255,255,0.8)"
+          : "20px 20px 40px rgba(160,160,160,0.35), -20px -20px 40px rgba(255,255,255,0.85), inset 0 1px 2px rgba(255,255,255,0.6)",
+        transform: isHovered ? "scale(1.02) translateY(-8px)" : "scale(1)",
+        transition: "all 0.3s cubic-bezier(0.22, 1, 0.36, 1)",
       }}
     >
-      {/* Gradient Border */}
-      <div
-        className="absolute inset-0 rounded-3xl pointer-events-none"
-        style={{
-          padding: "1px",
-          background: isHovered
-            ? "linear-gradient(135deg, rgba(249,115,22,0.4), rgba(255,255,255,0.3), rgba(249,115,22,0.4))"
-            : "linear-gradient(135deg, rgba(249,115,22,0.1), rgba(255,255,255,0.5), rgba(249,115,22,0.1))",
-          WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-          WebkitMaskComposite: "xor",
-          maskComposite: "exclude",
-        }}
-      />
-
-      {/* Ambient Glow */}
+      {/* Ambient Orange Glow */}
       <motion.div
-        className="absolute inset-0 rounded-3xl blur-2xl -z-10"
+        className="absolute inset-0 rounded-3xl blur-3xl -z-10"
         animate={{
-          opacity: isHovered ? 0.8 : 0.3,
-          scale: isHovered ? 1.1 : 1,
+          opacity: isHovered ? 0.6 : 0,
+          scale: isHovered ? 1.2 : 0.8,
         }}
         transition={{ duration: 0.4 }}
         style={{
-          background: "radial-gradient(circle at 50% 30%, rgba(249,115,22,0.35), transparent 65%)",
+          background: "radial-gradient(circle at 50% 20%, rgba(249,115,22,0.4), transparent 60%)",
+        }}
+      />
+
+      {/* Top highlight streak */}
+      <div
+        className="absolute top-0 left-4 right-4 h-8 rounded-b-full blur-md pointer-events-none"
+        style={{
+          background: "linear-gradient(180deg, rgba(255,255,255,0.8), transparent)",
+          opacity: isHovered ? 0.7 : 0.5,
         }}
       />
 
@@ -73,24 +70,24 @@ export default function VacancyCard({ vacancy, index }: VacancyCardProps) {
         {vacancy.schedule || vacancy.experience}
       </p>
 
+      {/* 3D Raised Button */}
       <motion.button
-        whileHover={{ scale: 1.05, y: -2 }}
-        whileTap={{ scale: 0.97 }}
-        className="relative px-4 py-2 rounded-full text-xs font-medium text-white overflow-hidden"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.96 }}
+        className="relative px-5 py-2.5 rounded-full text-xs font-medium text-white"
         style={{
-          background: "linear-gradient(135deg, #f97316, #ea580c)",
-          boxShadow: "0 8px 24px rgba(249,115,22,0.35), 0 2px 6px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 4px rgba(0,0,0,0.1)",
+          background: "linear-gradient(145deg, #ff9a56, #e65c00)",
+          // Явные 3D тени для кнопки
+          boxShadow: isHovered
+            ? "8px 8px 16px rgba(200,80,0,0.3), -4px -4px 12px rgba(255,200,150,0.4), inset 0 1px 2px rgba(255,255,255,0.4), inset 0 -1px 2px rgba(0,0,0,0.2)"
+            : "6px 6px 12px rgba(200,80,0,0.25), -4px -4px 10px rgba(255,200,150,0.3), inset 0 1px 2px rgba(255,255,255,0.3), inset 0 -1px 2px rgba(0,0,0,0.15)",
         }}
       >
-        {/* Button Gradient Border */}
+        {/* Top highlight */}
         <div
-          className="absolute inset-0 rounded-full"
+          className="absolute top-0 left-3 right-3 h-3 rounded-b-full blur-sm pointer-events-none"
           style={{
-            padding: "1px",
-            background: "linear-gradient(90deg, rgba(255,255,255,0.4), rgba(255,255,255,0.1), rgba(255,255,255,0.4))",
-            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-            WebkitMaskComposite: "xor",
-            maskComposite: "exclude",
+            background: "linear-gradient(180deg, rgba(255,255,255,0.4), transparent)",
           }}
         />
         <span className="relative z-10">Откликнуться</span>
