@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
 
-  // Validate required fields
+  // Validate basic required fields
   if (!body.title || body.title.length < 3) {
     return NextResponse.json(
       { detail: "Title must be at least 3 characters" },
@@ -135,23 +135,146 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Validate new structured offer fields (required)
+  const salaryTypes = ['fix', 'range', 'bonuses', 'kpi'];
+  if (body.salary_type && !salaryTypes.includes(body.salary_type)) {
+    return NextResponse.json(
+      { detail: "Invalid salary_type" },
+      { status: 400 }
+    );
+  }
+
+  const taxTypes = ['gross', 'net'];
+  if (body.salary_tax_type && !taxTypes.includes(body.salary_tax_type)) {
+    return NextResponse.json(
+      { detail: "Invalid salary_tax_type" },
+      { status: 400 }
+    );
+  }
+
+  const salaryPeriods = ['month', 'week', 'day', 'hour', 'shift', 'project'];
+  if (body.salary_period && !salaryPeriods.includes(body.salary_period)) {
+    return NextResponse.json(
+      { detail: "Invalid salary_period" },
+      { status: 400 }
+    );
+  }
+
+  const contractTypes = ['labor_rf', 'gph', 'ip', 'self_employed'];
+  if (body.contract_type && !contractTypes.includes(body.contract_type)) {
+    return NextResponse.json(
+      { detail: "Invalid contract_type" },
+      { status: 400 }
+    );
+  }
+
+  const workFormats = ['office', 'remote', 'hybrid'];
+  if (body.work_format && !workFormats.includes(body.work_format)) {
+    return NextResponse.json(
+      { detail: "Invalid work_format" },
+      { status: 400 }
+    );
+  }
+
+  const overtimePolicies = ['paid', 'unpaid', 'negotiable'];
+  if (body.overtime_policy && !overtimePolicies.includes(body.overtime_policy)) {
+    return NextResponse.json(
+      { detail: "Invalid overtime_policy" },
+      { status: 400 }
+    );
+  }
+
+  // Validate optional numeric fields
+  if (body.probation_months !== undefined && (body.probation_months < 0 || body.probation_months > 12)) {
+    return NextResponse.json(
+      { detail: "probation_months must be between 0 and 12" },
+      { status: 400 }
+    );
+  }
+
+  if (body.probation_salary_reduction !== undefined && (body.probation_salary_reduction < 0 || body.probation_salary_reduction > 50)) {
+    return NextResponse.json(
+      { detail: "probation_salary_reduction must be between 0 and 50" },
+      { status: 400 }
+    );
+  }
+
+  // Validate JSONB fields
+  if (body.salary_bonuses && typeof body.salary_bonuses !== 'object') {
+    return NextResponse.json(
+      { detail: "salary_bonuses must be an object" },
+      { status: 400 }
+    );
+  }
+
+  if (body.salary_kpi && typeof body.salary_kpi !== 'object') {
+    return NextResponse.json(
+      { detail: "salary_kpi must be an object" },
+      { status: 400 }
+    );
+  }
+
+  if (body.work_hours && typeof body.work_hours !== 'object') {
+    return NextResponse.json(
+      { detail: "work_hours must be an object" },
+      { status: 400 }
+    );
+  }
+
+  if (body.responsibilities && !Array.isArray(body.responsibilities)) {
+    return NextResponse.json(
+      { detail: "responsibilities must be an array" },
+      { status: 400 }
+    );
+  }
+
+  if (body.tech_stack && !Array.isArray(body.tech_stack)) {
+    return NextResponse.json(
+      { detail: "tech_stack must be an array" },
+      { status: 400 }
+    );
+  }
+
   const vacancyData = {
     user_id: userId,
     title: body.title,
     company: body.company,
     city: body.city,
+    // Старые поля зарплаты (для обратной совместимости)
     salary_from: body.salary_from || null,
     salary_to: body.salary_to || null,
     salary_currency: body.salary_currency || "RUB",
+    // Новые поля зарплаты
+    salary_type: body.salary_type || "range",
+    salary_tax_type: body.salary_tax_type || "net",
+    salary_period: body.salary_period || "month",
+    salary_bonuses: body.salary_bonuses || { enabled: false },
+    salary_kpi: body.salary_kpi || { enabled: false },
+    // Старые поля условий (для обратной совместимости)
     experience: body.experience || null,
     employment_type: body.employment_type || null,
     schedule: body.schedule || null,
+    // Новые поля условий
+    contract_type: body.contract_type || "labor_rf",
+    contract_comment: body.contract_comment || null,
+    work_format: body.work_format || "office",
+    work_hours: body.work_hours || { hours: 8, type: "per_day" },
+    overtime_policy: body.overtime_policy || "unpaid",
+    probation_months: body.probation_months ?? 3,
+    probation_salary_reduction: body.probation_salary_reduction ?? 0,
+    // Новые структурированные поля
+    responsibilities: body.responsibilities || [],
+    tech_stack: body.tech_stack || [],
+    grade_level: body.grade_level || null,
+    // Старые текстовые поля (для обратной совместимости)
     description: body.description,
     requirements: body.requirements || null,
     conditions: body.conditions || null,
+    // Контакты
     contact_name: body.contact_name || null,
     contact_email: body.contact_email || null,
     contact_phone: body.contact_phone || null,
+    // Метаданные
     status: "draft",
     is_active: false,
     views_count: 0,

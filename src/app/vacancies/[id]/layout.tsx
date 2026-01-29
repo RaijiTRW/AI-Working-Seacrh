@@ -34,7 +34,8 @@ async function getVacancy(id: string): Promise<VacancyData | null> {
     .from("employer_vacancies")
     .select("*")
     .eq("id", id)
-    .eq("status", "active")
+    // Keep in sync with public vacancy visibility rules (see /api/vacancies/[id])
+    .in("status", ["published", "active"])
     .eq("is_active", true)
     .single();
 

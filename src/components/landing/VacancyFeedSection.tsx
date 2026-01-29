@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 const mockVacancies = [

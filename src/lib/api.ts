@@ -249,6 +249,41 @@ export async function getVacancyStats(): Promise<VacancyStats> {
   return response.json();
 }
 
+// === Structured Offer Types ===
+
+export type SalaryType = 'fix' | 'range' | 'bonuses' | 'kpi';
+export type SalaryTaxType = 'gross' | 'net';
+export type SalaryPeriod = 'month' | 'week' | 'day' | 'hour' | 'shift' | 'project';
+export type ContractType = 'labor_rf' | 'gph' | 'ip' | 'self_employed';
+export type WorkFormat = 'office' | 'remote' | 'hybrid';
+export type OvertimePolicy = 'paid' | 'unpaid' | 'negotiable';
+export type GradeLevel = 'intern' | 'junior' | 'middle' | 'senior' | 'lead' | 'principal';
+export type WorkHoursType = 'per_day' | 'per_week' | 'range';
+
+export interface SalaryBonuses {
+  enabled: boolean;
+  description?: string;
+}
+
+export interface SalaryKPI {
+  enabled: boolean;
+  description?: string;
+  max_percentage?: number;
+}
+
+export interface WorkHours {
+  type: WorkHoursType;
+  hours?: number;
+  from?: string;
+  to?: string;
+  days_per_week?: number;
+}
+
+export interface Responsibility {
+  text: string;
+  order: number;
+}
+
 // === Employer Vacancies API ===
 
 export interface EmployerVacancy {
@@ -257,18 +292,41 @@ export interface EmployerVacancy {
   title: string;
   company: string;
   city: string;
+  // Старые поля зарплаты (для обратной совместимости)
   salary_from?: number;
   salary_to?: number;
   salary_currency: string;
+  // Новые поля зарплаты
+  salary_type: SalaryType;
+  salary_tax_type: SalaryTaxType;
+  salary_period: SalaryPeriod;
+  salary_bonuses: SalaryBonuses;
+  salary_kpi: SalaryKPI;
+  // Старые поля условий (для обратной совместимости)
   experience?: string;
   employment_type?: string;
   schedule?: string;
+  // Новые поля условий
+  contract_type: ContractType;
+  contract_comment?: string;
+  work_format: WorkFormat;
+  work_hours: WorkHours;
+  overtime_policy: OvertimePolicy;
+  probation_months: number;
+  probation_salary_reduction: number;
+  // Новые структурированные поля
+  responsibilities: Responsibility[];
+  tech_stack: string[];
+  grade_level?: GradeLevel;
+  // Старые текстовые поля (для обратной совместимости)
   description: string;
   requirements?: string;
   conditions?: string;
+  // Контакты
   contact_name?: string;
   contact_email?: string;
   contact_phone?: string;
+  // Метаданные
   status: string;
   is_active: boolean;
   views_count: number;
@@ -282,15 +340,37 @@ export interface EmployerVacancyCreate {
   title: string;
   company: string;
   city: string;
+  // Старые поля зарплаты (для обратной совместимости)
   salary_from?: number;
   salary_to?: number;
   salary_currency?: string;
+  // Новые поля зарплаты (обязательные)
+  salary_type?: SalaryType;
+  salary_tax_type?: SalaryTaxType;
+  salary_period?: SalaryPeriod;
+  salary_bonuses?: Partial<SalaryBonuses>;
+  salary_kpi?: Partial<SalaryKPI>;
+  // Старые поля условий (для обратной совместимости)
   experience?: string;
   employment_type?: string;
   schedule?: string;
+  // Новые поля условий (обязательные)
+  contract_type?: ContractType;
+  contract_comment?: string;
+  work_format?: WorkFormat;
+  work_hours?: Partial<WorkHours>;
+  overtime_policy?: OvertimePolicy;
+  // Новые опциональные поля
+  probation_months?: number;
+  probation_salary_reduction?: number;
+  responsibilities?: Responsibility[];
+  tech_stack?: string[];
+  grade_level?: GradeLevel;
+  // Старые текстовые поля (для обратной совместимости)
   description: string;
   requirements?: string;
   conditions?: string;
+  // Контакты
   contact_name?: string;
   contact_email?: string;
   contact_phone?: string;
@@ -361,21 +441,36 @@ export async function publishVacancy(
   vacancyId: string,
   token: string
 ): Promise<EmployerVacancy> {
-  const response = await fetch(
-    `/api/employer/vacancies/${vacancyId}/publish`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 сек timeout
+
+  try {
+    const response = await fetch(
+      `/api/employer/vacancies/${vacancyId}/publish`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        signal: controller.signal,
+      }
+    );
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: "Failed to publish vacancy" }));
+      throw new Error(error.detail || "Failed to publish vacancy");
     }
-  );
 
-  if (!response.ok) {
-    throw new Error("Failed to publish vacancy");
+    return response.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error("Превышено время ожидания. Попробуйте позже.");
+    }
+    throw error;
   }
-
-  return response.json();
 }
 
 /**
@@ -404,10 +499,18 @@ export async function deleteVacancy(
  * Получить вакансию по ID
  */
 export async function getVacancyById(
-  vacancyId: string
+  vacancyId: string,
+  token?: string
 ): Promise<EmployerVacancy> {
+  const headers: Record<string, string> = {};
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const response = await fetch(
-    `/api/employer/vacancies/${vacancyId}`
+    `/api/vacancies/${vacancyId}`,
+    { headers }
   );
 
   if (!response.ok) {
@@ -449,7 +552,7 @@ export async function updateVacancy(
  */
 export async function incrementVacancyViews(vacancyId: string): Promise<void> {
   try {
-    await fetch(`/api/employer/vacancies/${vacancyId}/view`, {
+    await fetch(`/api/vacancies/${vacancyId}/view`, {
       method: "POST",
     });
   } catch {

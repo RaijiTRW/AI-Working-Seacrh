@@ -91,10 +91,18 @@ export async function PUT(
 
   // Filter allowed fields
   const allowedFields = [
+    // Старые поля (для обратной совместимости)
     "title", "company", "city", "salary_from", "salary_to",
     "salary_currency", "experience", "employment_type", "schedule",
     "description", "requirements", "conditions",
-    "contact_name", "contact_email", "contact_phone"
+    "contact_name", "contact_email", "contact_phone",
+    // Новые поля структурированного оффера
+    "salary_type", "salary_tax_type", "salary_period",
+    "salary_bonuses", "salary_kpi",
+    "contract_type", "contract_comment",
+    "work_format", "work_hours", "overtime_policy",
+    "probation_months", "probation_salary_reduction",
+    "responsibilities", "tech_stack", "grade_level"
   ];
 
   const updates: Record<string, unknown> = {};

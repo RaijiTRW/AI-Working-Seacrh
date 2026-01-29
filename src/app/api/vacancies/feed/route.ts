@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
         console.error("[VacancyFeed] Platform vacancies error:", platformError);
       } else {
         platformVacancies = (platformData || []).map((v: any) => ({
-          id: `platform_${v.id}`,
+          id: v.id,
           title: v.title,
           company: v.company,
           salary_from: v.salary_from,
@@ -171,7 +171,16 @@ export async function GET(request: NextRequest) {
           experience: v.experience,
           employment_type: v.employment_type,
           description: v.description,
-          url: `/vacancies/${v.id}`, // Внутренняя ссылка
+          // Новые поля структурированного оффера
+          salary_type: v.salary_type,
+          salary_tax_type: v.salary_tax_type,
+          salary_period: v.salary_period,
+          salary_bonuses: v.salary_bonuses,
+          salary_kpi: v.salary_kpi,
+          contract_type: v.contract_type,
+          work_format: v.work_format,
+          grade_level: v.grade_level,
+          url: `/vacancies/${v.id}`,
           source: "platform",
           user_id: v.user_id,
         }));

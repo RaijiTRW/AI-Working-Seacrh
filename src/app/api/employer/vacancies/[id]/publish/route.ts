@@ -84,26 +84,36 @@ export async function POST(
   let aiApproved: boolean | null = null;
   let aiReason: string | null = null;
 
-  try {
-    const moderationResponse = await fetch(`${backendUrl}/api/employer/vacancies/${id}/moderate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: vacancy.title,
-        company: vacancy.company,
-        description: vacancy.description,
-        requirements: vacancy.requirements,
-        conditions: vacancy.conditions,
-      }),
-    });
+  // AI-модерация с timeout (5 секунд)
+  if (backendUrl) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 сек timeout
 
-    if (moderationResponse.ok) {
-      const moderationResult = await moderationResponse.json();
-      aiApproved = moderationResult.approved;
-      aiReason = moderationResult.reason || null;
+      const moderationResponse = await fetch(`${backendUrl}/api/employer/vacancies/${id}/moderate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: vacancy.title,
+          company: vacancy.company,
+          description: vacancy.description,
+          requirements: vacancy.requirements,
+          conditions: vacancy.conditions,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (moderationResponse.ok) {
+        const moderationResult = await moderationResponse.json();
+        aiApproved = moderationResult.approved;
+        aiReason = moderationResult.reason || null;
+      }
+    } catch (moderationError) {
+      console.error("AI moderation error or timeout:", moderationError);
+      // Продолжаем без AI-модерации
     }
-  } catch (moderationError) {
-    console.error("AI moderation error:", moderationError);
   }
 
   // Ставим на модерацию админу

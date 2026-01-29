@@ -1,23 +1,119 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/landing/Header";
-import { getVacancyById, incrementVacancyViews, EmployerVacancy } from "@/lib/api";
+import { getVacancyById, EmployerVacancy, incrementVacancyViews } from "@/lib/api";
 import { useAuth } from "@/lib/useAuth";
 
-function formatSalary(from?: number, to?: number): string {
-  if (from && to) {
-    return `${from.toLocaleString("ru-RU")} - ${to.toLocaleString("ru-RU")} ₽`;
+function formatSalary(vacancy: EmployerVacancy): string {
+  const { salary_from, salary_to, salary_type, salary_tax_type, salary_period } = vacancy;
+
+  // Для новых вакансий с структурированным оффером
+  if (salary_period && salary_tax_type) {
+    const periodLabel: Record<string, string> = {
+      month: "мес",
+      week: "нед",
+      day: "день",
+      hour: "час",
+      shift: "смена",
+      project: "проект",
+    };
+    const taxLabel = salary_tax_type === "gross" ? "до вычета НДФЛ" : "на руки";
+    const period = periodLabel[salary_period] || "мес";
+
+    if (salary_type === "fix" && salary_from) {
+      return `${salary_from.toLocaleString("ru-RU")} ₽/${period} (${taxLabel})`;
+    }
+    if (salary_type === "range" && salary_from && salary_to) {
+      return `${salary_from.toLocaleString("ru-RU")} - ${salary_to.toLocaleString("ru-RU")} ₽/${period} (${taxLabel})`;
+    }
+    if (salary_type === "bonuses") {
+      return `По результатам (${taxLabel})`;
+    }
+    if (salary_type === "kpi") {
+      return `KPI (${taxLabel})`;
+    }
   }
-  if (from) {
-    return `от ${from.toLocaleString("ru-RU")} ₽`;
+
+  // Fallback для старых вакансий
+  if (salary_from && salary_to) {
+    return `${salary_from.toLocaleString("ru-RU")} - ${salary_to.toLocaleString("ru-RU")} ₽`;
   }
-  if (to) {
-    return `до ${to.toLocaleString("ru-RU")} ₽`;
+  if (salary_from) {
+    return `от ${salary_from.toLocaleString("ru-RU")} ₽`;
+  }
+  if (salary_to) {
+    return `до ${salary_to.toLocaleString("ru-RU")} ₽`;
   }
   return "Не указана";
+}
+
+function getContractTypeLabel(type?: string): string {
+  if (!type) return "";
+  const labels: Record<string, string> = {
+    labor_rf: "ТК РФ",
+    gph: "ГПХ",
+    ip: "ИП",
+    self_employed: "Самозанятый",
+  };
+  return labels[type] || type;
+}
+
+function getWorkFormatLabel(format?: string): string {
+  if (!format) return "";
+  const labels: Record<string, string> = {
+    office: "В офисе",
+    remote: "Удалённо",
+    hybrid: "Гибрид",
+  };
+  return labels[format] || format;
+}
+
+function getOvertimePolicyLabel(policy?: string): string {
+  if (!policy) return "";
+  const labels: Record<string, string> = {
+    paid: "Оплачиваются",
+    unpaid: "Не оплачиваются",
+    negotiable: "По договорённости",
+  };
+  return labels[policy] || policy;
+}
+
+function getGradeLevelLabel(level?: string): string {
+  if (!level) return "";
+  const labels: Record<string, string> = {
+    intern: "Intern / Стажёр",
+    junior: "Junior / Младший",
+    middle: "Middle / Средний",
+    senior: "Senior / Старший",
+    lead: "Lead / Ведущий",
+    principal: "Principal / Главный",
+  };
+  return labels[level] || level;
+}
+
+function getScheduleLabel(schedule?: string): string {
+  if (!schedule) return "";
+  const labels: Record<string, string> = {
+    fullDay: "Полный день",
+    shift: "Сменный (2/2, 3/3 и т.д.)",
+    flexible: "Гибкий график",
+    remote: "Удаленная работа",
+  };
+  return labels[schedule] || schedule;
+}
+
+function getExperienceLabel(experience?: string): string {
+  if (!experience) return "";
+  const labels: Record<string, string> = {
+    "no_experience": "Опыт: Не требуется",
+    "1-3": "Опыт: 1-3 года",
+    "3-6": "Опыт: 3-6 лет",
+    "6+": "Опыт: Более 6 лет",
+  };
+  return labels[experience] || experience;
 }
 
 function formatDate(dateStr?: string): string {
@@ -31,7 +127,6 @@ function formatDate(dateStr?: string): string {
 
 export default function VacancyDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const { user } = useAuth();
   const [vacancy, setVacancy] = useState<EmployerVacancy | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,12 +143,6 @@ export default function VacancyDetailPage() {
         }
         const data = await getVacancyById(id);
         setVacancy(data);
-
-        // Increment view count once (не считаем просмотры владельца)
-        if (!viewCounted.current && data && (!user || data.user_id !== user.id)) {
-          viewCounted.current = true;
-          incrementVacancyViews(id);
-        }
       } catch (err) {
         setError("Вакансия не найдена");
         console.error(err);
@@ -65,7 +154,18 @@ export default function VacancyDetailPage() {
     if (params.id) {
       fetchVacancy();
     }
-  }, [params.id, user]);
+  }, [params.id]);
+
+  useEffect(() => {
+    viewCounted.current = false;
+  }, [params.id]);
+
+  useEffect(() => {
+    if (!vacancy?.id) return;
+    if (viewCounted.current) return;
+    viewCounted.current = true;
+    void incrementVacancyViews(vacancy.id);
+  }, [vacancy?.id]);
 
   if (loading) {
     return (
@@ -117,11 +217,10 @@ export default function VacancyDetailPage() {
             <div className="p-6 border-b border-gray-100">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
-                  <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full mb-3 ${
-                    user && user.id === vacancy.user_id
+                  <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full mb-3 ${user && user.id === vacancy.user_id
                       ? "bg-green-100 text-green-600"
                       : "bg-orange-100 text-orange-600"
-                  }`}>
+                    }`}>
                     {user && user.id === vacancy.user_id ? "Моя вакансия" : "Наша вакансия"}
                   </span>
                   <h1 className="text-2xl font-bold text-gray-900 mb-2">
@@ -131,32 +230,77 @@ export default function VacancyDetailPage() {
                 </div>
               </div>
 
-              {/* Salary */}
-              <div className="text-2xl font-bold text-gray-900 mb-4">
-                {formatSalary(vacancy.salary_from, vacancy.salary_to)}
+              {/* Salary - структурированная */}
+              <div className="mb-4">
+                <div className="text-2xl font-bold text-gray-900 mb-2">
+                  {formatSalary(vacancy)}
+                </div>
+
+                {/* Бонусы */}
+                {vacancy.salary_bonuses?.enabled && vacancy.salary_bonuses.description && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    💰 Бонусы: {vacancy.salary_bonuses.description}
+                  </p>
+                )}
+
+                {/* KPI */}
+                {vacancy.salary_kpi?.enabled && vacancy.salary_kpi.description && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    📊 KPI: {vacancy.salary_kpi.description}
+                    {vacancy.salary_kpi.max_percentage && ` (до ${vacancy.salary_kpi.max_percentage}% от оклада)`}
+                  </p>
+                )}
               </div>
 
-              {/* Tags */}
+              {/* Tags - с новыми полями */}
               <div className="flex flex-wrap gap-2">
+                {/* Уровень позиции */}
+                {vacancy.grade_level && (
+                  <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm rounded-full font-medium">
+                    {getGradeLevelLabel(vacancy.grade_level)}
+                  </span>
+                )}
+
+                {/* Формат работы */}
+                {vacancy.work_format && (
+                  <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
+                    {getWorkFormatLabel(vacancy.work_format)}
+                  </span>
+                )}
+
+                {/* Тип договора */}
+                {vacancy.contract_type && (
+                  <span className="px-3 py-1 bg-amber-100 text-amber-700 text-sm rounded-full">
+                    {getContractTypeLabel(vacancy.contract_type)}
+                  </span>
+                )}
+
+                {/* Город */}
                 <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
                   {vacancy.city}
                 </span>
+
+                {/* Опыт (старое поле) */}
                 {vacancy.experience && (
                   <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
-                    {vacancy.experience}
+                    {getExperienceLabel(vacancy.experience)}
                   </span>
                 )}
+
+                {/* Тип занятости (старое поле) */}
                 {vacancy.employment_type && (
                   <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
                     {vacancy.employment_type === "full" ? "Полная занятость" :
-                     vacancy.employment_type === "part" ? "Частичная занятость" :
-                     vacancy.employment_type === "remote" ? "Удалённая работа" :
-                     vacancy.employment_type}
+                      vacancy.employment_type === "part" ? "Частичная занятость" :
+                        vacancy.employment_type === "remote" ? "Удалённая работа" :
+                          vacancy.employment_type}
                   </span>
                 )}
+
+                {/* График (старое поле) */}
                 {vacancy.schedule && (
                   <span className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
-                    {vacancy.schedule}
+                    {getScheduleLabel(vacancy.schedule)}
                   </span>
                 )}
               </div>
@@ -164,7 +308,74 @@ export default function VacancyDetailPage() {
 
             {/* Content */}
             <div className="p-6 space-y-6">
-              {/* Description */}
+              {/* Новая секция: Условия работы (структурированные) */}
+              {(vacancy.work_hours || vacancy.overtime_policy || Number(vacancy.probation_months) > 0) && (
+                <div className="bg-gray-50 p-4 rounded-xl">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-3">Условия работы</h2>
+
+                  {/* Часы работы */}
+                  {vacancy.work_hours && (
+                    <div className="mb-2">
+                      <span className="text-sm text-gray-500">Часы работы: </span>
+                      <span className="text-gray-700">
+                        {vacancy.work_hours.type === "per_day" && `${vacancy.work_hours.hours} ч/день`}
+                        {vacancy.work_hours.type === "per_week" && `${vacancy.work_hours.hours} ч/неделю`}
+                        {vacancy.work_hours.type === "range" && `с ${vacancy.work_hours.from} до ${vacancy.work_hours.to}`}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Переработки */}
+                  {vacancy.overtime_policy && (
+                    <div className="mb-2">
+                      <span className="text-sm text-gray-500">Переработки: </span>
+                      <span className="text-gray-700">{getOvertimePolicyLabel(vacancy.overtime_policy)}</span>
+                    </div>
+                  )}
+
+                  {/* Испытательный срок */}
+                  {Number(vacancy.probation_months) > 0 && (
+                    <div>
+                      <span className="text-sm text-gray-500">Испытательный срок: </span>
+                      <span className="text-gray-700">
+                        {Number(vacancy.probation_months)} мес
+                        {Number(vacancy.probation_salary_reduction) > 0 &&
+                          `, снижение ЗП на ${vacancy.probation_salary_reduction}%`}
+                        {(!vacancy.probation_salary_reduction || Number(vacancy.probation_salary_reduction) === 0) &&
+                          `, без снижения ЗП`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Технический стек */}
+              {vacancy.tech_stack && vacancy.tech_stack.length > 0 && (
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-3">Технический стек</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {vacancy.tech_stack.map((tech, index) => (
+                      <span key={index} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Обязанности (структурированные) */}
+              {vacancy.responsibilities && vacancy.responsibilities.length > 0 && (
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-3">Обязанности</h2>
+                  <ul className="list-disc pl-5 space-y-1">
+                    {vacancy.responsibilities.map((resp, index) => (
+                      <li key={index} className="text-gray-700">{resp.text}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Description (старое поле) */}
               {vacancy.description && (
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900 mb-3">Описание</h2>
@@ -172,7 +383,7 @@ export default function VacancyDetailPage() {
                 </div>
               )}
 
-              {/* Requirements */}
+              {/* Requirements (старое поле) */}
               {vacancy.requirements && (
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900 mb-3">Требования</h2>
@@ -180,7 +391,7 @@ export default function VacancyDetailPage() {
                 </div>
               )}
 
-              {/* Conditions */}
+              {/* Conditions (старое поле) */}
               {vacancy.conditions && (
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900 mb-3">Условия</h2>
