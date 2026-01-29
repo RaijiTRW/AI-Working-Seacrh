@@ -61,18 +61,58 @@ export default function ChatCard() {
   }, [visibleMessages]);
 
   return (
-    <div className="soft-card-base soft-card-orange rounded-3xl p-4 w-64 border border-orange-50/50">
+    <div
+      className="relative rounded-3xl p-5 w-64 overflow-hidden"
+      style={{
+        background: "linear-gradient(145deg, #ffffff, #f8f8f8)",
+        boxShadow: "0 20px 45px rgba(249,115,22,0.15), 0 8px 18px rgba(0,0,0,0.06), inset 0 2px 0 rgba(255,255,255,0.95), inset 0 -1px 4px rgba(249,115,22,0.04)",
+      }}
+    >
+      {/* Gradient Border */}
+      <div
+        className="absolute inset-0 rounded-3xl pointer-events-none"
+        style={{
+          padding: "1px",
+          background: "linear-gradient(135deg, rgba(249,115,22,0.15), rgba(255,255,255,0.4), rgba(249,115,22,0.15))",
+          WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+        }}
+      />
+
+      {/* Ambient Glow */}
+      <div
+        className="absolute inset-0 rounded-3xl blur-2xl -z-10"
+        style={{
+          background: "radial-gradient(circle at 50% 20%, rgba(249,115,22,0.25), transparent 60%)",
+        }}
+      />
+
       <div className="flex items-center gap-2 mb-4 pb-3 border-b border-orange-100/50">
         <motion.div
           animate={{ rotate: [0, 10, -10, 0] }}
           transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-          className="w-8 h-8 rounded-full flex items-center justify-center shadow-lg"
+          className="w-9 h-9 rounded-full flex items-center justify-center relative overflow-hidden"
           style={{
             background: "linear-gradient(135deg, #fb923c, #ea580c)",
-            boxShadow: "0 4px 12px rgba(249,115,22,0.25), inset 0 1px 0 rgba(255,255,255,0.3)"
+            boxShadow: "0 6px 16px rgba(249,115,22,0.35), inset 0 1px 0 rgba(255,255,255,0.4), inset 0 -1px 4px rgba(0,0,0,0.1)"
           }}
         >
-          <span className="text-white text-xs font-bold">AI</span>
+          <motion.div
+            className="absolute inset-0"
+            animate={{
+              x: ["-100%", "200%"],
+            }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              repeatDelay: 2,
+            }}
+            style={{
+              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)",
+            }}
+          />
+          <span className="text-white text-xs font-bold relative z-10">AI</span>
         </motion.div>
         <span className="text-sm font-medium">Ваши пожелания по работе?</span>
       </div>
@@ -88,9 +128,18 @@ export default function ChatCard() {
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               className={`px-3 py-2 rounded-xl text-sm ${
                 msg.type === "bot"
-                  ? "bg-gray-100 text-gray-700 mr-8 shadow-[0_2px_8px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)]"
-                  : "bg-orange-50 text-orange-700 ml-8 border border-orange-100 shadow-[0_2px_8px_rgba(249,115,22,0.08),inset_0_1px_0_rgba(255,255,255,0.6)]"
+                  ? "text-gray-700 mr-8"
+                  : "text-orange-700 ml-8"
               }`}
+              style={{
+                background: msg.type === "bot"
+                  ? "linear-gradient(145deg, #f3f4f6, #e5e7eb)"
+                  : "linear-gradient(145deg, #fff7ed, #ffedd5)",
+                boxShadow: msg.type === "bot"
+                  ? "0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)"
+                  : "0 2px 8px rgba(249,115,22,0.1), inset 0 1px 0 rgba(255,255,255,0.8)",
+                border: msg.type === "user" ? "1px solid rgba(249,115,22,0.15)" : "none",
+              }}
             >
               {msg.text}
             </motion.div>
@@ -104,10 +153,16 @@ export default function ChatCard() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               className={`px-3 py-2.5 rounded-xl ${
-                typingType === "bot"
-                  ? "bg-gray-100 mr-8 shadow-[0_2px_8px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)]"
-                  : "bg-orange-50 ml-8 border border-orange-100 shadow-[0_2px_8px_rgba(249,115,22,0.08),inset_0_1px_0_rgba(255,255,255,0.6)]"
+                typingType === "bot" ? "mr-8" : "ml-8"
               }`}
+              style={{
+                background: typingType === "bot"
+                  ? "linear-gradient(145deg, #f3f4f6, #e5e7eb)"
+                  : "linear-gradient(145deg, #fff7ed, #ffedd5)",
+                boxShadow: typingType === "bot"
+                  ? "0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)"
+                  : "0 2px 8px rgba(249,115,22,0.1), inset 0 1px 0 rgba(255,255,255,0.8)",
+              }}
             >
               <TypingDots />
             </motion.div>
@@ -118,8 +173,11 @@ export default function ChatCard() {
       <div className="mt-3 pt-3 border-t border-orange-100/50">
         <motion.div
           whileHover={{ scale: 1.01 }}
-          className="flex items-center gap-2 px-3 py-2 rounded-full text-sm text-gray-400 shadow-[inset_0_1px_3px_rgba(0,0,0,0.06),0_1px_0_rgba(255,255,255,0.8)]"
-          style={{ background: "linear-gradient(180deg, #fafafa, #f5f5f5)" }}
+          className="flex items-center gap-2 px-3 py-2.5 rounded-full text-sm text-gray-400"
+          style={{
+            background: "linear-gradient(145deg, #fafafa, #f0f0f0)",
+            boxShadow: "inset 0 2px 4px rgba(0,0,0,0.06), 0 1px 0 rgba(255,255,255,0.8)"
+          }}
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
