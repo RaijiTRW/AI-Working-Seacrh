@@ -30,17 +30,30 @@ export default function SubscriptionPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      {/* Header with Soft UI */}
+      <header
+        className="border-b"
+        style={{
+          background: "linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85))",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          borderColor: "rgba(200,200,200,0.3)",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)"
+        }}
+      >
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="text-xl font-bold text-gray-900">
             Job Search
           </Link>
           <Link
             href="/profile"
-            className="text-sm text-gray-600 hover:text-gray-900"
+            className="px-4 py-2 rounded-full text-sm font-medium text-gray-600 relative overflow-hidden transition-all hover:-translate-y-0.5"
+            style={{
+              background: "linear-gradient(145deg, #fafafa, #e5e5e5)",
+              boxShadow: "4px 4px 10px rgba(150,150,150,0.12), -4px -4px 10px rgba(255,255,255,0.8), inset 0 1px 2px rgba(255,255,255,0.6)"
+            }}
           >
-            Профиль
+            <span className="relative z-10">Профиль</span>
           </Link>
         </div>
       </header>
