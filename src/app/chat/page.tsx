@@ -529,7 +529,16 @@ export default function ChatPage() {
   if (!settings.chat_enabled && !isAdmin) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <header className="bg-white border-b border-gray-100">
+        <header
+          className="border-b"
+          style={{
+            background: "linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85))",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            borderColor: "rgba(200,200,200,0.3)",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)"
+          }}
+        >
           <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
             <Link href="/" className="text-lg sm:text-xl font-bold text-gray-900">
               Job Search
@@ -557,34 +566,65 @@ export default function ChatPage() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-      {/* Header */}
-      <header className="shrink-0 bg-white border-b border-gray-100">
+      {/* Header with Soft UI */}
+      <header
+        className="shrink-0 border-b"
+        style={{
+          background: "linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85))",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          borderColor: "rgba(200,200,200,0.3)",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)"
+        }}
+      >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <Link href="/" className="text-lg sm:text-xl font-bold text-gray-900">
             Job Search
           </Link>
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-3">
             <Link
               href="/vacancies"
-              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              className="px-4 py-2 rounded-full text-sm font-medium text-gray-600 relative overflow-hidden transition-all hover:-translate-y-0.5"
+              style={{
+                background: "linear-gradient(145deg, #fafafa, #e5e5e5)",
+                boxShadow: "4px 4px 10px rgba(150,150,150,0.12), -4px -4px 10px rgba(255,255,255,0.8), inset 0 1px 2px rgba(255,255,255,0.6)"
+              }}
             >
-              Вакансии
+              <span className="relative z-10">Вакансии</span>
             </Link>
-            <span className="text-sm font-medium text-orange-600">AI-поиск</span>
+            <span
+              className="px-4 py-2 rounded-full text-sm font-medium text-orange-600 relative overflow-hidden"
+              style={{
+                background: "linear-gradient(145deg, #fff7ed, #ffedd5)",
+                boxShadow: "4px 4px 10px rgba(200,100,0,0.12), -4px -4px 10px rgba(255,220,180,0.5), inset 0 1px 2px rgba(255,255,255,0.6)"
+              }}
+            >
+              <div className="absolute top-0 left-2 right-2 h-2 rounded-b-full blur-sm pointer-events-none" style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.6), transparent)" }} />
+              <span className="relative z-10">AI-поиск</span>
+            </span>
             {/* Request counter */}
             {subscription && (
               <Link
                 href="/subscription"
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium relative overflow-hidden transition-all hover:-translate-y-0.5"
+                style={
                   subscription.limits.remaining > 0
-                    ? "bg-blue-50 text-blue-700 hover:bg-blue-100"
-                    : "bg-red-50 text-red-700 hover:bg-red-100"
-                }`}
+                    ? {
+                        background: "linear-gradient(145deg, #eff6ff, #dbeafe)",
+                        color: "#1d4ed8",
+                        boxShadow: "4px 4px 10px rgba(30,80,200,0.12), -4px -4px 10px rgba(100,180,255,0.5), inset 0 1px 2px rgba(255,255,255,0.6)"
+                      }
+                    : {
+                        background: "linear-gradient(145deg, #fef2f2, #fee2e2)",
+                        color: "#dc2626",
+                        boxShadow: "4px 4px 10px rgba(200,30,30,0.12), -4px -4px 10px rgba(255,100,100,0.5), inset 0 1px 2px rgba(255,255,255,0.6)"
+                      }
+                }
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                {subscription.limits.remaining} запрос{subscription.limits.remaining === 1 ? "" : subscription.limits.remaining >= 2 && subscription.limits.remaining <= 4 ? "а" : "ов"}
+                <span className="relative z-10">{subscription.limits.remaining} запрос{subscription.limits.remaining === 1 ? "" : subscription.limits.remaining >= 2 && subscription.limits.remaining <= 4 ? "а" : "ов"}</span>
               </Link>
             )}
           </nav>
@@ -593,35 +633,52 @@ export default function ChatPage() {
             {subscription && (
               <Link
                 href="/subscription"
-                className={`md:hidden flex items-center gap-1 px-2.5 py-2 rounded-full text-sm font-medium transition-colors ${
+                className="md:hidden flex items-center gap-1 px-2.5 py-2 rounded-full text-sm font-medium relative overflow-hidden transition-all hover:-translate-y-0.5"
+                style={
                   subscription.limits.remaining > 0
-                    ? "bg-blue-50 text-blue-700"
-                    : "bg-red-50 text-red-700"
-                }`}
+                    ? {
+                        background: "linear-gradient(145deg, #eff6ff, #dbeafe)",
+                        color: "#1d4ed8",
+                        boxShadow: "4px 4px 10px rgba(30,80,200,0.12), -4px -4px 10px rgba(100,180,255,0.5), inset 0 1px 2px rgba(255,255,255,0.6)"
+                      }
+                    : {
+                        background: "linear-gradient(145deg, #fef2f2, #fee2e2)",
+                        color: "#dc2626",
+                        boxShadow: "4px 4px 10px rgba(200,30,30,0.12), -4px -4px 10px rgba(255,100,100,0.5), inset 0 1px 2px rgba(255,255,255,0.6)"
+                      }
+                }
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
-                {subscription.limits.remaining}
+                <span className="relative z-10">{subscription.limits.remaining}</span>
               </Link>
             )}
             <Link
               href="/messages"
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-gray-700 rounded-full text-sm font-medium relative overflow-hidden transition-all hover:-translate-y-0.5 active:scale-95"
+              style={{
+                background: "linear-gradient(145deg, #fafafa, #e5e5e5)",
+                boxShadow: "4px 4px 10px rgba(150,150,150,0.12), -4px -4px 10px rgba(255,255,255,0.8), inset 0 1px 2px rgba(255,255,255,0.6)"
+              }}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
-              <span className="hidden sm:inline">Сообщения</span>
+              <span className="hidden sm:inline relative z-10">Сообщения</span>
             </Link>
             <Link
               href="/profile"
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-gray-700 rounded-full text-sm font-medium relative overflow-hidden transition-all hover:-translate-y-0.5 active:scale-95"
+              style={{
+                background: "linear-gradient(145deg, #fafafa, #e5e5e5)",
+                boxShadow: "4px 4px 10px rgba(150,150,150,0.12), -4px -4px 10px rgba(255,255,255,0.8), inset 0 1px 2px rgba(255,255,255,0.6)"
+              }}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              <span className="hidden sm:inline">Профиль</span>
+              <span className="hidden sm:inline relative z-10">Профиль</span>
             </Link>
           </div>
         </div>
