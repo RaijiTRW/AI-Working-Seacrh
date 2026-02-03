@@ -177,29 +177,41 @@ Write-Host "Caches cleared!"
 # Step 6: Install dependencies (fresh)
 Write-Host ""
 Write-Host "[6/9] Installing dependencies..."
-& npm ci 2>&1 | Out-Host
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: npm ci failed with exit code $LASTEXITCODE"
+try {
+    & npm ci 2>&1 | Out-Host
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "ERROR: npm ci failed with exit code $LASTEXITCODE"
+        & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+        exit 1
+    }
+    Write-Host "Dependencies installed!"
+} catch {
+    Write-Host "ERROR: npm ci failed: $_"
     & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
     exit 1
 }
-Write-Host "Dependencies installed!"
 
 # Step 7: Build
 Write-Host ""
 Write-Host "[7/9] Building frontend..."
-& npm run build 2>&1 | Out-Host
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: npm run build failed with exit code $LASTEXITCODE"
+try {
+    & npm run build 2>&1 | Out-Host
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "ERROR: npm run build failed with exit code $LASTEXITCODE"
+        & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+        exit 1
+    }
+    if (-not (Test-Path ".next")) {
+        Write-Host "ERROR: .next folder not created - build failed"
+        & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+        exit 1
+    }
+    Write-Host "Build OK!"
+} catch {
+    Write-Host "ERROR: npm run build failed: $_"
     & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
     exit 1
 }
-if (-not (Test-Path ".next")) {
-    Write-Host "ERROR: .next folder not created - build failed"
-    & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
-    exit 1
-}
-Write-Host "Build OK!"
 
 # Step 8: Start service
 Write-Host ""
