@@ -67,10 +67,10 @@ while ($attempts -lt 5) {
         break
     }
     foreach ($conn in $connections) {
-        $pid = $conn.OwningProcess
-        if ($pid -ne 0) {
-            Write-Host "    Force killing PID $pid on port 3000"
-            taskkill /F /PID $pid 2>&1 | Out-Null
+        $processId = $conn.OwningProcess
+        if ($processId -ne 0) {
+            Write-Host "    Force killing PID $processId on port 3000"
+            taskkill /F /PID $processId 2>&1 | Out-Null
         }
     }
     Start-Sleep -Seconds 2
