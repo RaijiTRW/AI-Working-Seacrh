@@ -70,7 +70,11 @@ while ($attempts -lt 5) {
         $processId = $conn.OwningProcess
         if ($processId -ne 0) {
             Write-Host "    Force killing PID $processId on port 3000"
-            taskkill /F /PID $processId 2>&1 | Out-Null
+            try {
+                taskkill /F /PID $processId 2>&1 | Out-Null
+            } catch {
+                Write-Host "      Process already terminated"
+            }
         }
     }
     Start-Sleep -Seconds 2
