@@ -10,6 +10,7 @@ import ResumeSection from "@/components/profile/ResumeSection";
 import SecuritySection from "@/components/profile/SecuritySection";
 import AccountsSection from "@/components/profile/AccountsSection";
 import SubscriptionSection from "@/components/profile/SubscriptionSection";
+import AppHeader from "@/components/app/Header";
 
 type Tab = "profile" | "resume" | "subscription" | "security" | "accounts";
 
@@ -76,47 +77,10 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-          <Link href="/" className="text-lg sm:text-xl font-bold text-gray-900">
-            Job Search
-          </Link>
-          <nav className="hidden md:flex items-center gap-6">
-            <Link
-              href="/vacancies"
-              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              Вакансии
-            </Link>
-            <Link
-              href="/chat"
-              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              AI-поиск
-            </Link>
-          </nav>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              href="/messages"
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <span className="hidden sm:inline">Сообщения</span>
-            </Link>
-            <span className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-orange-100 text-orange-600 rounded-full text-sm font-medium">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span className="hidden sm:inline">Профиль</span>
-            </span>
-          </div>
-        </div>
-      </header>
+      {/* Universal Header */}
+      <AppHeader />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-8 pt-20 sm:pt-24">
         {/* Page title */}
         <div className="mb-4 sm:mb-8">
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Настройки профиля</h1>
@@ -131,8 +95,8 @@ export default function ProfilePage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id
-                    ? "bg-orange-500 text-white"
-                    : "bg-white border border-gray-200 text-gray-600"
+                  ? "bg-orange-500 text-white"
+                  : "bg-white border border-gray-200 text-gray-600"
                   }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -173,8 +137,8 @@ export default function ProfilePage() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors ${activeTab === tab.id
-                      ? "bg-orange-50 text-orange-600"
-                      : "text-gray-600 hover:bg-gray-50"
+                    ? "bg-orange-50 text-orange-600"
+                    : "text-gray-600 hover:bg-gray-50"
                     }`}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -216,7 +180,7 @@ export default function ProfilePage() {
               {version && (
                 <div className="border-t border-gray-100 mt-2 pt-3 pb-1 px-4">
                   <p className="text-xs text-gray-400 text-center">
-                    Версия: {version} alpha
+                    Версия: {version} beta
                   </p>
                 </div>
               )}

@@ -2,15 +2,15 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import ChatInput, { SearchMode } from "@/components/chat/ChatInput";
-import ChatMessages, { Message } from "@/components/chat/ChatMessages";
+import ChatMessages, { Message, SearchPhase } from "@/components/chat/ChatMessages";
 import { Chat } from "@/components/chat/ChatListModal";
 import { sendMessageStream, Vacancy } from "@/lib/api";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import { useSubscriptionContext } from "@/components/subscription";
 import { useSiteSettings } from "@/lib/useSiteSettings";
+import AppHeader from "@/components/app/Header";
 
 export default function ChatPage() {
   const router = useRouter();
@@ -25,8 +25,15 @@ export default function ChatPage() {
   const [streamingVacancies, setStreamingVacancies] = useState<Vacancy[]>([]);
   const [streamingRejectedVacancies, setStreamingRejectedVacancies] = useState<Vacancy[]>([]);
 
+  // Search phase state for new UX flow
+  const [searchPhase, setSearchPhase] = useState<SearchPhase>('idle');
+  const [showStartingText, setShowStartingText] = useState(false);
+  const [hasReceivedFirstVacancy, setHasReceivedFirstVacancy] = useState(false);
+
   // AbortController для остановки запроса
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Ref to track phase transition timeout
+  const phaseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Chats
   const [chats, setChats] = useState<Chat[]>([]);
@@ -167,6 +174,17 @@ export default function ChatPage() {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
 
+      // Clear phase timeout if active
+      if (phaseTimeoutRef.current) {
+        clearTimeout(phaseTimeoutRef.current);
+        phaseTimeoutRef.current = null;
+      }
+
+      // Handle phase-specific behavior
+      if (searchPhase === 'starting' || searchPhase === 'searching') {
+        setSearchPhase('completed');
+      }
+
       // Сохраняем то, что уже было найдено
       const finalText = streamingText || "Поиск остановлен.";
       const finalVacancies = streamingVacancies;
@@ -194,6 +212,7 @@ export default function ChatPage() {
       setStreamingText("");
       setStreamingVacancies([]);
       setStreamingRejectedVacancies([]);
+      setSearchPhase('idle'); // Reset phase
     }
   };
 
@@ -227,6 +246,23 @@ export default function ChatPage() {
     setStreamingText("");
     setStreamingVacancies([]);
     setStreamingRejectedVacancies([]);
+    setHasReceivedFirstVacancy(false);
+
+    // UX Phase transitions for "Load More" - same as handleSend
+    setSearchPhase('starting');
+    setShowStartingText(true);
+
+    // Clear any existing phase transition timeout
+    if (phaseTimeoutRef.current) {
+      clearTimeout(phaseTimeoutRef.current);
+      phaseTimeoutRef.current = null;
+    }
+
+    setTimeout(() => {
+      setSearchPhase('searching');
+      setShowStartingText(false);
+      phaseTimeoutRef.current = null;
+    }, 500);
 
     // Save user message
     await saveMessage(currentChatId, "user", loadMoreMessage);
@@ -252,6 +288,17 @@ export default function ChatPage() {
         },
         // onVacancies
         (newVacancies) => {
+          // Track first vacancy arrival for UX phase transition
+          if (!hasReceivedFirstVacancy && newVacancies.length > 0) {
+            // Clear the phase transition timeout since we got vacancies
+            if (phaseTimeoutRef.current) {
+              clearTimeout(phaseTimeoutRef.current);
+              phaseTimeoutRef.current = null;
+            }
+            setHasReceivedFirstVacancy(true);
+            setSearchPhase('firstVacancyFound');
+          }
+
           // Дедупликация внутри chunk
           const seenInChunk = new Set<string>();
           const deduplicatedChunk = newVacancies.filter(v => {
@@ -268,6 +315,13 @@ export default function ChatPage() {
         },
         // onDone
         async () => {
+          // Clear phase timeout if still active
+          if (phaseTimeoutRef.current) {
+            clearTimeout(phaseTimeoutRef.current);
+            phaseTimeoutRef.current = null;
+          }
+          setSearchPhase('completed');
+
           const assistantMessage: Message = {
             id: `assistant-${Date.now()}`,
             role: "assistant",
@@ -281,6 +335,7 @@ export default function ChatPage() {
           setStreamingText("");
           setStreamingVacancies([]);
           setStreamingRejectedVacancies([]);
+          setSearchPhase('idle'); // Reset phase
 
           // Save assistant message with vacancies
           await saveMessage(currentChatId!, "assistant", fullText, vacancies);
@@ -313,6 +368,11 @@ export default function ChatPage() {
         abortController.signal
       );
     } catch (error) {
+      // Clear phase timeout on error
+      if (phaseTimeoutRef.current) {
+        clearTimeout(phaseTimeoutRef.current);
+        phaseTimeoutRef.current = null;
+      }
       // Игнорируем ошибку если запрос был отменен
       if (error instanceof Error && error.name === 'AbortError') {
         console.log("Request was aborted");
@@ -354,9 +414,27 @@ export default function ChatPage() {
 
     setMessages((prev) => [...prev, userMessage]);
     setIsTyping(true);
+
+    // Initialize search phase state
+    setSearchPhase('starting');
+    setShowStartingText(true);
+    setHasReceivedFirstVacancy(false);
     setStreamingText("");
     setStreamingVacancies([]);
     setStreamingRejectedVacancies([]);
+
+    // Clear any existing phase transition timeout
+    if (phaseTimeoutRef.current) {
+      clearTimeout(phaseTimeoutRef.current);
+      phaseTimeoutRef.current = null;
+    }
+
+    // Transition to 'searching' phase after delay
+    phaseTimeoutRef.current = setTimeout(() => {
+      setSearchPhase('searching');
+      setShowStartingText(false);
+      phaseTimeoutRef.current = null;
+    }, 500);
 
     // Save user message
     await saveMessage(chatId, "user", content);
@@ -382,6 +460,17 @@ export default function ChatPage() {
         },
         // onVacancies
         (newVacancies) => {
+          // Track first vacancy arrival for UX phase transition
+          if (!hasReceivedFirstVacancy && newVacancies.length > 0) {
+            // Clear the phase transition timeout since we got vacancies
+            if (phaseTimeoutRef.current) {
+              clearTimeout(phaseTimeoutRef.current);
+              phaseTimeoutRef.current = null;
+            }
+            setHasReceivedFirstVacancy(true);
+            setSearchPhase('firstVacancyFound');
+          }
+
           // Дедупликация внутри chunk
           const seenInChunk = new Set<string>();
           const deduplicatedChunk = newVacancies.filter(v => {
@@ -398,6 +487,13 @@ export default function ChatPage() {
         },
         // onDone
         async () => {
+          // Clear phase timeout if still active
+          if (phaseTimeoutRef.current) {
+            clearTimeout(phaseTimeoutRef.current);
+            phaseTimeoutRef.current = null;
+          }
+          setSearchPhase('completed');
+
           const assistantMessage: Message = {
             id: `assistant-${Date.now()}`,
             role: "assistant",
@@ -411,6 +507,7 @@ export default function ChatPage() {
           setStreamingText("");
           setStreamingVacancies([]);
           setStreamingRejectedVacancies([]);
+          setSearchPhase('idle'); // Reset phase
 
           // Save assistant message with vacancies
           await saveMessage(chatId!, "assistant", fullText, vacancies);
@@ -443,6 +540,11 @@ export default function ChatPage() {
         abortController.signal
       );
     } catch (error) {
+      // Clear phase timeout on error
+      if (phaseTimeoutRef.current) {
+        clearTimeout(phaseTimeoutRef.current);
+        phaseTimeoutRef.current = null;
+      }
       // Игнорируем ошибку если запрос был отменен
       if (error instanceof Error && error.name === 'AbortError') {
         console.log("Request was aborted");
@@ -557,78 +659,11 @@ export default function ChatPage() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-      {/* Header */}
-      <header className="shrink-0 bg-white border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-          <Link href="/" className="text-lg sm:text-xl font-bold text-gray-900">
-            Job Search
-          </Link>
-          <nav className="hidden md:flex items-center gap-6">
-            <Link
-              href="/vacancies"
-              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              Вакансии
-            </Link>
-            <span className="text-sm font-medium text-orange-600">AI-поиск</span>
-            {/* Request counter */}
-            {subscription && (
-              <Link
-                href="/subscription"
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  subscription.limits.remaining > 0
-                    ? "bg-blue-50 text-blue-700 hover:bg-blue-100"
-                    : "bg-red-50 text-red-700 hover:bg-red-100"
-                }`}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                {subscription.limits.remaining} запрос{subscription.limits.remaining === 1 ? "" : subscription.limits.remaining >= 2 && subscription.limits.remaining <= 4 ? "а" : "ов"}
-              </Link>
-            )}
-          </nav>
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Mobile request counter */}
-            {subscription && (
-              <Link
-                href="/subscription"
-                className={`md:hidden flex items-center gap-1 px-2.5 py-2 rounded-full text-sm font-medium transition-colors ${
-                  subscription.limits.remaining > 0
-                    ? "bg-blue-50 text-blue-700"
-                    : "bg-red-50 text-red-700"
-                }`}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                {subscription.limits.remaining}
-              </Link>
-            )}
-            <Link
-              href="/messages"
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <span className="hidden sm:inline">Сообщения</span>
-            </Link>
-            <Link
-              href="/profile"
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span className="hidden sm:inline">Профиль</span>
-            </Link>
-          </div>
-        </div>
-      </header>
+      {/* Universal Header */}
+      <AppHeader showRequestCounter={true} />
 
       {/* Chat area */}
-      <main className="flex-1 flex flex-col relative overflow-hidden">
+      <main className="flex-1 flex flex-col relative overflow-hidden pt-16 sm:pt-20">
         {/* Messages area - always present but hidden when empty */}
         <div className={`flex-1 overflow-y-auto pb-10 transition-opacity duration-500 ${hasStarted && showMessages ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <ChatMessages
@@ -638,6 +673,8 @@ export default function ChatPage() {
             streamingVacancies={streamingVacancies}
             streamingRejectedVacancies={streamingRejectedVacancies}
             onLoadMore={handleLoadMore}
+            searchPhase={searchPhase}
+            showStartingText={showStartingText}
           />
         </div>
 

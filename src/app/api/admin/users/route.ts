@@ -30,14 +30,16 @@ export async function GET(request: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    // Join with user_subscription_status to get daily_limit and daily_used
+    // Join with user_subscription_status to get email, daily_limit, daily_used, and bonus_requests
     let query = supabase
       .from("profiles")
       .select(`
         *,
         user_subscription_status!inner(
+          email,
           daily_limit,
-          daily_used
+          daily_used,
+          bonus_requests
         )
       `, { count: "exact" })
       .order("created_at", { ascending: false })
@@ -60,8 +62,10 @@ export async function GET(request: NextRequest) {
     // Flatten user_subscription_status data into user object
     const formattedUsers = (users || []).map((user: any) => ({
       ...user,
+      email: user.user_subscription_status?.email || "",
       daily_limit: user.user_subscription_status?.daily_limit || 0,
       daily_used: user.user_subscription_status?.daily_used || 0,
+      bonus_requests: user.user_subscription_status?.bonus_requests || 0,
     }));
 
     return NextResponse.json({

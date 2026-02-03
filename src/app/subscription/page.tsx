@@ -2,10 +2,10 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useAuth } from "@/lib/useAuth";
 import { useSubscription } from "@/lib/useSubscription";
 import { SubscriptionCard } from "@/components/subscription";
+import AppHeader from "@/components/app/Header";
 
 export default function SubscriptionPage() {
   const router = useRouter();
@@ -30,22 +30,10 @@ export default function SubscriptionPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold text-gray-900">
-            Job Search
-          </Link>
-          <Link
-            href="/profile"
-            className="text-sm text-gray-600 hover:text-gray-900"
-          >
-            Профиль
-          </Link>
-        </div>
-      </header>
+      {/* Universal Header */}
+      <AppHeader />
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 pt-20 sm:pt-24">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Подписка</h1>
         <p className="text-gray-600 mb-8">
           Управляйте подпиской и запросами к AI-поиску

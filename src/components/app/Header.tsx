@@ -1,15 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/lib/useAuth";
 import { useIsAdmin } from "@/lib/useIsAdmin";
-import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useSubscriptionContext } from "@/components/subscription";
 
-export default function Header() {
+interface AppHeaderProps {
+  showRequestCounter?: boolean;
+}
+
+export default function AppHeader({ showRequestCounter = false }: AppHeaderProps) {
   const { user, loading } = useAuth();
   const { isAdmin } = useIsAdmin();
   const pathname = usePathname();
+  const { subscription } = useSubscriptionContext();
   const [unreadCount, setUnreadCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -51,72 +58,69 @@ export default function Header() {
     setMobileMenuOpen(false);
   }, [pathname]);
 
+  const isActive = (path: string) => {
+    if (path === "/" && pathname !== "/") return false;
+    return pathname === path || pathname?.startsWith(path + "/");
+  };
+
+  const getActiveClass = (path: string) => {
+    if (isActive(path)) {
+      return "text-orange-600";
+    }
+    return "text-gray-600 hover:text-gray-900";
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-        <a href="/" className="text-xl font-semibold text-foreground">
+        <Link href="/" className="text-xl font-semibold text-foreground">
           Job Search
-        </a>
+        </Link>
 
         {/* Center navigation - desktop */}
         <nav className="hidden md:flex items-center gap-6">
-          <a
+          <Link
             href="/vacancies"
-            className={`text-sm font-medium transition-colors ${
-              pathname === "/vacancies"
-                ? "text-orange-600"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
+            className={`text-sm font-medium transition-colors ${getActiveClass("/vacancies")}`}
           >
             Вакансии
-          </a>
-          <a
+          </Link>
+          <Link
             href="/chat"
-            className={`text-sm font-medium transition-colors ${
-              pathname === "/chat"
-                ? "text-orange-600"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
+            className={`text-sm font-medium transition-colors ${getActiveClass("/chat")}`}
           >
             AI-поиск
-          </a>
-          {isAdmin ? (
-            <a
-              href="/employers"
-              className={`text-sm font-medium transition-colors ${
-                pathname === "/employers"
-                  ? "text-blue-600"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Работодателям
-            </a>
-          ) : (
-            <div className="relative inline-block">
-              <span
-                className="text-sm font-medium text-gray-400 cursor-not-allowed"
-                title="Функционал работодателей скоро будет доступен"
-              >
-                Работодателям
-              </span>
-              <span className="absolute -top-2 -right-8 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded">
-                Скоро
-              </span>
-            </div>
-          )}
+          </Link>
         </nav>
 
         {/* Right side buttons */}
         <div className="flex items-center gap-2 sm:gap-3">
           {loading ? (
             <div className="w-20 sm:w-24 h-9 sm:h-10 bg-gray-100 rounded-full animate-pulse" />
-          ) : user ? (
+          ) : (
             <>
+              {/* Request counter (shown on chat page) */}
+              {showRequestCounter && subscription && (
+                <Link
+                  href="/subscription"
+                  className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 min-h-9 rounded-full text-sm font-medium transition-colors ${
+                    subscription.limits.remaining > 0
+                      ? "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                      : "bg-red-50 text-red-700 hover:bg-red-100"
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  {subscription.limits.remaining} запрос{subscription.limits.remaining === 1 ? "" : subscription.limits.remaining >= 2 && subscription.limits.remaining <= 4 ? "а" : "ов"}
+                </Link>
+              )}
+
               {/* Messages button */}
-              <a
+              <Link
                 href="/messages"
                 className={`relative flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 min-h-11 rounded-full text-sm font-medium transition-colors ${
-                  pathname === "/messages"
+                  isActive("/messages")
                     ? "bg-orange-100 text-orange-600"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
@@ -130,12 +134,13 @@ export default function Header() {
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
-              </a>
+              </Link>
+
               {/* Profile button */}
-              <a
+              <Link
                 href="/profile"
                 className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 min-h-11 rounded-full text-sm font-medium transition-colors ${
-                  pathname === "/profile"
+                  isActive("/profile") || isActive("/admin") || isActive("/subscription")
                     ? "bg-orange-100 text-orange-600"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
@@ -143,16 +148,11 @@ export default function Header() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                <span className="hidden sm:inline">Профиль</span>
-              </a>
+                <span className="hidden sm:inline">
+                  {isActive("/admin") ? "Админ" : isActive("/subscription") ? "Подписка" : "Профиль"}
+                </span>
+              </Link>
             </>
-          ) : (
-            <a
-              href="/auth"
-              className="px-4 sm:px-5 py-2.5 min-h-11 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full text-sm font-medium hover:from-orange-600 hover:to-orange-700 transition-all"
-            >
-              Войти
-            </a>
           )}
 
           {/* Mobile menu button */}
@@ -175,74 +175,64 @@ export default function Header() {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-gray-100 bg-white/95 backdrop-blur-sm">
           <nav className="max-w-5xl mx-auto px-4 py-3 flex flex-col gap-1">
-            <a
+            <Link
               href="/vacancies"
-              className={`px-4 py-3 min-h-12 rounded-lg text-sm font-medium transition-colors flex items-center ${
-                pathname === "/vacancies"
+              className={`px-4 py-3 min-h-12 rounded-lg text-sm font-medium transition-colors flex items-center justify-between ${
+                isActive("/vacancies")
                   ? "bg-orange-50 text-orange-600"
                   : "text-gray-600 hover:bg-gray-50"
               }`}
             >
               Вакансии
-            </a>
-            <a
+            </Link>
+            <Link
               href="/chat"
-              className={`px-4 py-3 min-h-12 rounded-lg text-sm font-medium transition-colors flex items-center ${
-                pathname === "/chat"
+              className={`px-4 py-3 min-h-12 rounded-lg text-sm font-medium transition-colors flex items-center justify-between ${
+                isActive("/chat")
                   ? "bg-orange-50 text-orange-600"
                   : "text-gray-600 hover:bg-gray-50"
               }`}
             >
-              AI-поиск
-            </a>
-            {isAdmin ? (
-              <a
-                href="/employers"
-                className={`px-4 py-3 min-h-12 rounded-lg text-sm font-medium transition-colors flex items-center ${
-                  pathname === "/employers"
-                    ? "bg-blue-50 text-blue-600"
-                    : "text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                Работодателям
-              </a>
-            ) : (
-              <div className="relative px-4 py-3 min-h-12 rounded-lg flex items-center">
-                <span className="text-sm font-medium text-gray-400 cursor-not-allowed">
-                  Работодателям
-                </span>
-                <span className="ml-2 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded">
-                  Скоро
-                </span>
+              <div className="flex items-center gap-3">
+                <span>AI-поиск</span>
+                {showRequestCounter && subscription && (
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    subscription.limits.remaining > 0
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-red-100 text-red-700"
+                  }`}>
+                    {subscription.limits.remaining}
+                  </span>
+                )}
               </div>
-            )}
+            </Link>
             {user && (
               <>
-                <a
+                <Link
                   href="/messages"
                   className={`px-4 py-3 min-h-12 rounded-lg text-sm font-medium transition-colors flex items-center justify-between ${
-                    pathname === "/messages"
+                    isActive("/messages")
                       ? "bg-orange-50 text-orange-600"
                       : "text-gray-600 hover:bg-gray-50"
                   }`}
                 >
-                  Сообщения
+                  <span>Сообщения</span>
                   {unreadCount > 0 && (
                     <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-medium rounded-full">
                       {unreadCount}
                     </span>
                   )}
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/profile"
                   className={`px-4 py-3 min-h-12 rounded-lg text-sm font-medium transition-colors flex items-center ${
-                    pathname === "/profile"
+                    isActive("/profile") || isActive("/admin") || isActive("/subscription")
                       ? "bg-orange-50 text-orange-600"
                       : "text-gray-600 hover:bg-gray-50"
                   }`}
                 >
-                  Профиль
-                </a>
+                  {isActive("/admin") ? "Админ-панель" : isActive("/subscription") ? "Подписка" : "Профиль"}
+                </Link>
               </>
             )}
           </nav>

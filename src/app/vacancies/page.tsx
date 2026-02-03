@@ -1,19 +1,21 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import Header from "@/components/landing/Header";
+import Link from "next/link";
 import VacancyFilters from "@/components/vacancies/VacancyFilters";
 import VacancyFeed from "@/components/vacancies/VacancyFeed";
 import VacancyStats from "@/components/vacancies/VacancyStats";
 import { getVacancyFeed, Vacancy, FeedFilters } from "@/lib/api";
 import { supabase } from "@/lib/supabase";
 import { useSiteSettings } from "@/lib/useSiteSettings";
+import AppHeader from "@/components/app/Header";
 
 interface FilterState {
   query: string;
   cities: string[];
   salaryFrom: string;
   experience: string;
+  sources: string[];
 }
 
 export default function VacanciesPage() {
@@ -33,6 +35,7 @@ export default function VacanciesPage() {
     cities: [],
     salaryFrom: "",
     experience: "",
+    sources: [],
   });
 
   // Get current user ID and check admin role
@@ -85,7 +88,7 @@ export default function VacanciesPage() {
       cities: currentFilters.cities.length > 0 ? currentFilters.cities : undefined,
       salary_from: currentFilters.salaryFrom ? parseInt(currentFilters.salaryFrom) : undefined,
       experience: currentFilters.experience || undefined,
-      source: currentSource || undefined,
+      source: currentFilters.sources.length > 0 ? currentFilters.sources.join(",") : currentSource || undefined,
       page: 1,
       limit: 20,
     });
@@ -101,7 +104,7 @@ export default function VacanciesPage() {
       cities: filters.cities.length > 0 ? filters.cities : undefined,
       salary_from: filters.salaryFrom ? parseInt(filters.salaryFrom) : undefined,
       experience: filters.experience || undefined,
-      source: currentSource || undefined,
+      source: filters.sources.length > 0 ? filters.sources.join(",") : currentSource || undefined,
       page: 1,
       limit: 20,
     });
@@ -136,7 +139,7 @@ export default function VacanciesPage() {
       cities: currentFilters.cities.length > 0 ? currentFilters.cities : undefined,
       salary_from: currentFilters.salaryFrom ? parseInt(currentFilters.salaryFrom) : undefined,
       experience: currentFilters.experience || undefined,
-      source: currentSource || undefined,
+      source: currentFilters.sources.length > 0 ? currentFilters.sources.join(",") : currentSource || undefined,
       page: nextPage,
       limit: 20,
     }, true);
@@ -154,7 +157,7 @@ export default function VacanciesPage() {
   if (!settings.vacancies_enabled && !isAdmin) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header />
+        <AppHeader />
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-20">
           <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
             <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -176,12 +179,12 @@ export default function VacanciesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <AppHeader />
 
       {/* Hero section */}
-      <section className="pt-20 sm:pt-24 pb-6 sm:pb-8 bg-white border-b border-gray-100">
+      <section className="pt-24 sm:pt-28 md:pt-32 pb-4 sm:pb-6 md:pb-8 bg-white border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">
             Найдите работу мечты
           </h1>
           <p className="text-sm sm:text-base text-gray-600">
@@ -225,15 +228,24 @@ export default function VacanciesPage() {
       </main>
 
       {/* Mobile filter button */}
-      <div className="lg:hidden fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-40">
+      <div className="lg:hidden fixed bottom-6 sm:bottom-4 left-4 right-4 z-40 flex gap-2">
+        <Link
+          href="/chat"
+          className="flex items-center justify-center gap-2 px-4 py-3 min-h-11 bg-orange-500 text-white border border-orange-600 rounded-full shadow-lg text-sm font-medium hover:bg-orange-600 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          <span className="hidden sm:inline">AI-поиск</span>
+        </Link>
         <button
           onClick={() => setMobileFiltersOpen(true)}
-          className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-white border border-gray-200 rounded-full shadow-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-2 px-4 sm:px-6 py-3 min-h-11 bg-white border border-gray-200 rounded-full shadow-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
         >
-          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
           </svg>
-          Фильтры
+          <span className="hidden sm:inline">Фильтры</span>
         </button>
       </div>
 
@@ -249,11 +261,11 @@ export default function VacanciesPage() {
           {/* Drawer */}
           <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[85vh] flex flex-col animate-slide-up">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-100">
-              <h2 className="text-lg font-semibold text-gray-900">Фильтры</h2>
+            <div className="flex items-center justify-between px-4 py-3 sm:p-4 border-b border-gray-100">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">Фильтры</h2>
               <button
                 onClick={() => setMobileFiltersOpen(false)}
-                className="p-2 -mr-2 rounded-lg hover:bg-gray-100 transition-colors"
+                className="p-3 -mr-3 rounded-lg hover:bg-gray-100 transition-colors min-h-11 min-w-11 flex items-center justify-center"
               >
                 <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

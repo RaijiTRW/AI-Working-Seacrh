@@ -49,16 +49,16 @@ export default function VacancyFeed({
   // Loading skeleton
   if (loading && vacancies.length === 0) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-200 p-5 animate-pulse">
-            <div className="h-6 bg-gray-200 rounded w-3/4 mb-3" />
-            <div className="h-8 bg-gray-200 rounded w-1/3 mb-3" />
-            <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
-            <div className="h-4 bg-gray-200 rounded w-1/4 mb-4" />
-            <div className="flex gap-3">
-              <div className="h-10 bg-gray-200 rounded w-32" />
-              <div className="h-10 bg-gray-200 rounded w-28" />
+          <div key={i} className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 animate-pulse">
+            <div className="h-5 sm:h-6 bg-gray-200 rounded w-3/4 mb-2 sm:mb-3" />
+            <div className="h-7 sm:h-8 bg-gray-200 rounded w-1/3 mb-2 sm:mb-3" />
+            <div className="h-4 bg-gray-200 rounded w-1/2 mb-1.5 sm:mb-2" />
+            <div className="h-4 bg-gray-200 rounded w-1/4 mb-3 sm:mb-4" />
+            <div className="flex gap-2 sm:gap-3">
+              <div className="h-9 sm:h-10 bg-gray-200 rounded w-28 sm:w-32" />
+              <div className="h-9 sm:h-10 bg-gray-200 rounded w-24 sm:w-28" />
             </div>
           </div>
         ))}
@@ -69,9 +69,9 @@ export default function VacancyFeed({
   // Empty state
   if (vacancies.length === 0 && !loading) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 bg-orange-100 rounded-full flex items-center justify-center">
-          <svg className="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 md:p-12 text-center">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-orange-100 rounded-full flex items-center justify-center">
+          <svg className="w-7 h-7 sm:w-8 sm:h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -80,19 +80,19 @@ export default function VacancyFeed({
             />
           </svg>
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1.5 sm:mb-2">
           {query ? "Ничего не найдено" : "Вакансии загружаются"}
         </h3>
-        <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+        <p className="text-sm sm:text-base text-gray-500 mb-4 sm:mb-6 max-w-sm mx-auto">
           {query
             ? "Попробуйте изменить запрос или фильтры"
             : "Система собирает вакансии со всех площадок. Попробуйте обновить страницу позже или воспользуйтесь AI-поиском"}
         </p>
         <Link
           href="/chat"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 text-white font-medium rounded-xl hover:bg-orange-600 transition-colors"
+          className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 min-h-11 bg-orange-500 text-white text-sm sm:text-base font-medium rounded-xl hover:bg-orange-600 transition-colors"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -109,20 +109,20 @@ export default function VacancyFeed({
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">
+      <div className="flex items-center justify-between mb-3 sm:mb-4 gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
             Найдено {total || vacancies.length} вакансий
             {query && <span className="text-gray-500 font-normal"> по запросу «{query}»</span>}
           </h2>
         </div>
 
         {/* Sort dropdown */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
+            className="px-3 py-2 min-h-9 text-xs sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
           >
             {sortOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -134,7 +134,7 @@ export default function VacancyFeed({
       </div>
 
       {/* Vacancy list */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {sortedVacancies.map((vacancy) => (
           <VacancyListCard key={vacancy.id} vacancy={vacancy} currentUserId={currentUserId} />
         ))}
@@ -142,11 +142,11 @@ export default function VacancyFeed({
 
       {/* Load more button */}
       {hasNext && (
-        <div className="mt-6 text-center">
+        <div className="mt-5 sm:mt-6 text-center">
           <button
             onClick={onLoadMore}
             disabled={loading}
-            className="px-8 py-3 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="px-6 sm:px-8 py-2.5 sm:py-3 min-h-11 bg-white border border-gray-200 text-gray-700 text-sm sm:text-base font-medium rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             {loading ? "Загрузка..." : "Показать ещё"}
           </button>
@@ -156,7 +156,7 @@ export default function VacancyFeed({
       {/* Loading more indicator */}
       {loading && vacancies.length > 0 && (
         <div className="mt-4 flex justify-center">
-          <div className="animate-spin w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full" />
+          <div className="animate-spin w-5 h-5 sm:w-6 sm:h-6 border-2 border-orange-500 border-t-transparent rounded-full" />
         </div>
       )}
     </div>

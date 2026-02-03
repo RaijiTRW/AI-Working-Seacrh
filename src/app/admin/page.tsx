@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import {
   getAdminStats,
@@ -24,6 +23,7 @@ import {
 import SchedulerTab from "@/components/admin/SchedulerTab";
 import SupportChatTab from "@/components/admin/SupportChatTab";
 import ModerationTab from "@/components/admin/ModerationTab";
+import AppHeader from "@/components/app/Header";
 
 type Tab = "stats" | "users" | "settings" | "scheduler" | "support" | "moderation";
 
@@ -121,7 +121,7 @@ export default function AdminPage() {
   const handleBan = async () => {
     if (!token || !selectedUser) return;
     try {
-      await banUser(token, selectedUser.id, banReason);
+      await banUser(token, selectedUser.user_id, banReason);
       setShowBanModal(false);
       setBanReason("");
       fetchUsers();
@@ -151,7 +151,7 @@ export default function AdminPage() {
     } else {
       // Unbanning: just toggle
       try {
-        await toggleUserVacancies(token, user.id);
+        await toggleUserVacancies(token, user.user_id);
         fetchUsers();
       } catch (e) {
         console.error("Failed to unban vacancies:", e);
@@ -164,7 +164,7 @@ export default function AdminPage() {
 
     setVacancyBanLoading(true);
     try {
-      await toggleUserVacancies(token, selectedUser.id, vacancyBanReason);
+      await toggleUserVacancies(token, selectedUser.user_id, vacancyBanReason);
       alert("Пользователю запрещено создавать вакансии. Все активные вакансии сняты.");
       setShowVacancyBanModal(false);
       setSelectedUser(null);
@@ -181,7 +181,7 @@ export default function AdminPage() {
   const handleSetSubscription = async () => {
     if (!token || !selectedUser) return;
     try {
-      await setUserSubscription(token, selectedUser.id, subscriptionType);
+      await setUserSubscription(token, selectedUser.user_id, subscriptionType);
       setShowSubscriptionModal(false);
       setSubscriptionType("base");
       fetchUsers();
@@ -207,7 +207,7 @@ export default function AdminPage() {
     }
 
     try {
-      await addUserRequests(token, selectedUser.id, amount);
+      await addUserRequests(token, selectedUser.user_id, amount);
       setShowRequestsModal(false);
       setRequestsAmount("");
       fetchUsers(); // Обновить список пользователей
@@ -233,7 +233,7 @@ export default function AdminPage() {
     }
 
     try {
-      await resetDailyUsage(token, selectedUser.id);
+      await resetDailyUsage(token, selectedUser.user_id);
       setShowRequestsModal(false);
       fetchUsers(); // Обновить список пользователей
       alert(`Использованные запросы сброшены для ${selectedUser.email}`);
@@ -247,7 +247,7 @@ export default function AdminPage() {
     if (!token) return;
     const newRole = user.role === "admin" ? "user" : "admin";
     try {
-      await setUserRole(token, user.id, newRole);
+      await setUserRole(token, user.user_id, newRole);
       fetchUsers();
     } catch (e) {
       console.error("Failed to set role:", e);
@@ -309,50 +309,10 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold text-gray-900">
-            Job Search
-          </Link>
-          <nav className="flex items-center gap-4">
-            <Link
-              href="/vacancies"
-              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              Вакансии
-            </Link>
-            <div className="flex items-center gap-3">
-              <Link
-                href="/messages"
-                className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                <span className="hidden sm:inline">Сообщения</span>
-              </Link>
-              <Link
-                href="/profile"
-                className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                <span className="hidden sm:inline">Профиль</span>
-              </Link>
-              <span className="flex items-center gap-2 px-4 py-2.5 bg-red-100 text-red-600 rounded-full text-sm font-medium">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                </svg>
-                <span className="hidden sm:inline">Админ</span>
-              </span>
-            </div>
-          </nav>
-        </div>
-      </header>
+      {/* Universal Header */}
+      <AppHeader />
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 pt-20 sm:pt-24">
         {/* Page title */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Администрирование</h1>
@@ -498,7 +458,7 @@ export default function AdminPage() {
                         <div className="flex gap-1">
                           {user.is_banned ? (
                             <button
-                              onClick={() => handleUnban(user.id)}
+                              onClick={() => handleUnban(user.user_id)}
                               className="p-1.5 text-green-600 hover:bg-green-50 rounded"
                               title="Разбанить"
                             >

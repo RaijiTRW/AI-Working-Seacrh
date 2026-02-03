@@ -2,6 +2,9 @@
 
 import { useEffect, useState, useRef } from "react";
 import VacancyCards, { Vacancy } from "./VacancyCards";
+import VacancyFeedPreview from "./VacancyFeedPreview";
+
+export type SearchPhase = 'idle' | 'starting' | 'searching' | 'firstVacancyFound' | 'completed';
 
 export interface Message {
   id: string;
@@ -18,6 +21,8 @@ interface ChatMessagesProps {
   streamingVacancies?: Vacancy[];
   streamingRejectedVacancies?: Vacancy[];
   onLoadMore?: (messageId: string) => void;
+  searchPhase?: SearchPhase;
+  showStartingText?: boolean;
 }
 
 function TypingDots() {
@@ -114,7 +119,7 @@ function AssistantMessage({
         <div className="flex-1 pt-1">
           <div className="flex items-center gap-2 pb-4">
             <p>Zend:</p>
-            {vacancies && vacancies.length > 0 && onLoadMore && messageId && (
+            {vacancies && vacancies.length > 0 && onLoadMore && messageId && !animate && (
               <button
                 onClick={() => onLoadMore(messageId)}
                 className="text-xs px-2 py-1 rounded-md bg-orange-50 text-orange-600 hover:bg-orange-100 hover:text-orange-700 transition-colors font-medium"
@@ -169,6 +174,8 @@ export default function ChatMessages({
   streamingVacancies,
   streamingRejectedVacancies,
   onLoadMore,
+  searchPhase = 'idle',
+  showStartingText = false,
 }: ChatMessagesProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [lastMessageId, setLastMessageId] = useState<string | null>(null);
@@ -258,7 +265,7 @@ export default function ChatMessages({
                 content={msg.content}
                 vacancies={msg.vacancies}
                 rejectedVacancies={msg.rejectedVacancies}
-                animate={msg.id === lastMessageId && messages[messages.length - 1].role === "assistant" && !isHistory}
+                animate={msg.id === lastMessageId && !isHistory && isTyping}
                 onLoadMore={onLoadMore}
                 messageId={msg.id}
               />
@@ -280,7 +287,7 @@ export default function ChatMessages({
       )}
 
       {/* Typing indicator (before text starts streaming) */}
-      {isTyping && !streamingText && (streamingVacancies?.length ?? 0) === 0 && (
+      {isTyping && !streamingText && (streamingVacancies?.length ?? 0) === 0 && !showStartingText && searchPhase !== 'searching' && (
         <div className="flex gap-3 max-w-3xl animate-in fade-in duration-300">
           <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
             <span className="text-white text-xs font-bold">AI</span>
@@ -288,6 +295,33 @@ export default function ChatMessages({
           <div className="flex-1 pt-2">
             <TypingDots />
           </div>
+        </div>
+      )}
+
+      {/* Phase 1: "Начинаю поиск..." */}
+      {showStartingText && isTyping && (
+        <div className="flex gap-3 max-w-3xl animate-in fade-in duration-300">
+          <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+            <span className="text-white text-xs font-bold">AI</span>
+          </div>
+          <div className="flex-1 pt-2">
+            <p className="text-gray-900">Начинаю поиск...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 2: Размытая лента с "Ищу вакансии..." */}
+      {searchPhase === 'searching' && isTyping && (
+        <div className="animate-in fade-in duration-300">
+          <div className="flex gap-3 mb-4">
+            <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+              <span className="text-white text-xs font-bold">AI</span>
+            </div>
+            <div className="flex-1 pt-2">
+              <p>Zend:</p>
+            </div>
+          </div>
+          <VacancyFeedPreview isBlurred={true} overlayText="Ищу вакансии..." />
         </div>
       )}
     </div>

@@ -16,8 +16,17 @@ import PlatformStatusCard from "./PlatformStatusCard";
 import JobHistoryTable from "./JobHistoryTable";
 import VolumeChart from "./VolumeChart";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+
 interface SchedulerTabProps {
   token: string;
+}
+
+interface DebugInfo {
+  scheduler_job_history?: { exists: boolean; count: number; error?: string };
+  vacancy_volume_stats?: { exists: boolean; count: number; error?: string };
+  scheduler_job_state?: { exists: boolean; count: number; states?: any[]; error?: string };
+  backend?: { url: string; status: string };
 }
 
 export default function SchedulerTab({ token }: SchedulerTabProps) {
@@ -27,6 +36,9 @@ export default function SchedulerTab({ token }: SchedulerTabProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
+  const [isCreatingTestData, setIsCreatingTestData] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -92,6 +104,39 @@ export default function SchedulerTab({ token }: SchedulerTabProps) {
       setError("Не удалось запустить задачу");
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleDebug = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/admin/scheduler/debug`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDebugInfo(data);
+        setShowDebug(true);
+      }
+    } catch (err) {
+      console.error("Debug error:", err);
+    }
+  };
+
+  const handleCreateTestData = async () => {
+    try {
+      setIsCreatingTestData(true);
+      const response = await fetch(`${API_URL}/api/admin/scheduler/debug`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        await fetchData();
+        setShowDebug(false);
+      }
+    } catch (err) {
+      console.error("Create test data error:", err);
+    } finally {
+      setIsCreatingTestData(false);
     }
   };
 
@@ -168,6 +213,107 @@ export default function SchedulerTab({ token }: SchedulerTabProps) {
 
       {/* Volume chart */}
       <VolumeChart data={volumeData} height={220} />
+
+      {/* Debug section when no data */}
+      {(!status || history.length === 0 || volumeData.length === 0) && !isLoading && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <h4 className="font-semibold text-yellow-800 mb-1">Нет данных от планировщика</h4>
+              <p className="text-sm text-yellow-700 mb-3">
+                Это может означать, что:
+              </p>
+              <ul className="text-sm text-yellow-700 list-disc list-inside space-y-1 mb-3">
+                <li>Миграция Supabase не применена (таблицы не существуют)</li>
+                <li>Python бэкенд не запущен</li>
+                <li>Планировщик еще не выполнился ни разу</li>
+              </ul>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleDebug}
+                className="px-3 py-1.5 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-lg hover:bg-yellow-200 transition-colors"
+              >
+                Диагностика
+              </button>
+            </div>
+          </div>
+
+          {/* Debug info panel */}
+          {showDebug && debugInfo && (
+            <div className="mt-4 pt-4 border-t border-yellow-200">
+              <h5 className="font-medium text-yellow-800 mb-2">Результаты диагностики:</h5>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Таблица scheduler_job_history:</span>
+                  {debugInfo.scheduler_job_history?.exists ? (
+                    <span className="text-green-700">Существует ({debugInfo.scheduler_job_history.count} записей)</span>
+                  ) : (
+                    <span className="text-red-700">Не существует</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Таблица vacancy_volume_stats:</span>
+                  {debugInfo.vacancy_volume_stats?.exists ? (
+                    <span className="text-green-700">Существует ({debugInfo.vacancy_volume_stats.count} записей)</span>
+                  ) : (
+                    <span className="text-red-700">Не существует</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Таблица scheduler_job_state:</span>
+                  {debugInfo.scheduler_job_state?.exists ? (
+                    <span className="text-green-700">Существует ({debugInfo.scheduler_job_state.count} записей)</span>
+                  ) : (
+                    <span className="text-red-700">Не существует</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Python бэкенд:</span>
+                  {debugInfo.backend?.status === "ok" ? (
+                    <span className="text-green-700">Доступен ({debugInfo.backend.url})</span>
+                  ) : debugInfo.backend?.status === "unreachable" ? (
+                    <span className="text-red-700">Недоступен ({debugInfo.backend.url})</span>
+                  ) : (
+                    <span className="text-gray-600">{debugInfo.backend?.status}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Create test data button */}
+              {(debugInfo.scheduler_job_history?.exists === false ||
+                debugInfo.vacancy_volume_stats?.exists === false) && (
+                <div className="mt-3 pt-3 border-t border-yellow-200">
+                  <p className="text-sm text-yellow-700 mb-2">
+                    Таблицы не существуют. Примените миграцию Supabase:
+                  </p>
+                  <code className="block bg-white p-2 rounded text-xs mb-2">
+                    supabase/migrations/011_scheduler_monitoring.sql
+                  </code>
+                </div>
+              )}
+
+              {/* Tables exist but no data */}
+              {debugInfo.scheduler_job_history?.exists === true &&
+                debugInfo.scheduler_job_history.count === 0 &&
+                debugInfo.backend?.status === "ok" && (
+                <div className="mt-3 pt-3 border-t border-yellow-200">
+                  <p className="text-sm text-yellow-700 mb-2">
+                    Таблицы существуют, но нет данных. Планировщик не запускался.
+                  </p>
+                  <button
+                    onClick={handleCreateTestData}
+                    disabled={isCreatingTestData}
+                    className="px-3 py-1.5 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
+                  >
+                    {isCreatingTestData ? "Создание..." : "Создать тестовые данные"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

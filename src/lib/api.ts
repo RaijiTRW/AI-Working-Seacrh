@@ -469,6 +469,7 @@ export interface AdminStats {
 
 export interface AdminUser {
   id: string;
+  user_id: string;
   email: string;
   full_name?: string;
   role: string;
@@ -676,7 +677,9 @@ export async function addUserRequests(
   });
 
   if (!response.ok) {
-    throw new Error("Failed to add requests");
+    const error = await response.json().catch(() => ({ error: "Unknown error" }));
+    console.error("addUserRequests error:", error);
+    throw new Error(error.error || "Failed to add requests");
   }
 }
 
@@ -695,7 +698,9 @@ export async function resetDailyUsage(
   });
 
   if (!response.ok) {
-    throw new Error("Failed to reset daily usage");
+    const error = await response.json().catch(() => ({ error: "Unknown error" }));
+    console.error("resetDailyUsage error:", error);
+    throw new Error(error.error || "Failed to reset daily usage");
   }
 }
 

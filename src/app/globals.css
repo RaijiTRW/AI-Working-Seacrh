@@ -108,3 +108,85 @@ html {
 .animate-slide-in-from-right {
   animation: slide-in-from-right 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
+
+/* AI Search UX animations */
+/* Blur transitions for vacancy feed */
+@keyframes blur-in {
+  0% {
+    filter: blur(0);
+  }
+  100% {
+    filter: blur(8px);
+  }
+}
+
+@keyframes blur-out {
+  0% {
+    filter: blur(8px);
+  }
+  100% {
+    filter: blur(0);
+  }
+}
+
+.animate-blur-in {
+  animation: blur-in 0.5s ease-out forwards;
+}
+
+.animate-blur-out {
+  animation: blur-out 0.5s ease-out forwards;
+}
+
+/* Pulse animation for overlay text */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Fade in for first vacancy */
+@keyframes vacancy-appear {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-vacancy-appear {
+  animation: vacancy-appear 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Scrollbar hide utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile drawer animation */
+@keyframes slide-up {
+  0% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out forwards;
+}
