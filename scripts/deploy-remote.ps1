@@ -158,7 +158,7 @@ foreach ($dir in $cacheDirs) {
         Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue
     }
 }
-& npm cache clean --force 2>&1 | Out-Null
+& npm cache clean --force 2>$null | Out-Null
 Write-Host "Caches cleared!"
 
 # Step 6: Install dependencies (fresh)
