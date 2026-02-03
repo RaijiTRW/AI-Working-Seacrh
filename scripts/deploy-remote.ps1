@@ -37,7 +37,12 @@ Write-Host "[2/9] Stopping frontend service..."
 
 # First stop NSSM service
 Write-Host "  Stopping NSSM service..."
-& "C:\nssm-2.24\win64\nssm.exe" stop jobai-frontend 2>&1 | Out-Null
+$stopResult = & "C:\nssm-2.24\win64\nssm.exe" stop jobai-frontend 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "  Service not running or already stopped"
+} else {
+    Write-Host "  Service stopped"
+}
 Start-Sleep -Seconds 5
 
 # Force kill ALL node processes (aggressive cleanup)
@@ -200,7 +205,13 @@ if ($staleNode) {
     Start-Sleep -Seconds 2
 }
 
-& "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend
+$startResult = & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "  WARNING: Service start returned error code $LASTEXITCODE"
+    Write-Host "  $startResult"
+} else {
+    Write-Host "  Service started"
+}
 Write-Host "Waiting for service to start..."
 Start-Sleep -Seconds 10
 
