@@ -177,41 +177,41 @@ Write-Host "Caches cleared!"
 # Step 6: Install dependencies (fresh)
 Write-Host ""
 Write-Host "[6/9] Installing dependencies..."
-try {
-    & npm ci 2>&1 | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: npm ci failed with exit code $LASTEXITCODE"
+$ErrorActionPreference = "Continue"
+& npm ci 2>&1 | Out-Host
+$npmExitCode = $LASTEXITCODE
+$ErrorActionPreference = "Stop"
+if ($npmExitCode -ne 0) {
+    Write-Host "ERROR: npm ci failed with exit code $npmExitCode"
+    try {
         & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
-        exit 1
-    }
-    Write-Host "Dependencies installed!"
-} catch {
-    Write-Host "ERROR: npm ci failed: $_"
-    & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+    } catch {}
     exit 1
 }
+Write-Host "Dependencies installed!"
 
 # Step 7: Build
 Write-Host ""
 Write-Host "[7/9] Building frontend..."
-try {
-    & npm run build 2>&1 | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: npm run build failed with exit code $LASTEXITCODE"
+$ErrorActionPreference = "Continue"
+& npm run build 2>&1 | Out-Host
+$buildExitCode = $LASTEXITCODE
+$ErrorActionPreference = "Stop"
+if ($buildExitCode -ne 0) {
+    Write-Host "ERROR: npm run build failed with exit code $buildExitCode"
+    try {
         & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
-        exit 1
-    }
-    if (-not (Test-Path ".next")) {
-        Write-Host "ERROR: .next folder not created - build failed"
-        & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
-        exit 1
-    }
-    Write-Host "Build OK!"
-} catch {
-    Write-Host "ERROR: npm run build failed: $_"
-    & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+    } catch {}
     exit 1
 }
+if (-not (Test-Path ".next")) {
+    Write-Host "ERROR: .next folder not created - build failed"
+    try {
+        & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+    } catch {}
+    exit 1
+}
+Write-Host "Build OK!"
 
 # Step 8: Start service
 Write-Host ""
