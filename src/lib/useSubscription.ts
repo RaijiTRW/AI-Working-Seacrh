@@ -37,7 +37,7 @@ const DEFAULT_SUBSCRIPTION: SubscriptionInfo = {
   is_pro_trial_expired: false,
   is_pro_expired: false,
   prices: {
-    subscription: 799,
+    subscription: 499,
     extra_requests: 99,
     extra_requests_count: 10,
   },

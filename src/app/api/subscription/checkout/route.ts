@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Рассчитываем цену
-    const regularPrice = 799;
+    const regularPrice = 499;
     const applyDiscount = isFirstPurchase && discountEnabled && discountPercent > 0;
     const finalPrice = applyDiscount
       ? Math.round(regularPrice * (1 - discountPercent / 100))

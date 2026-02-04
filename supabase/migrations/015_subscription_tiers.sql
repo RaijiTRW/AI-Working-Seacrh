@@ -2,9 +2,9 @@
 -- Дата: 2025
 --
 -- Изменения:
--- - trial → pro_trial (7 дней, 15 запросов/день, полный доступ)
+-- - trial → pro_trial (3 дня, 15 запросов/день, полный доступ)
 -- - Новый план base (бесплатно навсегда, 3 запроса/день, только лента)
--- - pro остаётся (799₽/мес, 15 запросов/день, полный доступ)
+-- - pro остаётся (499₽/мес, 15 запросов/день, полный доступ)
 -- - Добавлено поле can_search_online
 
 -- ===========================================
@@ -91,9 +91,9 @@ CREATE TRIGGER on_subscription_change
 CREATE OR REPLACE FUNCTION create_trial_on_signup()
 RETURNS TRIGGER AS $$
 BEGIN
-  -- Создаём Pro Trial подписку на 7 дней
+  -- Создаём Pro Trial подписку на 3 дня
   INSERT INTO user_subscriptions (user_id, plan, status, expires_at, can_search_online)
-  VALUES (NEW.id, 'pro_trial', 'active', now() + INTERVAL '7 days', true)
+  VALUES (NEW.id, 'pro_trial', 'active', now() + INTERVAL '3 days', true)
   ON CONFLICT (user_id) DO NOTHING;
 
   -- Создаём лимиты запросов (15 в день для Pro Trial)

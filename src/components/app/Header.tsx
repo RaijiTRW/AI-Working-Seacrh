@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useAuth } from "@/lib/useAuth";
 import { useIsAdmin } from "@/lib/useIsAdmin";
 import { supabase } from "@/lib/supabase";
-import { useSubscriptionContext } from "@/components/subscription";
 
 interface AppHeaderProps {
   showRequestCounter?: boolean;
@@ -16,7 +15,6 @@ export default function AppHeader({ showRequestCounter = false }: AppHeaderProps
   const { user, loading } = useAuth();
   const { isAdmin } = useIsAdmin();
   const pathname = usePathname();
-  const { subscription } = useSubscriptionContext();
   const [unreadCount, setUnreadCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -70,6 +68,9 @@ export default function AppHeader({ showRequestCounter = false }: AppHeaderProps
     return "text-gray-600 hover:text-gray-900";
   };
 
+  // Показываем раздел "Работодателем" только на лендинге (путь начинается с /)
+  const isLandingPage = pathname === "/" || pathname?.startsWith("/?");
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
@@ -91,31 +92,36 @@ export default function AppHeader({ showRequestCounter = false }: AppHeaderProps
           >
             AI-поиск
           </Link>
+          {isLandingPage && (
+            isAdmin ? (
+              <Link
+                href="/employers"
+                className={`text-sm font-medium transition-colors ${isActive("/employers") ? "text-blue-600" : "text-gray-600 hover:text-gray-900"}`}
+              >
+                Работодателям
+              </Link>
+            ) : (
+              <div className="relative inline-block">
+                <span
+                  className="text-sm font-medium text-gray-400 cursor-not-allowed"
+                  title="Функционал работодателей скоро будет доступен"
+                >
+                  Работодателям
+                </span>
+                <span className="absolute -top-2 -right-8 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded">
+                  Скоро
+                </span>
+              </div>
+            )
+          )}
         </nav>
 
         {/* Right side buttons */}
         <div className="flex items-center gap-2 sm:gap-3">
           {loading ? (
             <div className="w-20 sm:w-24 h-9 sm:h-10 bg-gray-100 rounded-full animate-pulse" />
-          ) : (
+          ) : user ? (
             <>
-              {/* Request counter (shown on chat page) */}
-              {showRequestCounter && subscription && (
-                <Link
-                  href="/subscription"
-                  className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 min-h-9 rounded-full text-sm font-medium transition-colors ${
-                    subscription.limits.remaining > 0
-                      ? "bg-blue-50 text-blue-700 hover:bg-blue-100"
-                      : "bg-red-50 text-red-700 hover:bg-red-100"
-                  }`}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  {subscription.limits.remaining} запрос{subscription.limits.remaining === 1 ? "" : subscription.limits.remaining >= 2 && subscription.limits.remaining <= 4 ? "а" : "ов"}
-                </Link>
-              )}
-
               {/* Messages button */}
               <Link
                 href="/messages"
@@ -153,6 +159,13 @@ export default function AppHeader({ showRequestCounter = false }: AppHeaderProps
                 </span>
               </Link>
             </>
+          ) : (
+            <Link
+              href="/auth"
+              className="px-4 sm:px-5 py-2.5 min-h-11 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-full text-sm font-medium hover:from-orange-600 hover:to-orange-700 transition-all"
+            >
+              Войти
+            </Link>
           )}
 
           {/* Mobile menu button */}
@@ -177,7 +190,7 @@ export default function AppHeader({ showRequestCounter = false }: AppHeaderProps
           <nav className="max-w-5xl mx-auto px-4 py-3 flex flex-col gap-1">
             <Link
               href="/vacancies"
-              className={`px-4 py-3 min-h-12 rounded-lg text-sm font-medium transition-colors flex items-center justify-between ${
+              className={`px-4 py-3 min-h-12 rounded-lg text-sm font-medium transition-colors flex items-center ${
                 isActive("/vacancies")
                   ? "bg-orange-50 text-orange-600"
                   : "text-gray-600 hover:bg-gray-50"
@@ -187,25 +200,37 @@ export default function AppHeader({ showRequestCounter = false }: AppHeaderProps
             </Link>
             <Link
               href="/chat"
-              className={`px-4 py-3 min-h-12 rounded-lg text-sm font-medium transition-colors flex items-center justify-between ${
+              className={`px-4 py-3 min-h-12 rounded-lg text-sm font-medium transition-colors flex items-center ${
                 isActive("/chat")
                   ? "bg-orange-50 text-orange-600"
                   : "text-gray-600 hover:bg-gray-50"
               }`}
             >
-              <div className="flex items-center gap-3">
-                <span>AI-поиск</span>
-                {showRequestCounter && subscription && (
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                    subscription.limits.remaining > 0
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-red-100 text-red-700"
-                  }`}>
-                    {subscription.limits.remaining}
-                  </span>
-                )}
-              </div>
+              AI-поиск
             </Link>
+            {isLandingPage && (
+              isAdmin ? (
+                <Link
+                  href="/employers"
+                  className={`px-4 py-3 min-h-12 rounded-lg text-sm font-medium transition-colors flex items-center ${
+                    isActive("/employers")
+                      ? "bg-blue-50 text-blue-600"
+                      : "text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  Работодателям
+                </Link>
+              ) : (
+                <div className="relative px-4 py-3 min-h-12 rounded-lg flex items-center">
+                  <span className="text-sm font-medium text-gray-400 cursor-not-allowed">
+                    Работодателям
+                  </span>
+                  <span className="ml-2 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded">
+                    Скоро
+                  </span>
+                </div>
+              )
+            )}
             {user && (
               <>
                 <Link

@@ -103,7 +103,7 @@ export default function Hero({ defaultMode = "jobseeker", hideToggle = false, on
       ),
       subtitle: "ИИ анализирует hh.ru, Avito, SuperJob и подбирает только релевантные предложения. Без часов скролла и дубликатов.",
       cta: user ? "Перейти к поиску" : "Попробовать бесплатно",
-      microCopy: "7 дней Pro бесплатно. Без карты.",
+      microCopy: "3 дня Pro бесплатно. Без карты.",
       ctaLink: user ? "/chat" : "/auth",
       ctaColor: "from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-orange-500/25 hover:shadow-orange-500/30",
       bgGradient: "from-orange-50/50 via-white to-white",

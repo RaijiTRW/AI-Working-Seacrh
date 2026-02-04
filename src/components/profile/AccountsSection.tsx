@@ -16,6 +16,51 @@ interface AccountsSectionProps {
 }
 
 const LINKED_ACCOUNTS_KEY = "jobsearch_linked_accounts";
+const PENDING_GOOGLE_LINK_KEY = "jobsearch_pending_google_link";
+
+async function fetchServerLinkedAccounts(accessToken: string): Promise<Array<{ email: string; addedAt: string }>> {
+  const response = await fetch("/api/account-links", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!response.ok) return [];
+  const data = (await response.json().catch(() => null)) as
+    | { linkedAccounts?: Array<{ email: string; addedAt: string }> }
+    | null;
+
+  return (data?.linkedAccounts || [])
+    .filter((a) => a?.email)
+    .map((a) => ({
+      email: a.email.toLowerCase(),
+      addedAt: a.addedAt,
+    }));
+}
+
+async function saveServerLink(currentAccessToken: string, otherAccessToken: string): Promise<boolean> {
+  const response = await fetch("/api/account-links", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${currentAccessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ otherAccessToken }),
+  });
+
+  return response.ok;
+}
+
+async function removeServerLink(currentAccessToken: string, linkedEmail: string): Promise<boolean> {
+  const response = await fetch("/api/account-links", {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${currentAccessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ linkedEmail }),
+  });
+
+  return response.ok;
+}
 
 // Helper to get/set per-user linked accounts
 function getUserLinkedAccounts(userEmail: string): LinkedAccount[] {
@@ -94,17 +139,18 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
   useEffect(() => {
     const initAccounts = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session || !currentEmail) return;
+      const normalizedCurrentEmail = currentEmail.toLowerCase().trim();
+      if (!session || !normalizedCurrentEmail) return;
 
       // Check for pending Google link (returning from OAuth)
-      const pendingRaw = localStorage.getItem("jobsearch_pending_google_link");
+      const pendingRaw = localStorage.getItem(PENDING_GOOGLE_LINK_KEY);
       if (pendingRaw) {
         try {
           const pending = JSON.parse(pendingRaw);
           // Only process if less than 5 minutes old
           if (Date.now() - pending.timestamp < 5 * 60 * 1000) {
             const previousEmail = pending.email.toLowerCase();
-            const newEmail = currentEmail.toLowerCase();
+            const newEmail = normalizedCurrentEmail;
 
             if (previousEmail !== newEmail) {
               // Complete linking: save both accounts
@@ -122,48 +168,79 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
               const finalAccounts = [previousAccount, newAccount];
 
               // Save for BOTH emails
-              console.log("[Accounts] Saving for previous:", previousEmail);
               setUserLinkedAccounts(previousEmail, finalAccounts);
-              console.log("[Accounts] Saving for new:", newEmail);
               setUserLinkedAccounts(newEmail, finalAccounts);
 
-              // Verify saves worked
-              const verifyPrev = getUserLinkedAccounts(previousEmail);
-              const verifyNew = getUserLinkedAccounts(newEmail);
-              console.log("[Accounts] Verify previous:", previousEmail, "=>", verifyPrev);
-              console.log("[Accounts] Verify new:", newEmail, "=>", verifyNew);
-              console.log("[Accounts] Full localStorage:", localStorage.getItem(LINKED_ACCOUNTS_KEY));
+              // Persist server-side (so link is visible even after logout / on other devices)
+              const saved = pending.accessToken
+                ? await saveServerLink(session.access_token, pending.accessToken)
+                : false;
 
-              setLinkedAccounts(finalAccounts);
-              setMessage({ type: "success", text: `Аккаунты связаны: ${previousEmail} ↔ ${newEmail}` });
-
-              console.log("[Accounts] Google link completed:", previousEmail, "↔", newEmail);
+              setMessage({
+                type: saved ? "success" : "error",
+                text: saved
+                  ? `Аккаунты связаны: ${previousEmail} ↔ ${newEmail}`
+                  : "Аккаунты связаны локально, но не удалось сохранить связь на сервере",
+              });
             }
           }
         } catch (e) {
           console.error("[Accounts] Error processing pending link:", e);
         }
-        localStorage.removeItem("jobsearch_pending_google_link");
+        localStorage.removeItem(PENDING_GOOGLE_LINK_KEY);
         return;
       }
 
-      // Get accounts linked to THIS user
-      console.log("[Accounts] Loading for currentEmail:", currentEmail);
-      console.log("[Accounts] Full localStorage:", localStorage.getItem(LINKED_ACCOUNTS_KEY));
-      const accounts = getUserLinkedAccounts(currentEmail);
-      console.log("[Accounts] Loaded accounts:", accounts);
+      const localAccounts = getUserLinkedAccounts(normalizedCurrentEmail);
 
       // Update refresh token for existing accounts if current user is in the list
-      const existingIndex = accounts.findIndex(a => a.email.toLowerCase() === currentEmail.toLowerCase());
+      const existingIndex = localAccounts.findIndex((a) => a.email.toLowerCase() === normalizedCurrentEmail);
       if (existingIndex >= 0) {
-        accounts[existingIndex] = {
-          ...accounts[existingIndex],
+        localAccounts[existingIndex] = {
+          ...localAccounts[existingIndex],
           refreshToken: session.refresh_token || "",
         };
-        setUserLinkedAccounts(currentEmail, accounts);
+        setUserLinkedAccounts(normalizedCurrentEmail, localAccounts);
       }
 
-      setLinkedAccounts(accounts);
+      // Load persisted links from server and merge with local tokens (if available)
+      const serverLinks = await fetchServerLinkedAccounts(session.access_token);
+      const localByEmail = new Map(localAccounts.map((a) => [a.email.toLowerCase(), a]));
+      const serverSet = new Set(serverLinks.map((a) => a.email.toLowerCase()));
+
+      const merged: LinkedAccount[] = [
+        {
+          email: normalizedCurrentEmail,
+          refreshToken: session.refresh_token || "",
+          addedAt: new Date().toISOString(),
+        },
+        ...serverLinks
+          .filter((a) => a.email.toLowerCase() !== normalizedCurrentEmail)
+          .map((a) => ({
+            email: a.email.toLowerCase(),
+            refreshToken: localByEmail.get(a.email.toLowerCase())?.refreshToken || "",
+            addedAt: a.addedAt,
+          })),
+      ];
+
+      // Keep any local-only links (older behavior) visible too
+      for (const acc of localAccounts) {
+        const emailNorm = acc.email.toLowerCase();
+        if (emailNorm === normalizedCurrentEmail) continue;
+        if (serverSet.has(emailNorm)) continue;
+        merged.push({ ...acc, email: emailNorm });
+      }
+
+      // Dedupe by email
+      const seen = new Set<string>();
+      const deduped = merged.filter((a) => {
+        const emailNorm = a.email.toLowerCase();
+        if (seen.has(emailNorm)) return false;
+        seen.add(emailNorm);
+        return true;
+      });
+
+      setLinkedAccounts(deduped);
     };
 
     initAccounts();
@@ -201,6 +278,8 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
         setLoading(false);
         return;
       }
+
+      const previousAccessToken = currentSession.access_token;
 
       // Build accounts list
       const currentAccountData: LinkedAccount = {
@@ -240,25 +319,18 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
         // Build final accounts list (both accounts)
         const finalAccounts = [currentAccountData, newAccountData];
 
-        // Save to BOTH users' linked accounts (so both can switch to each other)
-        console.log("[Accounts] === LINKING START ===");
-        console.log("[Accounts] Current email:", currentAccountData.email);
-        console.log("[Accounts] New email:", newEmail);
-
+        // Save to BOTH users' linked accounts (local switching tokens)
         setUserLinkedAccounts(currentAccountData.email, finalAccounts);
         setUserLinkedAccounts(newEmail, finalAccounts);
 
-        // Verify both saves worked
-        const rawStorage = localStorage.getItem(LINKED_ACCOUNTS_KEY);
-        console.log("[Accounts] === AFTER BOTH SAVES ===");
-        console.log("[Accounts] Raw localStorage:", rawStorage);
-        if (rawStorage) {
-          const parsed = JSON.parse(rawStorage);
-          console.log("[Accounts] Parsed keys:", Object.keys(parsed));
-          console.log("[Accounts] Data for current:", parsed[currentAccountData.email]);
-          console.log("[Accounts] Data for new:", parsed[newEmail]);
+        // Persist server-side (so link is visible even after logout / on other devices)
+        const saved = await saveServerLink(data.session.access_token, previousAccessToken);
+        if (!saved) {
+          setMessage({
+            type: "error",
+            text: "Аккаунт добавлен локально, но не удалось сохранить связь на сервере",
+          });
         }
-        console.log("[Accounts] === LINKING END ===");
       }
 
       // Small delay to ensure localStorage is saved
@@ -280,6 +352,12 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
     setMessage(null);
 
     try {
+      if (!account.refreshToken) {
+        sessionStorage.setItem("switch_to_email", account.email);
+        router.push("/auth?switch=true");
+        return;
+      }
+
       // Use refresh token to restore session
       const { error } = await supabase.auth.refreshSession({
         refresh_token: account.refreshToken,
@@ -311,10 +389,23 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
       return;
     }
 
-    const updated = linkedAccounts.filter(a => a.email.toLowerCase() !== accountEmail.toLowerCase());
-    setUserLinkedAccounts(currentEmail, updated);
-    setLinkedAccounts(updated);
-    setMessage({ type: "success", text: "Аккаунт удалён из списка" });
+    const remove = async () => {
+      const normalizedCurrentEmail = currentEmail.toLowerCase().trim();
+      const updated = linkedAccounts.filter((a) => a.email.toLowerCase() !== accountEmail.toLowerCase());
+
+      // Best-effort: remove persisted link
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        await removeServerLink(session.access_token, accountEmail).catch(() => null);
+      }
+
+      // Remove local switching token cache
+      setUserLinkedAccounts(normalizedCurrentEmail, updated);
+      setLinkedAccounts(updated);
+      setMessage({ type: "success", text: "Аккаунт удалён из списка" });
+    };
+
+    void remove();
   };
 
   const handleGoogleLogin = async () => {
@@ -325,9 +416,10 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
         const pendingLink = {
           email: currentEmail.toLowerCase(),
           refreshToken: currentSession.refresh_token || "",
+          accessToken: currentSession.access_token || "",
           timestamp: Date.now(),
         };
-        localStorage.setItem("jobsearch_pending_google_link", JSON.stringify(pendingLink));
+        localStorage.setItem(PENDING_GOOGLE_LINK_KEY, JSON.stringify(pendingLink));
       }
 
       await supabase.auth.signInWithOAuth({

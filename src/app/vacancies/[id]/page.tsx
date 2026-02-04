@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import Header from "@/components/landing/Header";
+import Header from "@/components/app/Header";
 import { getVacancyById, incrementVacancyViews, EmployerVacancy } from "@/lib/api";
 import { useAuth } from "@/lib/useAuth";
 

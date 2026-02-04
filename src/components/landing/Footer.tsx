@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useAuth } from "@/lib/useAuth";
 
 interface FooterProps {
@@ -14,7 +15,7 @@ export default function Footer({ mode = "jobseeker" }: FooterProps) {
       title: "Хватит тратить время на поиск работы",
       subtitle: "Зарегистрируйся за 30 секунд и получи первые вакансии через 5 минут. Бесплатно.",
       cta: user ? "Перейти к поиску" : "Начать бесплатно",
-      microCopy: "7 дней Pro • Без карты • Отменить можно всегда",
+      microCopy: "3 дня Pro • Без карты • Отменить можно всегда",
       ctaLink: user ? "/chat" : "/auth",
       ctaColor: "from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-orange-500/25 hover:shadow-orange-500/30",
     },
@@ -60,7 +61,13 @@ export default function Footer({ mode = "jobseeker" }: FooterProps) {
 
         <div className="border-t border-gray-200 pt-6 md:pt-8 text-xs md:text-sm text-muted">
           <p>Контакты: help@jobaisearch.ru</p>
-          <p className="mt-2">2026 Job Search. Все права защищены.</p>
+          <p className="mt-2">
+            <Link href="/privacy" className="hover:text-gray-700 transition-colors">
+              Конфиденциальность
+            </Link>
+            {" • "}
+            2026 Job Search. Все права защищены.
+          </p>
         </div>
       </div>
     </footer>

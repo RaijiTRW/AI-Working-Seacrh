@@ -111,11 +111,11 @@ export async function GET(request: NextRequest) {
         // Была платная подписка, которая истекла
         expiredPlanType = "pro";
       } else if (subscription?.created_at) {
-        // Проверяем прошло ли 7 дней с создания (период trial)
+        // Проверяем прошло ли 3 дня с создания (период trial)
         const createdAt = new Date(subscription.created_at);
         const now = new Date();
         const daysSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
-        if (daysSinceCreation > 7) {
+        if (daysSinceCreation > 3) {
           // Trial истёк
           expiredPlanType = "pro_trial";
         }
@@ -143,6 +143,18 @@ export async function GET(request: NextRequest) {
 
     const isFirstPurchase = (previousPurchases || 0) === 0;
 
+    // Получаем цену подписки из настроек
+    let subscriptionPrice = 499; // дефолтное значение
+    const { data: priceSetting } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("id", "subscription_price")
+      .single();
+
+    if (priceSetting?.value && typeof priceSetting.value === 'object' && 'price' in priceSetting.value) {
+      subscriptionPrice = (priceSetting.value as { price: number }).price;
+    }
+
     // Получаем настройку скидки
     let discountPercent = 0;
     let discountEnabled = false;
@@ -159,7 +171,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Рассчитываем цены
-    const regularPrice = 799;
+    const regularPrice = subscriptionPrice;
     const showDiscount = isFirstPurchase && discountEnabled && discountPercent > 0 && !isPro;
     const discountedPrice = showDiscount
       ? Math.round(regularPrice * (1 - discountPercent / 100))

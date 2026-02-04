@@ -17,11 +17,11 @@ export default function Pricing() {
     fetch("/api/discount")
       .then(res => res.json())
       .then(data => setDiscount(data))
-      .catch(() => setDiscount({ enabled: false, percent: 0, regular_price: 799, discounted_price: 799 }));
+      .catch(() => setDiscount({ enabled: false, percent: 0, regular_price: 499, discounted_price: 499 }));
   }, []);
 
-  const regularPrice = discount?.regular_price || 799;
-  const discountedPrice = discount?.discounted_price || 799;
+  const regularPrice = discount?.regular_price || 499;
+  const discountedPrice = discount?.discounted_price || 499;
   const hasDiscount = discount?.enabled && discount?.percent > 0;
 
   return (
@@ -53,7 +53,7 @@ export default function Pricing() {
 
             <div className="flex items-baseline gap-1 mb-6">
               <span className="text-3xl md:text-4xl font-bold">0 ₽</span>
-              <span className="text-white/70">/ 7 дней</span>
+              <span className="text-white/70">/ 3 дня</span>
             </div>
 
             <ul className="space-y-3 mb-6">
@@ -347,7 +347,7 @@ export default function Pricing() {
             </div>
             <div>
               <h4 className="font-semibold text-green-900 mb-1">
-                Гарантия: 7 дней Pro бесплатно
+                Гарантия: 3 дня Pro бесплатно
               </h4>
               <p className="text-sm text-green-700">
                 Попробуй все возможности без риска. Не понравится — просто не продлевай.

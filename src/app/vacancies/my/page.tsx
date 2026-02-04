@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Header from "@/components/landing/Header";
+import Header from "@/components/app/Header";
 import { supabase } from "@/lib/supabase";
 import {
   getMyVacancies,

@@ -75,7 +75,7 @@ export default function SubscriptionPage() {
                   <>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-lg text-gray-400 line-through">
-                        {subscription?.prices.subscription || 799} ₽
+                        {subscription?.prices.subscription || 499} ₽
                       </span>
                       <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded">
                         Первая покупка -{subscription.discount.percent}%
@@ -83,17 +83,17 @@ export default function SubscriptionPage() {
                     </div>
                     <div className="flex items-baseline gap-1 mb-1">
                       <span className="text-3xl font-bold text-green-600">
-                        {subscription?.prices.subscription_discounted || Math.round((subscription?.prices.subscription || 799) * (1 - subscription.discount.percent / 100))}
+                        {subscription?.prices.subscription_discounted || Math.round((subscription?.prices.subscription || 499) * (1 - subscription.discount.percent / 100))}
                       </span>
                       <span className="text-gray-500">₽ / первый месяц</span>
                     </div>
-                    <p className="text-sm text-gray-500">далее {subscription?.prices.subscription || 799} ₽/мес</p>
+                    <p className="text-sm text-gray-500">далее {subscription?.prices.subscription || 499} ₽/мес</p>
                   </>
                 ) : (
                   <>
                     <div className="flex items-baseline gap-1 mb-1">
                       <span className="text-3xl font-bold text-gray-900">
-                        {subscription?.prices.subscription || 799}
+                        {subscription?.prices.subscription || 499}
                       </span>
                       <span className="text-gray-500">₽/мес</span>
                     </div>
@@ -210,7 +210,7 @@ export default function SubscriptionPage() {
                 Как работает Pro Trial?
               </h3>
               <p className="text-gray-600 text-sm">
-                При регистрации вы получаете <strong>7 дней Pro Trial</strong> с 15 запросами в день и полным доступом к поиску (лента + сеть).
+                При регистрации вы получаете <strong>3 дня Pro Trial</strong> с 15 запросами в день и полным доступом к поиску (лента + сеть).
                 После окончания автоматически переходите на <strong>Base план</strong> (бесплатно навсегда, 3 запроса/день, только лента)
                 или оформите Pro подписку для сохранения полного доступа.
               </p>
@@ -224,7 +224,7 @@ export default function SubscriptionPage() {
                 <strong>Base (бесплатно):</strong> 3 запроса/день, только поиск в ленте (сохранённые вакансии).
               </p>
               <p className="text-gray-600 text-sm">
-                <strong>Pro ({subscription?.prices.subscription || 799}₽/мес{subscription?.discount?.enabled ? `, скидка ${subscription.discount.percent}% на первую покупку` : ""}):</strong> 15 запросов/день, поиск в ленте + в сети (живой парсинг с HH, SuperJob, Avito),
+                <strong>Pro ({subscription?.prices.subscription || 499}₽/мес{subscription?.discount?.enabled ? `, скидка ${subscription.discount.percent}% на первую покупку` : ""}):</strong> 15 запросов/день, поиск в ленте + в сети (живой парсинг с HH, SuperJob, Avito),
                 возможность докупить запросы, приоритетная поддержка.
               </p>
             </div>

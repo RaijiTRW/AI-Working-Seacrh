@@ -58,7 +58,7 @@ function VacancyCard({ vacancy }: { vacancy: Vacancy }) {
       href={vacancy.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex-shrink-0 w-72 bg-white rounded-2xl border border-gray-200 p-4 hover:shadow-lg hover:border-orange-200 transition-all duration-200 group"
+      className="flex-shrink-0 w-72 bg-white rounded-2xl border border-gray-200 p-4 hover:shadow-lg hover:border-orange-200 transition-all duration-200 group/vacancy"
     >
       {/* Source badge */}
       <div className="flex items-center justify-between mb-3">
@@ -71,7 +71,7 @@ function VacancyCard({ vacancy }: { vacancy: Vacancy }) {
       </div>
 
       {/* Title */}
-      <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 group-hover:text-orange-600 transition-colors">
+      <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 group-hover/vacancy:text-orange-600 transition-colors">
         {vacancy.title}
       </h3>
 
@@ -102,7 +102,7 @@ function VacancyCard({ vacancy }: { vacancy: Vacancy }) {
       )}
 
       {/* Arrow */}
-      <div className="mt-3 flex items-center gap-1 text-xs font-medium text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="mt-3 flex items-center gap-1 text-xs font-medium text-orange-500 opacity-0 group-hover/vacancy:opacity-100 transition-opacity">
         Открыть
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

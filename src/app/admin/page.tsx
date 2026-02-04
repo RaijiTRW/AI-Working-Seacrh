@@ -257,8 +257,11 @@ export default function AdminPage() {
   const handleToggleSetting = async (setting: SiteSetting) => {
     if (!token) return;
     try {
-      await updateSiteSetting(token, setting.id, !setting.value.enabled);
-      await fetchSettings();
+      // Type guard: check if this is a boolean setting with 'enabled' property
+      if ('enabled' in setting.value) {
+        await updateSiteSetting(token, setting.id, !setting.value.enabled);
+        await fetchSettings();
+      }
     } catch (e) {
       console.error("Failed to update setting:", e);
       alert("Ошибка при обновлении настройки");
@@ -282,15 +285,41 @@ export default function AdminPage() {
     vacancies_enabled: "Лента вакансий",
     vacancy_creation_enabled: "Создание вакансий",
     first_purchase_discount: "Скидка на первую покупку",
+    subscription_price: "Цена Pro подписки",
   };
 
   // Обработка скидки
   const [discountInput, setDiscountInput] = useState<string>("");
 
+  // Обработка цены подписки
+  const [priceInput, setPriceInput] = useState<string>("");
+
+  const handleUpdatePrice = async (setting: SiteSetting, newPrice: number) => {
+    if (!token) return;
+    try {
+      await updateSiteSetting(token, setting.id, true); // enabled doesn't matter for price
+      // Direct update via API
+      await fetch(`/api/admin/settings/${setting.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          value: { price: newPrice },
+        }),
+      });
+      fetchSettings();
+    } catch (e) {
+      console.error("Failed to update price:", e);
+    }
+  };
+
   const handleUpdateDiscount = async (setting: SiteSetting, enabled: boolean, percent?: number) => {
     if (!token) return;
     try {
-      const discountPercent = percent ?? setting.value.discount_percent ?? 80;
+      // Type guard: check if this is a discount setting
+      const discountPercent = percent ?? ('discount_percent' in setting.value ? setting.value.discount_percent : 80) ?? 80;
       await updateDiscountSetting(token, setting.id, enabled, discountPercent);
       await fetchSettings();
     } catch (e) {
@@ -558,7 +587,10 @@ export default function AdminPage() {
           <div className="space-y-4">
             {/* Обычные настройки */}
             <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-200">
-              {settings.filter(s => s.id !== "first_purchase_discount").map((setting) => (
+              {settings.filter(s => s.id !== "first_purchase_discount" && s.id !== "subscription_price").map((setting) => {
+                // Type guard: ensure this setting has 'enabled' property
+                const isEnabled = 'enabled' in setting.value ? setting.value.enabled : false;
+                return (
                 <div
                   key={setting.id}
                   className="flex items-center justify-between p-4"
@@ -568,21 +600,22 @@ export default function AdminPage() {
                       {settingLabels[setting.id] || setting.id}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {setting.value.enabled ? "Включено" : "Выключено"}
+                      {isEnabled ? "Включено" : "Выключено"}
                     </div>
                   </div>
                   <button
                     onClick={() => handleToggleSetting(setting)}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${setting.value.enabled ? "bg-orange-500" : "bg-gray-200"
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isEnabled ? "bg-orange-500" : "bg-gray-200"
                       }`}
                   >
                     <span
-                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${setting.value.enabled ? "translate-x-5" : "translate-x-0"
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isEnabled ? "translate-x-5" : "translate-x-0"
                         }`}
                     />
                   </button>
                 </div>
-              ))}
+              );
+              })}
             </div>
 
             {/* Настройка скидки */}
@@ -590,6 +623,7 @@ export default function AdminPage() {
               <h3 className="font-medium text-gray-900 mb-4">Скидка на первую покупку подписки</h3>
               {(() => {
                 const discountSetting = settings.find(s => s.id === "first_purchase_discount");
+                const priceSetting = settings.find(s => s.id === "subscription_price");
                 if (!discountSetting) {
                   return (
                     <div className="text-sm text-gray-500">
@@ -597,10 +631,14 @@ export default function AdminPage() {
                     </div>
                   );
                 }
-                const currentPercent = discountSetting.value.discount_percent ?? 80;
-                const isEnabled = discountSetting.value.enabled;
-                const regularPrice = 799;
-                const discountedPrice = Math.round(regularPrice * (1 - currentPercent / 100));
+                // Type guard for discount setting
+                const currentPercent = 'discount_percent' in discountSetting.value ? discountSetting.value.discount_percent : 80;
+                const isEnabled = 'enabled' in discountSetting.value ? discountSetting.value.enabled : false;
+                // Получаем цену из настроек
+                const regularPrice = priceSetting && typeof priceSetting.value === 'object' && 'price' in priceSetting.value
+                  ? (priceSetting.value as { price: number }).price
+                  : 499;
+                const discountedPrice = Math.round(regularPrice * (1 - (currentPercent ?? 0) / 100));
 
                 return (
                   <div className="space-y-4">
@@ -664,6 +702,68 @@ export default function AdminPage() {
                       </div>
                       <p className="text-xs text-gray-500 mt-2">
                         Пользователи, которые ещё не покупали подписку, увидят цену {discountedPrice} ₽ вместо {regularPrice} ₽
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Настройка цены подписки */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <h3 className="font-medium text-gray-900 mb-4">Цена Pro подписки</h3>
+              {(() => {
+                const priceSetting = settings.find(s => s.id === "subscription_price");
+                if (!priceSetting) {
+                  return (
+                    <div className="text-sm text-gray-500">
+                      Настройка не найдена. Добавьте запись &quot;subscription_price&quot; в таблицу site_settings.
+                    </div>
+                  );
+                }
+                const currentPrice = typeof priceSetting.value === 'object' && 'price' in priceSetting.value
+                  ? (priceSetting.value as { price: number }).price
+                  : 499;
+
+                return (
+                  <div className="space-y-4">
+                    {/* Текущая цена */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm text-gray-600">Текущая цена</div>
+                        <div className="text-2xl font-bold text-gray-900">{currentPrice} ₽/мес</div>
+                      </div>
+                    </div>
+
+                    {/* Изменение цены */}
+                    <div>
+                      <label className="text-sm text-gray-600 block mb-2">Новая цена (₽)</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          min="1"
+                          max="99999"
+                          step="1"
+                          value={priceInput || currentPrice}
+                          onChange={(e) => setPriceInput(e.target.value)}
+                          className="w-32 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                        <span className="text-gray-500">₽</span>
+                        <button
+                          onClick={() => {
+                            const newPrice = parseInt(priceInput || String(currentPrice), 10);
+                            if (!isNaN(newPrice) && newPrice >= 1 && newPrice <= 99999) {
+                              handleUpdatePrice(priceSetting, newPrice);
+                              setPriceInput("");
+                            }
+                          }}
+                          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                        >
+                          Сохранить
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Цена будет обновлена везде: в модальном окне, на странице подписки и при оплате через YooKassa
                       </p>
                     </div>
                   </div>

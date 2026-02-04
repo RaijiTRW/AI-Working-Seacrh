@@ -2,7 +2,7 @@ import type { JSX } from "react";
 
 const features = [
   { icon: "clock", text: "Экономия времени" },
-  { icon: "filter", text: "Без мусора и дубликатов" },
+  { icon: "filter", text: "Поиск вакансий под вас" },
   { icon: "search", text: "Все сайты в одном месте" },
 ];
 
@@ -75,7 +75,7 @@ export default function AuthHero() {
         </h1>
 
         <p className="text-lg text-gray-600 mb-10">
-          ИИ подберёт лучшие вакансии со всех сайтов. Без мусора, курьеров и одинаковых предложений.
+          ИИ подберёт лучшие вакансии со всех сайтов. Без лишних нервов, курьеров и одинаковых предложений.
         </p>
 
         {/* Feature cards */}
