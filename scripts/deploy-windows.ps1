@@ -60,10 +60,13 @@ Write-Host "  Current HEAD: $(git rev-parse --short HEAD 2>&1)"
 
 # Fetch with error checking
 Write-Host "  Running git fetch..."
+$ErrorActionPreference = "Continue"
 $fetchOutput = & git fetch --all --prune 2>&1
 Write-Host $fetchOutput
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: git fetch failed with exit code $LASTEXITCODE"
+$fetchExitCode = $LASTEXITCODE
+$ErrorActionPreference = "Stop"
+if ($fetchExitCode -ne 0) {
+    Write-Host "ERROR: git fetch failed with exit code $fetchExitCode"
     exit 1
 }
 
