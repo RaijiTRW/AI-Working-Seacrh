@@ -1,0 +1,26 @@
+[Unit]
+Description=JobAI Search - Next.js Frontend
+After=network.target
+
+[Service]
+Type=simple
+User=your-user-here
+WorkingDirectory=/path/to/your/project
+Environment="NODE_ENV=production"
+Environment="PORT=3000"
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=10
+
+# Graceful shutdown
+TimeoutStopSec=30
+KillMode=mixed
+KillSignal=SIGTERM
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=jobai-frontend
+
+[Install]
+WantedBy=multi-user.target
