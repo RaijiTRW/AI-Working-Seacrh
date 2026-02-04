@@ -17,6 +17,15 @@ const nextConfig: NextConfig = {
     };
     return config;
   },
+  async rewrites() {
+    const backendUrl = process.env.BACKEND_API_URL || 'http://81.94.151.47:8000';
+    return [
+      {
+        source: '/external/:path*',
+        destination: `${backendUrl}/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
