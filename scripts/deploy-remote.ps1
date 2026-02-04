@@ -6,26 +6,47 @@ param(
 )
 
 Set-Location $AppDir
-$ErrorActionPreference = "Continue"
+$ErrorActionPreference = "Stop"
 
 Write-Host "========================================"
 Write-Host "  DEPLOY STARTED"
 Write-Host "========================================"
+Write-Host "Directory: $AppDir"
+Write-Host "Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+Write-Host "========================================"
 
 # Step 1: Save old version
 Write-Host ""
-Write-Host "[1/8] Saving old version..."
-$oldVersion = git rev-parse --short HEAD
-Write-Host "Old version: $oldVersion"
-Set-Content -Path ".version-old" -Value $oldVersion
+Write-Host "[1/9] Saving old version..."
+try {
+    $oldVersion = & git rev-parse --short HEAD 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "WARNING: Could not get old version (first deploy?)"
+        $oldVersion = "unknown"
+    }
+    Write-Host "Old version: $oldVersion"
+    Set-Content -Path ".version-old" -Value $oldVersion -ErrorAction SilentlyContinue
+} catch {
+    Write-Host "WARNING: $_"
+    $oldVersion = "unknown"
+}
 
 # Step 2: STOP SERVICE FIRST (to unlock node_modules files)
 Write-Host ""
-Write-Host "[2/8] Stopping frontend service..."
+Write-Host "[2/9] Stopping frontend service..."
 
 # First stop NSSM service
 Write-Host "  Stopping NSSM service..."
-& "C:\nssm-2.24\win64\nssm.exe" stop jobai-frontend 2>&1 | Out-Null
+try {
+    $stopResult = & "C:\nssm-2.24\win64\nssm.exe" stop jobai-frontend 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  Service not running or already stopped"
+    } else {
+        Write-Host "  Service stopped"
+    }
+} catch {
+    Write-Host "  Service not running or already stopped"
+}
 Start-Sleep -Seconds 5
 
 # Force kill ALL node processes (aggressive cleanup)
@@ -46,10 +67,14 @@ while ($attempts -lt 5) {
         break
     }
     foreach ($conn in $connections) {
-        $pid = $conn.OwningProcess
-        if ($pid -ne 0) {
-            Write-Host "    Force killing PID $pid on port 3000"
-            taskkill /F /PID $pid 2>&1 | Out-Null
+        $processId = $conn.OwningProcess
+        if ($processId -ne 0) {
+            Write-Host "    Force killing PID $processId on port 3000"
+            try {
+                taskkill /F /PID $processId 2>&1 | Out-Null
+            } catch {
+                Write-Host "      Process already terminated"
+            }
         }
     }
     Start-Sleep -Seconds 2
@@ -67,13 +92,34 @@ if ($finalCheck) {
     Write-Host "Service stopped!"
 }
 
-# Step 3: Pull latest code
+# Step 3: Set up git remote with token for authenticated access
 Write-Host ""
-Write-Host "[3/8] Pulling latest code..."
+Write-Host "[3/9] Setting up git remote..."
+$gitToken = $env:GH_DEPLOY_TOKEN
+if (-not $gitToken) {
+    Write-Host "ERROR: GH_DEPLOY_TOKEN environment variable not set!"
+    Write-Host "This token is required to fetch from private repository."
+    & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+    exit 1
+}
+
+$repoUrl = "https://${gitToken}@github.com/RaijiTRW/AI-Working-Seacrh.git"
+Write-Host "  Setting remote URL with token..."
+& git remote set-url origin $repoUrl 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: Failed to set git remote URL"
+    & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+    exit 1
+}
+Write-Host "  Remote configured"
+
+# Step 4: Pull latest code
+Write-Host ""
+Write-Host "[4/9] Pulling latest code..."
 
 # Show git remote info
 Write-Host "  Git remote: $(git remote get-url origin)"
-Write-Host "  Current HEAD: $(git rev-parse --short HEAD)"
+Write-Host "  Current HEAD: $(git rev-parse --short HEAD 2>&1)"
 
 # Fetch with error checking
 Write-Host "  Running git fetch..."
@@ -107,7 +153,7 @@ Write-Host "  New version: $newVersion"
 Set-Content -Path ".version" -Value $newVersion
 
 # CRITICAL: Verify version actually changed (unless first deploy)
-if ($oldVersion -eq $newVersion) {
+if ($oldVersion -ne "unknown" -and $oldVersion -eq $newVersion) {
     Write-Host ""
     Write-Host "WARNING: Version did not change! ($oldVersion -> $newVersion)"
     Write-Host "This might indicate git fetch did not get new commits."
@@ -115,9 +161,9 @@ if ($oldVersion -eq $newVersion) {
     & git log --oneline origin/main -3 2>&1 | Out-Host
 }
 
-# Step 4: Clear ALL caches + delete node_modules
+# Step 5: Clear ALL caches + delete node_modules
 Write-Host ""
-Write-Host "[4/8] Clearing ALL caches..."
+Write-Host "[5/9] Clearing ALL caches..."
 $cacheDirs = @(".next", "node_modules", ".turbo", ".swc")
 foreach ($dir in $cacheDirs) {
     if (Test-Path $dir) {
@@ -125,39 +171,55 @@ foreach ($dir in $cacheDirs) {
         Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue
     }
 }
-& npm cache clean --force 2>&1 | Out-Null
+try {
+    & npm cache clean --force 2>&1 | Out-Null
+} catch {
+    Write-Host "  Warning: npm cache clean failed - $_"
+}
 Write-Host "Caches cleared!"
 
-# Step 5: Install dependencies (fresh)
+# Step 6: Install dependencies (fresh)
 Write-Host ""
-Write-Host "[5/8] Installing dependencies..."
+Write-Host "[6/9] Installing dependencies..."
+$ErrorActionPreference = "Continue"
 & npm ci 2>&1 | Out-Host
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: npm ci failed with exit code $LASTEXITCODE"
-    & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+$npmExitCode = $LASTEXITCODE
+$ErrorActionPreference = "Stop"
+if ($npmExitCode -ne 0) {
+    Write-Host "ERROR: npm ci failed with exit code $npmExitCode"
+    try {
+        & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+    } catch {}
     exit 1
 }
 Write-Host "Dependencies installed!"
 
-# Step 6: Build
+# Step 7: Build
 Write-Host ""
-Write-Host "[6/8] Building frontend..."
+Write-Host "[7/9] Building frontend..."
+$ErrorActionPreference = "Continue"
 & npm run build 2>&1 | Out-Host
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: npm run build failed with exit code $LASTEXITCODE"
-    & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+$buildExitCode = $LASTEXITCODE
+$ErrorActionPreference = "Stop"
+if ($buildExitCode -ne 0) {
+    Write-Host "ERROR: npm run build failed with exit code $buildExitCode"
+    try {
+        & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+    } catch {}
     exit 1
 }
 if (-not (Test-Path ".next")) {
     Write-Host "ERROR: .next folder not created - build failed"
-    & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+    try {
+        & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+    } catch {}
     exit 1
 }
 Write-Host "Build OK!"
 
-# Step 7: Start service
+# Step 8: Start service
 Write-Host ""
-Write-Host "[7/8] Starting frontend service..."
+Write-Host "[8/9] Starting frontend service..."
 
 # Ensure no stale node process before starting
 $staleNode = Get-Process -Name "node" -ErrorAction SilentlyContinue
@@ -167,7 +229,17 @@ if ($staleNode) {
     Start-Sleep -Seconds 2
 }
 
-& "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend
+try {
+    $startResult = & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  WARNING: Service start returned error code $LASTEXITCODE"
+        Write-Host "  $startResult"
+    } else {
+        Write-Host "  Service started"
+    }
+} catch {
+    Write-Host "  WARNING: Service start failed: $_"
+}
 Write-Host "Waiting for service to start..."
 Start-Sleep -Seconds 10
 
@@ -180,9 +252,9 @@ if ($newNode) {
     Write-Host "  WARNING: No node process found after service start!"
 }
 
-# Step 8: Health check
+# Step 9: Health check
 Write-Host ""
-Write-Host "[8/8] Health check..."
+Write-Host "[9/9] Health check..."
 $healthOk = $false
 for ($i = 1; $i -le 10; $i++) {
     try {
@@ -206,7 +278,7 @@ if (-not $healthOk) {
     exit 1
 }
 
-# Step 8b: Verify chunks are being served correctly
+# Step 9b: Verify chunks are being served correctly
 Write-Host ""
 Write-Host "Verifying static assets..."
 $buildId = Get-Content ".next/BUILD_ID" -ErrorAction SilentlyContinue
@@ -236,6 +308,7 @@ Write-Host "  DEPLOY SUCCESSFUL!"
 Write-Host "========================================"
 Write-Host "Old: $oldVersion"
 Write-Host "New: $newVersion"
+Write-Host "Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 Write-Host "========================================"
 
 exit 0
