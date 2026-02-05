@@ -49,17 +49,17 @@ export default function VacancyStats({ total, activeSource, onSourceFilter }: Va
 
       {/* Source filters */}
       {loading ? (
-        <div className="flex gap-2 sm:gap-3 mb-4">
-          <div className="h-8 w-20 sm:w-24 bg-gray-100 rounded-full animate-pulse" />
-          <div className="h-8 w-24 sm:w-28 bg-gray-100 rounded-full animate-pulse" />
-          <div className="h-8 w-20 sm:w-24 bg-gray-100 rounded-full animate-pulse" />
+        <div className="flex gap-2 sm:gap-3 mb-3 sm:mb-4 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="h-8 w-20 sm:w-24 bg-gray-100 rounded-full animate-pulse shrink-0" />
+          <div className="h-8 w-24 sm:w-28 bg-gray-100 rounded-full animate-pulse shrink-0" />
+          <div className="h-8 w-20 sm:w-24 bg-gray-100 rounded-full animate-pulse shrink-0" />
         </div>
       ) : stats ? (
-        <div className="flex flex-wrap gap-2 sm:gap-3 mb-4">
+        <div className="flex overflow-x-auto gap-2 sm:gap-3 mb-3 sm:mb-4 pb-2 scrollbar-hide -mx-1 px-1 sm:mx-0 sm:px-0">
           {/* Platform (Наши) */}
           <button
             onClick={() => handleSourceClick("platform")}
-            className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3 py-2 min-h-9 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeSource === "platform"
                 ? "bg-orange-500 text-white ring-2 ring-orange-300"
                 : "bg-orange-100 text-orange-700 hover:bg-orange-200"
@@ -74,7 +74,7 @@ export default function VacancyStats({ total, activeSource, onSourceFilter }: Va
           {/* Network (В сети) */}
           <button
             onClick={() => handleSourceClick("network")}
-            className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3 py-2 min-h-9 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeSource === "network"
                 ? "bg-blue-500 text-white ring-2 ring-blue-300"
                 : "bg-blue-100 text-blue-700 hover:bg-blue-200"
@@ -89,7 +89,7 @@ export default function VacancyStats({ total, activeSource, onSourceFilter }: Va
           {/* Total (Всего) */}
           <button
             onClick={() => handleSourceClick(null)}
-            className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3 py-2 min-h-9 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeSource === null
                 ? "bg-gray-700 text-white ring-2 ring-gray-400"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -108,7 +108,7 @@ export default function VacancyStats({ total, activeSource, onSourceFilter }: Va
         {user && (
           <Link
             href="/vacancies/my"
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-11 border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors"
           >
             <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -120,7 +120,7 @@ export default function VacancyStats({ total, activeSource, onSourceFilter }: Va
         {user ? (
           <Link
             href="/vacancies/create"
-            className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-orange-500 text-white text-sm font-medium rounded-xl hover:bg-orange-600 transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 min-h-11 bg-orange-500 text-white text-sm font-medium rounded-xl hover:bg-orange-600 transition-colors"
           >
             <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -130,7 +130,7 @@ export default function VacancyStats({ total, activeSource, onSourceFilter }: Va
         ) : (
           <Link
             href="/auth"
-            className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-gray-100 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-200 transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 min-h-11 bg-gray-100 text-gray-600 text-sm font-medium rounded-xl hover:bg-gray-200 transition-colors"
           >
             <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />

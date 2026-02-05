@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Header from "@/components/landing/Header";
+import Header from "@/components/app/Header";
 import { useAuth } from "@/lib/useAuth";
 import { supabase } from "@/lib/supabase";
 import { createVacancy, publishVacancy, EmployerVacancyCreate, SalaryType, SalaryTaxType, SalaryPeriod, ContractType, WorkFormat, OvertimePolicy, GradeLevel, WorkHoursType, Responsibility } from "@/lib/api";

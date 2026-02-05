@@ -24,6 +24,41 @@ export async function GET(
     const { paymentId } = await params;
     const supabase = getSupabaseAdmin();
 
+    // Проверяем - не истекло ли время ожидания платежа (более 1 часа)
+    const { data: localPayment } = await supabase
+      .from("payment_history")
+      .select("*")
+      .eq("yookassa_payment_id", paymentId)
+      .single();
+
+    // Если платеж есть в базе и он pending более 1 часа - отменяем его
+    if (localPayment?.status === "pending") {
+      const paymentAge = Date.now() - new Date(localPayment.created_at).getTime();
+      const oneHour = 60 * 60 * 1000; // 1 час в миллисекундах
+
+      if (paymentAge > oneHour) {
+        // Автоматически отменяем просроченный платеж
+        await supabase
+          .from("payment_history")
+          .update({
+            status: "failed",
+            updated_at: new Date().toISOString(),
+            metadata: {
+              ...(localPayment.metadata || {}),
+              reason: "auto_cancelled",
+              message: "Payment expired after 1 hour"
+            }
+          })
+          .eq("yookassa_payment_id", paymentId);
+
+        return NextResponse.json({
+          status: "failed",
+          reason: "expired",
+          message: "Платёж был отменён автоматически из-за истечения времени ожидания (1 час)"
+        });
+      }
+    }
+
     // Получаем статус платежа из YooKassa
     const response = await fetch(
       `https://api.yookassa.ru/v3/payments/${paymentId}`,
@@ -42,6 +77,26 @@ export async function GET(
     }
 
     const payment = await response.json();
+
+    // Если YooKassa вернул "canceled" - обновляем статус локально
+    if (payment.status === "canceled") {
+      await supabase
+        .from("payment_history")
+        .update({
+          status: "failed",
+          updated_at: new Date().toISOString(),
+          metadata: {
+            reason: "yookassa_canceled",
+            message: "Payment was canceled in YooKassa"
+          }
+        })
+        .eq("yookassa_payment_id", paymentId);
+
+      return NextResponse.json({
+        status: "canceled",
+        message: "Платёж был отменён"
+      });
+    }
 
     if (payment.status === "succeeded") {
       const paymentType = payment.metadata?.type;
@@ -87,7 +142,7 @@ export async function GET(
           .from("user_request_limits")
           .upsert({
             user_id: userId,
-            daily_limit: 10,
+            daily_limit: 15,
             daily_used: 0,
             daily_reset_at: new Date().toISOString().split("T")[0],
           });

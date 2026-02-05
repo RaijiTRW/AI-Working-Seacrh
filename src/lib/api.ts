@@ -572,6 +572,7 @@ export interface AdminStats {
 
 export interface AdminUser {
   id: string;
+  user_id: string;
   email: string;
   full_name?: string;
   role: string;
@@ -596,7 +597,7 @@ export interface AdminUserList {
 
 export interface SiteSetting {
   id: string;
-  value: { enabled: boolean; discount_percent?: number };
+  value: { enabled: boolean; discount_percent?: number } | { price: number };
   updated_at?: string;
 }
 
@@ -779,7 +780,9 @@ export async function addUserRequests(
   });
 
   if (!response.ok) {
-    throw new Error("Failed to add requests");
+    const error = await response.json().catch(() => ({ error: "Unknown error" }));
+    console.error("addUserRequests error:", error);
+    throw new Error(error.error || "Failed to add requests");
   }
 }
 
@@ -798,7 +801,9 @@ export async function resetDailyUsage(
   });
 
   if (!response.ok) {
-    throw new Error("Failed to reset daily usage");
+    const error = await response.json().catch(() => ({ error: "Unknown error" }));
+    console.error("resetDailyUsage error:", error);
+    throw new Error(error.error || "Failed to reset daily usage");
   }
 }
 
@@ -1348,7 +1353,7 @@ export interface SubscriptionInfo {
   subscription: Subscription | null;
   limits: RequestLimits;
   // Флаги планов
-  is_pro_trial: boolean;       // На Pro Trial (7 дней)
+  is_pro_trial: boolean;       // На Pro Trial (3 дня)
   is_base: boolean;            // На Base (бесплатный навсегда)
   is_pro: boolean;             // На Pro (платная подписка)
   is_pro_trial_expired: boolean; // Pro Trial истёк, показать модалку

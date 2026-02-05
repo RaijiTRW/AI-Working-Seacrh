@@ -188,6 +188,7 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
           console.error("[Accounts] Error processing pending link:", e);
         }
         localStorage.removeItem(PENDING_GOOGLE_LINK_KEY);
+        return;
       }
 
       const localAccounts = getUserLinkedAccounts(normalizedCurrentEmail);

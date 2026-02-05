@@ -32,7 +32,12 @@ export async function PUT(
 
     // Поддержка разных типов значений
     let value;
-    if ("discount_percent" in body) {
+    if ("price" in body) {
+      // Цена подписки
+      value = {
+        price: Math.min(999999, Math.max(1, body.price || 499)),
+      };
+    } else if ("discount_percent" in body) {
       // Числовой тип для скидки
       value = {
         enabled: body.enabled ?? true,

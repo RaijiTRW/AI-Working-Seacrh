@@ -31,4 +31,3 @@ begin
       using (auth.uid() = user_id);
   end if;
 end $$;
-

@@ -54,14 +54,53 @@ export async function POST(
       );
     }
 
-    // Get current bonus_requests
-    const { data: targetProfile } = await supabase
-      .from("profiles")
+    // Get current bonus_requests from user_request_limits table
+    const { data: targetLimits, error: checkError } = await supabase
+      .from("user_request_limits")
       .select("bonus_requests")
       .eq("user_id", userId)
       .single();
 
-    const currentBonus = targetProfile?.bonus_requests || 0;
+    // If record doesn't exist, create it first
+    if (checkError && checkError.code === 'PGRST116') {
+      console.log("[Add Requests] Record doesn't exist, creating...");
+      const newBonus = amount > 0 ? amount : 0; // Can't have negative bonus if creating new
+
+      const { error: insertError } = await supabase
+        .from("user_request_limits")
+        .insert({
+          user_id: userId,
+          daily_limit: 15, // Default Pro Trial limit
+          daily_used: 0,
+          daily_reset_at: new Date().toISOString().split('T')[0],
+          bonus_requests: newBonus,
+        });
+
+      if (insertError) {
+        console.error("[Add Requests] Error creating record:", insertError);
+        return NextResponse.json(
+          { error: "Failed to create user request limits" },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        new_bonus: newBonus,
+      });
+    }
+
+    if (checkError) {
+      console.error("[Add Requests] Error checking record:", checkError);
+      return NextResponse.json(
+        { error: "Database error" },
+        { status: 500 }
+      );
+    }
+
+    console.log("[Add Requests] Current bonus_requests:", targetLimits?.bonus_requests);
+
+    const currentBonus = targetLimits?.bonus_requests || 0;
     const newBonus = currentBonus + amount;
 
     // Проверка: не уйдём ли в отрицательные значения
@@ -72,17 +111,28 @@ export async function POST(
       );
     }
 
-    // Update bonus_requests
-    const { error: updateError } = await supabase
-      .from("profiles")
+    // Update bonus_requests in user_request_limits table
+    const { data: updateData, error: updateError, count } = await supabase
+      .from("user_request_limits")
       .update({ bonus_requests: newBonus })
-      .eq("user_id", userId);
+      .eq("user_id", userId)
+      .select();
+
+    console.log("[Add Requests] Update result:", { data: updateData, error: updateError, count });
 
     if (updateError) {
-      console.error("Error updating bonus requests:", updateError);
+      console.error("[Add Requests] Error updating bonus requests:", updateError);
       return NextResponse.json(
-        { error: "Failed to add requests" },
+        { error: updateError.message || "Failed to add requests" },
         { status: 500 }
+      );
+    }
+
+    // Check if update succeeded by verifying the data
+    if (!updateData || updateData.length === 0) {
+      return NextResponse.json(
+        { error: "No rows were updated - user may not exist" },
+        { status: 404 }
       );
     }
 

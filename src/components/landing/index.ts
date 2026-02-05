@@ -1,4 +1,5 @@
-export { default as Header } from "./Header";
+// Re-export app Header as unified header
+export { default as Header } from "../app/Header";
 export { default as Hero } from "./Hero";
 export { default as HowItWorks } from "./HowItWorks";
 export { default as VacancyFeedSection } from "./VacancyFeedSection";

@@ -31,12 +31,18 @@ export async function GET(request: NextRequest) {
   const city = searchParams.get("city") || undefined;
   const salaryFrom = searchParams.get("salary_from") ? parseInt(searchParams.get("salary_from")!) : undefined;
   const experience = searchParams.get("experience") || undefined;
-  const source = searchParams.get("source") || undefined; // platform, network, or undefined (all)
+  const source = searchParams.get("source") || undefined; // platform, hh, superjob, avito, or comma-separated, or undefined (all)
   const page = parseInt(searchParams.get("page") || "1");
   const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
   const offset = (page - 1) * limit;
 
   const supabase = getSupabaseAdmin();
+
+  // Parse sources - can be comma-separated like "hh,superjob,platform"
+  const sources = source ? source.split(",").map(s => s.trim()) : [];
+  const includePlatform = !source || sources.includes("platform");
+  const networkSources = sources.filter(s => ["hh", "superjob", "avito"].includes(s));
+  const includeNetwork = !source || networkSources.length > 0;
 
   try {
     let networkVacancies: any[] = [];
@@ -44,15 +50,17 @@ export async function GET(request: NextRequest) {
     let platformVacancies: any[] = [];
     let platformTotal = 0;
 
-    const includeNetwork = !source || source === "network";
-    const includePlatform = !source || source === "platform";
-
     // === 1. Вакансии из сети (vacancies_storage: hh, avito, superjob) ===
     if (includeNetwork) {
       let networkQuery = supabase
         .from("vacancies_storage")
         .select("*", { count: "exact" })
         .eq("is_active", true);
+
+      // Фильтр по источникам, если указаны конкретные
+      if (networkSources.length > 0) {
+        networkQuery = networkQuery.in("source", networkSources);
+      }
 
       // Фильтры
       if (query) {

@@ -145,13 +145,34 @@ export default function FloatingChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Guest ID для неавторизованных пользователей
+  const [guestId, setGuestId] = useState<string | null>(null);
+
+  // Получение или генерация guest_id
+  useEffect(() => {
+    if (!user && typeof window !== 'undefined') {
+      let id = localStorage.getItem('guest_id');
+      if (!id) {
+        // Генерируем уникальный guest_id
+        id = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+        localStorage.setItem('guest_id', id);
+      }
+      setGuestId(id);
+    } else {
+      setGuestId(null);
+    }
+  }, [user]);
+
+  // Эффективный ID пользователя (user.id или guest_id)
+  const effectiveUserId = user?.id || guestId;
+
   // Загрузка при открытии
   useEffect(() => {
-    if (isOpen && user) {
+    if (isOpen && (user || guestId)) {
       fetchQuickQuestions();
       fetchChatHistory();
     }
-  }, [isOpen, user]);
+  }, [isOpen, user, guestId]);
 
   // Polling для support чата
   useEffect(() => {
@@ -188,14 +209,24 @@ export default function FloatingChat() {
 
   const fetchChatHistory = async () => {
     try {
-      const token = await getToken();
-      if (!token) return;
-
       const sessions: ChatSession[] = [];
 
       // Получаем support чат
+      const headers: Record<string, string> = {};
+      const body = guestId ? JSON.stringify({ guest_id: guestId }) : undefined;
+
+      if (user) {
+        const token = await getToken();
+        if (!token) return;
+        headers["Authorization"] = `Bearer ${token}`;
+      } else if (guestId) {
+        headers["Content-Type"] = "application/json";
+      }
+
       const supportResponse = await fetch("/api/support/my-chat", {
-        headers: { Authorization: `Bearer ${token}` },
+        method: guestId ? "POST" : "GET",
+        headers,
+        body,
       });
 
       if (supportResponse.ok) {
@@ -221,11 +252,21 @@ export default function FloatingChat() {
   const fetchSupportMessages = async () => {
     if (!currentSessionId) return;
     try {
-      const token = await getToken();
-      if (!token) return;
+      const headers: Record<string, string> = {};
+      const body = guestId ? JSON.stringify({ guest_id: guestId }) : undefined;
+
+      if (user) {
+        const token = await getToken();
+        if (!token) return;
+        headers["Authorization"] = `Bearer ${token}`;
+      } else if (guestId) {
+        headers["Content-Type"] = "application/json";
+      }
 
       const response = await fetch("/api/support/my-chat", {
-        headers: { Authorization: `Bearer ${token}` },
+        method: guestId ? "POST" : "GET",
+        headers,
+        body,
       });
 
       if (response.ok) {
@@ -291,8 +332,16 @@ export default function FloatingChat() {
   const connectToAdmin = async () => {
     try {
       setIsLoading(true);
-      const token = await getToken();
-      if (!token) return;
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (user) {
+        const token = await getToken();
+        if (!token) return;
+        headers["Authorization"] = `Bearer ${token}`;
+      }
 
       // Собираем историю AI-чата для передачи админу
       const previousMessages = messages
@@ -301,11 +350,11 @@ export default function FloatingChat() {
 
       const response = await fetch("/api/support/contact-admin", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ previous_messages: previousMessages }),
+        headers,
+        body: JSON.stringify({
+          previous_messages: previousMessages,
+          guest_id: guestId || null,
+        }),
       });
 
       if (response.ok) {
@@ -349,16 +398,27 @@ export default function FloatingChat() {
   const sendSupportMessage = async (message: string) => {
     try {
       setIsLoading(true);
-      const token = await getToken();
-      if (!token) return;
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      const body: Record<string, string | null> = {
+        chat_id: currentSessionId,
+        message,
+        guest_id: guestId || null,
+      };
+
+      if (user) {
+        const token = await getToken();
+        if (!token) return;
+        headers["Authorization"] = `Bearer ${token}`;
+      }
 
       await fetch("/api/support/send-message", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ chat_id: currentSessionId, message }),
+        headers,
+        body: JSON.stringify(body),
       });
 
       await fetchSupportMessages();
@@ -566,81 +626,80 @@ export default function FloatingChat() {
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto">
+            {/* Guest Warning Banner */}
+            {!user && guestId && (
+              <div className="px-4 py-2 bg-orange-50 border-b border-orange-100 flex items-center justify-between">
+                <span className="text-xs text-orange-600">Режим гостя • История не сохраняется</span>
+                <a href="/auth" className="text-xs text-orange-500 hover:underline font-medium">Войти</a>
+              </div>
+            )}
+
             {/* Home View */}
             {viewMode === "home" && (
               <div className="p-4">
-                {!user ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500 mb-4">Войдите для использования чата</p>
-                    <a href="/auth" className="text-orange-500 hover:underline">Войти</a>
+                {/* New Chat Button */}
+                <button
+                  onClick={startNewChat}
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl mb-4 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span className="font-medium">Новый чат</span>
+                </button>
+
+                {/* Chat History */}
+                {chatSessions.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-2">История чатов</h3>
+                    <div className="space-y-2">
+                      {chatSessions.map((session) => (
+                        <button
+                          key={session.id}
+                          onClick={() => openSession(session)}
+                          className="w-full flex items-start gap-3 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-left transition-colors"
+                        >
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            session.is_support ? "bg-blue-100 text-blue-600" : "bg-orange-100 text-orange-600"
+                          }`}>
+                            {session.is_support ? (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-900 truncate">
+                                {session.title}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                {formatDate(session.created_at)}
+                              </span>
+                            </div>
+                            {session.last_message && (
+                              <p className="text-xs text-gray-500 truncate mt-0.5">
+                                {session.last_message}
+                              </p>
+                            )}
+                            {session.is_support && session.status === "closed" && (
+                              <span className="text-xs text-gray-400">Завершён</span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  <>
-                    {/* New Chat Button */}
-                    <button
-                      onClick={startNewChat}
-                      className="w-full flex items-center gap-3 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl mb-4 transition-colors"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      <span className="font-medium">Новый чат</span>
-                    </button>
+                )}
 
-                    {/* Chat History */}
-                    {chatSessions.length > 0 && (
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-500 mb-2">История чатов</h3>
-                        <div className="space-y-2">
-                          {chatSessions.map((session) => (
-                            <button
-                              key={session.id}
-                              onClick={() => openSession(session)}
-                              className="w-full flex items-start gap-3 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-lg text-left transition-colors"
-                            >
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                                session.is_support ? "bg-blue-100 text-blue-600" : "bg-orange-100 text-orange-600"
-                              }`}>
-                                {session.is_support ? (
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" />
-                                  </svg>
-                                ) : (
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                  </svg>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-sm font-medium text-gray-900 truncate">
-                                    {session.title}
-                                  </span>
-                                  <span className="text-xs text-gray-400">
-                                    {formatDate(session.created_at)}
-                                  </span>
-                                </div>
-                                {session.last_message && (
-                                  <p className="text-xs text-gray-500 truncate mt-0.5">
-                                    {session.last_message}
-                                  </p>
-                                )}
-                                {session.is_support && session.status === "closed" && (
-                                  <span className="text-xs text-gray-400">Завершён</span>
-                                )}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {chatSessions.length === 0 && (
-                      <p className="text-center text-gray-400 text-sm py-4">
-                        Начните новый чат с AI-ассистентом
-                      </p>
-                    )}
-                  </>
+                {chatSessions.length === 0 && (
+                  <p className="text-center text-gray-400 text-sm py-4">
+                    Начните новый чат с AI-ассистентом
+                  </p>
                 )}
               </div>
             )}

@@ -6,13 +6,25 @@ export async function GET() {
   try {
     const supabase = getSupabaseAdmin();
 
+    // Получаем цену подписки из настроек
+    let subscriptionPrice = 499; // дефолтное значение
+    const { data: priceSetting } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("id", "subscription_price")
+      .single();
+
+    if (priceSetting?.value && typeof priceSetting.value === 'object' && 'price' in priceSetting.value) {
+      subscriptionPrice = (priceSetting.value as { price: number }).price;
+    }
+
     const { data: discountSetting } = await supabase
       .from("site_settings")
       .select("value")
       .eq("id", "first_purchase_discount")
       .single();
 
-    const regularPrice = 799;
+    const regularPrice = subscriptionPrice;
     let discountEnabled = false;
     let discountPercent = 0;
 
@@ -36,8 +48,8 @@ export async function GET() {
     return NextResponse.json({
       enabled: false,
       percent: 0,
-      regular_price: 799,
-      discounted_price: 799,
+      regular_price: 499,
+      discounted_price: 499,
     });
   }
 }

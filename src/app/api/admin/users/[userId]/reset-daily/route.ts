@@ -44,23 +44,79 @@ export async function POST(
 
     const { userId } = await params;
 
-    // Reset daily_used to 0
-    const { error: updateError } = await supabase
-      .from("user_subscription_status")
-      .update({ daily_used: 0 })
-      .eq("user_id", userId);
+    // First check if record exists
+    const { data: existingRecord, error: checkError } = await supabase
+      .from("user_request_limits")
+      .select("user_id, daily_used, daily_limit")
+      .eq("user_id", userId)
+      .single();
+
+    // If record doesn't exist, create it first
+    if (checkError && checkError.code === 'PGRST116') {
+      console.log("[Reset Daily] Record doesn't exist, creating...");
+      const { error: insertError } = await supabase
+        .from("user_request_limits")
+        .insert({
+          user_id: userId,
+          daily_limit: 15, // Default Pro Trial limit
+          daily_used: 0,
+          daily_reset_at: new Date().toISOString().split('T')[0],
+          bonus_requests: 0,
+        });
+
+      if (insertError) {
+        console.error("[Reset Daily] Error creating record:", insertError);
+        return NextResponse.json(
+          { error: "Failed to create user request limits" },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Created new record with daily_used = 0",
+      });
+    }
+
+    if (checkError) {
+      console.error("[Reset Daily] Error checking record:", checkError);
+      return NextResponse.json(
+        { error: "Database error" },
+        { status: 500 }
+      );
+    }
+
+    console.log("[Reset Daily] Existing record:", existingRecord);
+
+    // Reset daily_used to 0 - update the actual table, not the view
+    const { data: updateData, error: updateError, count } = await supabase
+      .from("user_request_limits")
+      .update({ daily_used: 0, daily_reset_at: new Date().toISOString().split('T')[0] })
+      .eq("user_id", userId)
+      .select();
+
+    console.log("[Reset Daily] Update result:", { data: updateData, error: updateError, count });
 
     if (updateError) {
-      console.error("Error resetting daily_used:", updateError);
+      console.error("[Reset Daily] Error resetting daily_used:", updateError);
       return NextResponse.json(
-        { error: "Failed to reset daily usage" },
+        { error: updateError.message || "Failed to reset daily usage" },
         { status: 500 }
+      );
+    }
+
+    // Check if update succeeded by verifying the data
+    if (!updateData || updateData.length === 0) {
+      return NextResponse.json(
+        { error: "No rows were updated - user may not exist" },
+        { status: 404 }
       );
     }
 
     return NextResponse.json({
       success: true,
       message: "Daily usage reset to 0",
+      previous_used: existingRecord?.daily_used,
     });
   } catch (error) {
     console.error("Error in reset daily:", error);

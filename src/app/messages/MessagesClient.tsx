@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Header from "@/components/landing/Header";
+import AppHeader from "@/components/app/Header";
 import { supabase } from "@/lib/supabase";
 import {
   getConversations,
@@ -212,8 +212,8 @@ export default function MessagesPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="pt-24 flex items-center justify-center">
+        <AppHeader />
+        <div className="pt-20 sm:pt-24 flex items-center justify-center">
           <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
         </div>
       </div>
@@ -222,9 +222,9 @@ export default function MessagesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <AppHeader />
 
-      <main className="pt-16 sm:pt-20 h-screen">
+      <main className="pt-20 sm:pt-24 h-screen">
         <div className="max-w-6xl mx-auto h-[calc(100vh-4rem)] sm:h-[calc(100vh-5rem)] flex">
           {/* Sidebar - conversation list */}
           <aside className={`${

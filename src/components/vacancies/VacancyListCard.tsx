@@ -157,7 +157,7 @@ export default function VacancyListCard({ vacancy, currentUserId }: VacancyListC
   const gradeLabel = isPlatform ? getGradeLevelLabel(vacancy.grade_level) : "";
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-5 hover:shadow-lg hover:border-orange-200 transition-all duration-200 group">
+    <div className="bg-white rounded-2xl border border-gray-200 p-5 hover:shadow-lg hover:border-orange-200 transition-all duration-200 group/card">
       {/* Header row */}
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="flex-1">
@@ -165,7 +165,7 @@ export default function VacancyListCard({ vacancy, currentUserId }: VacancyListC
           {isPlatform ? (
             <Link
               href={vacancyLink}
-              className="text-lg font-semibold text-gray-900 group-hover:text-orange-600 transition-colors"
+              className="text-lg font-semibold text-gray-900 group-hover/card:text-orange-600 transition-colors"
             >
               {vacancy.title}
             </Link>
@@ -174,7 +174,7 @@ export default function VacancyListCard({ vacancy, currentUserId }: VacancyListC
               href={vacancyLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-lg font-semibold text-gray-900 group-hover:text-orange-600 transition-colors"
+              className="text-lg font-semibold text-gray-900 group-hover/card:text-orange-600 transition-colors"
             >
               {vacancy.title}
             </a>

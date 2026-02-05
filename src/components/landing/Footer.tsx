@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useAuth } from "@/lib/useAuth";
 import { motion } from "framer-motion";
 
@@ -15,7 +16,7 @@ export default function Footer({ mode = "jobseeker" }: FooterProps) {
       title: "Хватит тратить время на поиск работы",
       subtitle: "Зарегистрируйся за 30 секунд и получи первые вакансии через 5 минут. Бесплатно.",
       cta: user ? "Перейти к поиску" : "Начать бесплатно",
-      microCopy: "7 дней Pro • Без карты • Отменить можно всегда",
+      microCopy: "3 дня Pro • Без карты • Отменить можно всегда",
       ctaLink: user ? "/chat" : "/auth",
     },
     employer: {
@@ -87,7 +88,13 @@ export default function Footer({ mode = "jobseeker" }: FooterProps) {
           }}
         >
           <p>Контакты: help@jobaisearch.ru</p>
-          <p className="mt-2">2026 Job Search. Все права защищены.</p>
+          <p className="mt-2">
+            <Link href="/privacy" className="hover:text-gray-700 transition-colors">
+              Конфиденциальность
+            </Link>
+            {" • "}
+            2026 Job Search. Все права защищены.
+          </p>
         </div>
       </div>
     </footer>
