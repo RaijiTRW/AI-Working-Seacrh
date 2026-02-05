@@ -108,8 +108,9 @@ function SuccessContent() {
     }
 
     if (!paymentId) {
-      setStatus("success");
-      setMessage("Спасибо за покупку!");
+      // Нет payment_id - значит платеж не был завершен (пользователь закрыл окно оплаты)
+      setStatus("canceled");
+      setMessage("Платёж не был завершён");
       return;
     }
 

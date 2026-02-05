@@ -55,8 +55,14 @@ export async function POST(request: NextRequest) {
       discountPercent = discountSetting.value.discount_percent || 0;
     }
 
-    // Рассчитываем цену
-    const regularPrice = 499;
+    // Получаем цену подписки из настроек
+    const { data: priceSetting } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("id", "subscription_price")
+      .single();
+
+    const regularPrice = priceSetting?.value?.price || 499;
     const applyDiscount = isFirstPurchase && discountEnabled && discountPercent > 0;
     const finalPrice = applyDiscount
       ? Math.round(regularPrice * (1 - discountPercent / 100))
