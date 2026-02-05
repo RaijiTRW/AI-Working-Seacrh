@@ -311,4 +311,10 @@ Write-Host "New: $newVersion"
 Write-Host "Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 Write-Host "========================================"
 
+# Cleanup: Restore git credential helper
+Write-Host ""
+Write-Host "Cleaning up git configuration..."
+& git config --local --unset credential.helper 2>&1 | Out-Null
+Write-Host "Git credential helper reset"
+
 exit 0
