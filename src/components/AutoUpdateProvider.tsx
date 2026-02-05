@@ -7,16 +7,37 @@ interface AutoUpdateProviderProps {
   checkInterval?: number; // Интервал проверки в миллисекундах (по умолчанию 2 минуты)
 }
 
+const STORAGE_KEY = "client_version";
+
 export default function AutoUpdateProvider({ 
   children, 
   checkInterval = 120000 
 }: AutoUpdateProviderProps) {
   const [showUpdate, setShowUpdate] = useState(false);
-  const [currentVersion, setCurrentVersion] = useState<string>("");
-  const [newVersion, setNewVersion] = useState<string>("");
+  const [serverVersion, setServerVersion] = useState<string>("");
+  const [clientVersion, setClientVersion] = useState<string>("");
 
   useEffect(() => {
     let mounted = true;
+
+    // Получаем версию клиента из localStorage (сохраняем при загрузке страницы)
+    const getClientVersion = (): string => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        return stored || "";
+      } catch {
+        return "";
+      }
+    };
+
+    // Сохраняем версию клиента
+    const setClientVersionStored = (version: string) => {
+      try {
+        localStorage.setItem(STORAGE_KEY, version);
+      } catch (error) {
+        console.error("Failed to save client version:", error);
+      }
+    };
 
     // Функция проверки новой версии
     const checkForUpdates = async () => {
@@ -25,18 +46,30 @@ export default function AutoUpdateProvider({
         if (!response.ok) return;
 
         const data = await response.json();
-        const serverVersion = data.version || data.commit || "";
+        const newServerVersion = data.version || data.commit || "";
         
-        // Сохраняем текущую версию при первой проверке
-        if (!currentVersion && serverVersion) {
-          if (mounted) setCurrentVersion(serverVersion);
+        // Сохраняем версию сервера
+        if (mounted) {
+          setServerVersion(newServerVersion);
+        }
+
+        // Получаем текущую версию клиента
+        const currentClientVersion = getClientVersion();
+        if (mounted) {
+          setClientVersion(currentClientVersion);
+        }
+
+        // Если версии совпадают, скрываем уведомление
+        if (newServerVersion === currentClientVersion) {
+          if (mounted) {
+            setShowUpdate(false);
+          }
           return;
         }
 
-        // Проверяем, изменилась ли версия
-        if (serverVersion && serverVersion !== currentVersion) {
+        // Если версии разные, показываем уведомление
+        if (newServerVersion !== currentClientVersion) {
           if (mounted) {
-            setNewVersion(serverVersion);
             setShowUpdate(true);
           }
         }
@@ -44,6 +77,12 @@ export default function AutoUpdateProvider({
         console.error("Failed to check for updates:", error);
       }
     };
+
+    // Сохраняем текущую версию клиента при первой загрузке
+    const initialClientVersion = getClientVersion();
+    if (initialClientVersion) {
+      setClientVersion(initialClientVersion);
+    }
 
     // Первая проверка сразу
     checkForUpdates();
@@ -55,14 +94,30 @@ export default function AutoUpdateProvider({
       mounted = false;
       clearInterval(intervalId);
     };
-  }, [checkInterval, currentVersion]);
+  }, [checkInterval]);
 
   const handleReload = () => {
-    // Перезагружаем страницу с очисткой кэша
+    // Сохраняем новую версию перед перезагрузкой
+    if (serverVersion) {
+      try {
+        localStorage.setItem(STORAGE_KEY, serverVersion);
+      } catch (error) {
+        console.error("Failed to save client version:", error);
+      }
+    }
+    // Перезагружаем страницу
     window.location.reload();
   };
 
   const handleDismiss = () => {
+    // При закрытии обновляем версию клиента
+    if (serverVersion) {
+      try {
+        localStorage.setItem(STORAGE_KEY, serverVersion);
+      } catch (error) {
+        console.error("Failed to save client version:", error);
+      }
+    }
     setShowUpdate(false);
   };
 

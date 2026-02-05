@@ -18,4 +18,4 @@ jobs:
           port: ${{ secrets.VDS_PORT }}
           command_timeout: 30m
           script: |
-            powershell -ExecutionPolicy Bypass -Command "$env:GH_DEPLOY_TOKEN='${{ secrets.GH_DEPLOY_TOKEN }}'; & 'C:\apps\AI-Working-Seacrh\scripts\deploy-windows.ps1'"
+            powershell -ExecutionPolicy Bypass -Command "$env:GH_DEPLOY_TOKEN='${{ secrets.GH_DEPLOY_TOKEN }}'; & 'C:\apps\AI-Working-Seacrh\scripts\deploy-remote.ps1'"
