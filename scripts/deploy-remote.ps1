@@ -1,6 +1,6 @@
-# JobAI Deploy Script (FIXED VERSION)
+# JobAI Deploy Script (FIXED VERSION 2)
 # Called by GitHub Actions via SSH
-# This version fixes git authentication issues
+# This version fixes git stderr handling issues
 
 param(
     [string]$AppDir = "C:\apps\AI-Working-Seacrh"
@@ -111,7 +111,7 @@ Write-Host "  Configuring git credentials..."
 
 $repoUrl = "https://${gitToken}@github.com/RaijiTRW/AI-Working-Seacrh.git"
 Write-Host "  Setting remote URL with token..."
-& git remote set-url origin $repoUrl 2>&1
+& git remote set-url origin $repoUrl 2>&1 | Out-Null
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: Failed to set git remote URL"
     & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
@@ -134,37 +134,49 @@ if ($gitToken.Length -eq 0) {
     exit 1
 }
 
-# Fetch with error checking
+# Fetch with error checking - FIXED to handle stderr properly
 Write-Host "  Running git fetch..."
 Write-Host "  Fetching from origin/main..."
 
-# Try a simpler fetch first (just origin main)
-$fetchOutput = & git fetch origin main 2>&1
-$fetchExitCode = $LASTEXITCODE
+# Use try-catch to handle PowerShell's stderr interpretation
+try {
+    # Redirect stderr to stdout to prevent PowerShell from treating it as an error
+    $fetchOutput = cmd /c "git fetch origin main 2>&1" 2>&1
+    $fetchExitCode = $LASTEXITCODE
 
-Write-Host "  Fetch output:"
-Write-Host $fetchOutput
+    Write-Host "  Fetch output:"
+    Write-Host $fetchOutput
 
-if ($fetchExitCode -ne 0) {
-    Write-Host "ERROR: git fetch failed with exit code $fetchExitCode"
+    if ($fetchExitCode -ne 0) {
+        Write-Host "ERROR: git fetch failed with exit code $fetchExitCode"
+        Write-Host ""
+        Write-Host "Debugging information:"
+        Write-Host "  Git version: $(git --version 2>&1)"
+        Write-Host "  Remote URL: $(git remote get-url origin 2>&1)"
+        Write-Host "  Current branch: $(git branch --show-current 2>&1)"
+        Write-Host ""
+        Write-Host "Common causes:"
+        Write-Host "  1. GH_DEPLOY_TOKEN is invalid or expired"
+        Write-Host "  2. Token lacks 'repo' permissions"
+        Write-Host "  3. Repository is private and token doesn't have access"
+        Write-Host "  4. Network connectivity issues"
+        Write-Host ""
+        Write-Host "Please check your GitHub Actions secrets and try again."
+        & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+        exit 1
+    }
+
+    Write-Host "  Fetch successful!"
+} catch {
+    Write-Host "ERROR: Exception during git fetch: $_"
     Write-Host ""
     Write-Host "Debugging information:"
     Write-Host "  Git version: $(git --version 2>&1)"
     Write-Host "  Remote URL: $(git remote get-url origin 2>&1)"
     Write-Host "  Current branch: $(git branch --show-current 2>&1)"
-    Write-Host ""
-    Write-Host "Common causes:"
-    Write-Host "  1. GH_DEPLOY_TOKEN is invalid or expired"
-    Write-Host "  2. Token lacks 'repo' permissions"
-    Write-Host "  3. Repository is private and token doesn't have access"
-    Write-Host "  4. Network connectivity issues"
-    Write-Host ""
-    Write-Host "Please check your GitHub Actions secrets and try again."
     & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
     exit 1
 }
-
-Write-Host "  Fetch successful!"
 
 # Show what origin/main points to
 $remoteHead = git rev-parse --short origin/main 2>&1
@@ -172,10 +184,19 @@ Write-Host "  Remote origin/main: $remoteHead"
 
 # Reset with error checking
 Write-Host "  Running git reset --hard origin/main..."
-$resetOutput = & git reset --hard origin/main 2>&1
-Write-Host $resetOutput
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: git reset failed with exit code $LASTEXITCODE"
+try {
+    $resetOutput = cmd /c "git reset --hard origin/main 2>&1" 2>&1
+    $resetExitCode = $LASTEXITCODE
+
+    Write-Host $resetOutput
+
+    if ($resetExitCode -ne 0) {
+        Write-Host "ERROR: git reset failed with exit code $resetExitCode"
+        & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+        exit 1
+    }
+} catch {
+    Write-Host "ERROR: Exception during git reset: $_"
     & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
     exit 1
 }
