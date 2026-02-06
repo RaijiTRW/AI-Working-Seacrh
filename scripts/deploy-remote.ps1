@@ -1,5 +1,6 @@
-# JobAI Deploy Script
+# JobAI Deploy Script (FIXED VERSION)
 # Called by GitHub Actions via SSH
+# This version fixes git authentication issues
 
 param(
     [string]$AppDir = "C:\apps\AI-Working-Seacrh"
@@ -103,6 +104,11 @@ if (-not $gitToken) {
     exit 1
 }
 
+# Disable credential helpers to avoid conflicts
+Write-Host "  Configuring git credentials..."
+& git config --local --unset credential.helper 2>&1 | Out-Null
+& git config --local credential.helper "" 2>&1 | Out-Null
+
 $repoUrl = "https://${gitToken}@github.com/RaijiTRW/AI-Working-Seacrh.git"
 Write-Host "  Setting remote URL with token..."
 & git remote set-url origin $repoUrl 2>&1
@@ -121,16 +127,44 @@ Write-Host "[4/9] Pulling latest code..."
 Write-Host "  Git remote: $(git remote get-url origin)"
 Write-Host "  Current HEAD: $(git rev-parse --short HEAD 2>&1)"
 
-# Fetch with error checking
-Write-Host "  Running git fetch..."
-$fetchOutput = & git fetch --all --prune 2>&1
-Write-Host $fetchOutput
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: git fetch failed with exit code $LASTEXITCODE"
-    Write-Host "This usually means git credentials are not configured on the server."
+# Verify token is not empty
+if ($gitToken.Length -eq 0) {
+    Write-Host "ERROR: GH_DEPLOY_TOKEN is empty!"
     & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
     exit 1
 }
+
+# Fetch with error checking
+Write-Host "  Running git fetch..."
+Write-Host "  Fetching from origin/main..."
+
+# Try a simpler fetch first (just origin main)
+$fetchOutput = & git fetch origin main 2>&1
+$fetchExitCode = $LASTEXITCODE
+
+Write-Host "  Fetch output:"
+Write-Host $fetchOutput
+
+if ($fetchExitCode -ne 0) {
+    Write-Host "ERROR: git fetch failed with exit code $fetchExitCode"
+    Write-Host ""
+    Write-Host "Debugging information:"
+    Write-Host "  Git version: $(git --version 2>&1)"
+    Write-Host "  Remote URL: $(git remote get-url origin 2>&1)"
+    Write-Host "  Current branch: $(git branch --show-current 2>&1)"
+    Write-Host ""
+    Write-Host "Common causes:"
+    Write-Host "  1. GH_DEPLOY_TOKEN is invalid or expired"
+    Write-Host "  2. Token lacks 'repo' permissions"
+    Write-Host "  3. Repository is private and token doesn't have access"
+    Write-Host "  4. Network connectivity issues"
+    Write-Host ""
+    Write-Host "Please check your GitHub Actions secrets and try again."
+    & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
+    exit 1
+}
+
+Write-Host "  Fetch successful!"
 
 # Show what origin/main points to
 $remoteHead = git rev-parse --short origin/main 2>&1
