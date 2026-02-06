@@ -37,6 +37,11 @@ export async function PUT(
       value = {
         price: Math.min(999999, Math.max(1, body.price || 499)),
       };
+    } else if ("count" in body) {
+      // Количество дополнительных запросов
+      value = {
+        count: Math.min(1000, Math.max(1, body.count || 10)),
+      };
     } else if ("discount_percent" in body) {
       // Числовой тип для скидки
       value = {

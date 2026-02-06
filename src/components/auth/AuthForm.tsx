@@ -215,6 +215,27 @@ export default function AuthForm() {
     setError("");
   };
 
+  const handleForgotPassword = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+
+      if (error) throw error;
+
+      setError("");
+      alert("Отправили ссылку для сброса пароля на " + email);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ошибка отправки");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col justify-center h-full p-8 lg:p-12">
       <div className="max-w-sm mx-auto w-full">
@@ -353,6 +374,18 @@ export default function AuthForm() {
                     )}
                   </button>
                 </div>
+                {mode === "login" && !switchEmail && (
+                  <div className="text-right mt-2">
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      disabled={loading || !email}
+                      className="text-sm text-orange-500 hover:text-orange-600 disabled:opacity-50"
+                    >
+                      Забыли пароль?
+                    </button>
+                  </div>
+                )}
               </div>
 
               {error && <p className="text-red-500 text-sm">{error}</p>}

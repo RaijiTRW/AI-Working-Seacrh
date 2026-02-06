@@ -23,9 +23,10 @@ import {
 import SchedulerTab from "@/components/admin/SchedulerTab";
 import SupportChatTab from "@/components/admin/SupportChatTab";
 import ModerationTab from "@/components/admin/ModerationTab";
+import ChatHistoryTab from "@/components/admin/ChatHistoryTab";
 import AppHeader from "@/components/app/Header";
 
-type Tab = "stats" | "users" | "settings" | "scheduler" | "support" | "moderation";
+type Tab = "stats" | "users" | "settings" | "scheduler" | "support" | "moderation" | "chats";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -294,6 +295,12 @@ export default function AdminPage() {
   // Обработка цены подписки
   const [priceInput, setPriceInput] = useState<string>("");
 
+  // Обработка цены дополнительных запросов
+  const [extraRequestsPriceInput, setExtraRequestsPriceInput] = useState<string>("");
+
+  // Обработка количества дополнительных запросов
+  const [extraRequestsCountInput, setExtraRequestsCountInput] = useState<string>("");
+
   const handleUpdatePrice = async (setting: SiteSetting, newPrice: number) => {
     if (!token) return;
     try {
@@ -312,6 +319,25 @@ export default function AdminPage() {
       fetchSettings();
     } catch (e) {
       console.error("Failed to update price:", e);
+    }
+  };
+
+  const handleUpdateExtraRequestsCount = async (setting: SiteSetting, newCount: number) => {
+    if (!token) return;
+    try {
+      await fetch(`/api/admin/settings/${setting.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          value: { count: newCount },
+        }),
+      });
+      fetchSettings();
+    } catch (e) {
+      console.error("Failed to update extra requests count:", e);
     }
   };
 
@@ -353,6 +379,7 @@ export default function AdminPage() {
           {[
             { id: "stats" as Tab, label: "Статистика" },
             { id: "users" as Tab, label: "Пользователи" },
+            { id: "chats" as Tab, label: "Чаты" },
             { id: "support" as Tab, label: "Чат поддержки" },
             { id: "moderation" as Tab, label: "Модерация вакансий" },
             { id: "settings" as Tab, label: "Настройки" },
@@ -587,7 +614,7 @@ export default function AdminPage() {
           <div className="space-y-4">
             {/* Обычные настройки */}
             <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-200">
-              {settings.filter(s => s.id !== "first_purchase_discount" && s.id !== "subscription_price").map((setting) => {
+              {settings.filter(s => s.id !== "first_purchase_discount" && s.id !== "subscription_price" && s.id !== "extra_requests_price" && s.id !== "extra_requests_count").map((setting) => {
                 // Type guard: ensure this setting has 'enabled' property
                 const isEnabled = 'enabled' in setting.value ? setting.value.enabled : false;
                 return (
@@ -770,6 +797,134 @@ export default function AdminPage() {
                 );
               })()}
             </div>
+
+            {/* Настройка цены дополнительных запросов */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <h3 className="font-medium text-gray-900 mb-4">Цена дополнительных запросов</h3>
+              {(() => {
+                const priceSetting = settings.find(s => s.id === "extra_requests_price");
+                const countSetting = settings.find(s => s.id === "extra_requests_count");
+                if (!priceSetting) {
+                  return (
+                    <div className="text-sm text-gray-500">
+                      Настройка не найдена. Добавьте запись &quot;extra_requests_price&quot; в таблицу site_settings.
+                    </div>
+                  );
+                }
+                const currentPrice = typeof priceSetting.value === 'object' && 'price' in priceSetting.value
+                  ? (priceSetting.value as { price: number }).price
+                  : 99;
+                const currentCount = countSetting && typeof countSetting.value === 'object' && 'count' in countSetting.value
+                  ? (countSetting.value as { count: number }).count
+                  : 10;
+
+                return (
+                  <div className="space-y-4">
+                    {/* Текущая цена */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm text-gray-600">Текущая цена</div>
+                        <div className="text-2xl font-bold text-gray-900">{currentPrice} ₽ за {currentCount} запросов</div>
+                      </div>
+                    </div>
+
+                    {/* Изменение цены */}
+                    <div>
+                      <label className="text-sm text-gray-600 block mb-2">Новая цена (₽)</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          min="1"
+                          max="99999"
+                          step="1"
+                          value={extraRequestsPriceInput || currentPrice}
+                          onChange={(e) => setExtraRequestsPriceInput(e.target.value)}
+                          className="w-32 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                        <span className="text-gray-500">₽</span>
+                        <button
+                          onClick={() => {
+                            const newPrice = parseInt(extraRequestsPriceInput || String(currentPrice), 10);
+                            if (!isNaN(newPrice) && newPrice >= 1 && newPrice <= 99999) {
+                              handleUpdatePrice(priceSetting, newPrice);
+                              setExtraRequestsPriceInput("");
+                            }
+                          }}
+                          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                        >
+                          Сохранить
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Цена будет обновлена на странице подписки и при оплате через YooKassa
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Настройка количества дополнительных запросов */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <h3 className="font-medium text-gray-900 mb-4">Количество дополнительных запросов</h3>
+              {(() => {
+                const countSetting = settings.find(s => s.id === "extra_requests_count");
+                if (!countSetting) {
+                  return (
+                    <div className="text-sm text-gray-500">
+                      Настройка не найдена. Добавьте запись &quot;extra_requests_count&quot; в таблицу site_settings.
+                    </div>
+                  );
+                }
+                const currentCount = typeof countSetting.value === 'object' && 'count' in countSetting.value
+                  ? (countSetting.value as { count: number }).count
+                  : 10;
+
+                return (
+                  <div className="space-y-4">
+                    {/* Текущее количество */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm text-gray-600">Текущее количество</div>
+                        <div className="text-2xl font-bold text-gray-900">{currentCount} запросов</div>
+                      </div>
+                    </div>
+
+                    {/* Изменение количества */}
+                    <div>
+                      <label className="text-sm text-gray-600 block mb-2">Новое количество</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          min="1"
+                          max="1000"
+                          step="1"
+                          value={extraRequestsCountInput || currentCount}
+                          onChange={(e) => setExtraRequestsCountInput(e.target.value)}
+                          className="w-32 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                        <span className="text-gray-500">шт.</span>
+                        <button
+                          onClick={() => {
+                            const newCount = parseInt(extraRequestsCountInput || String(currentCount), 10);
+                            if (!isNaN(newCount) && newCount >= 1 && newCount <= 1000) {
+                              handleUpdateExtraRequestsCount(countSetting, newCount);
+                              setExtraRequestsCountInput("");
+                            }
+                          }}
+                          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                        >
+                          Сохранить
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Количество запросов будет обновлено на странице подписки и при оплате через YooKassa
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         )}
 
@@ -781,6 +936,11 @@ export default function AdminPage() {
         {/* Support Chat Tab */}
         {activeTab === "support" && token && (
           <SupportChatTab token={token} />
+        )}
+
+        {/* Chats History Tab */}
+        {activeTab === "chats" && token && (
+          <ChatHistoryTab token={token} />
         )}
 
         {/* Moderation Tab */}

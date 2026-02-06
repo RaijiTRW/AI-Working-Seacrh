@@ -43,6 +43,25 @@ export async function POST(request: NextRequest) {
       .eq("user_id", userId)
       .single();
 
+    // Получаем цену дополнительных запросов из настроек
+    const { data: priceSetting } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("id", "extra_requests_price")
+      .single();
+
+    const extraRequestsPrice = priceSetting?.value?.price || 99;
+
+    // Получаем количество дополнительных запросов из настроек
+    const { data: countSetting } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("id", "extra_requests_count")
+      .single();
+
+    const extraRequestsCount = countSetting?.value?.count || 10;
+    const description = `${extraRequestsCount} дополнительных запросов`;
+
     const idempotenceKey = `${userId}-extra-${Date.now()}`;
 
     // Создаем платеж в YooKassa
@@ -54,13 +73,13 @@ export async function POST(request: NextRequest) {
         Authorization: `Basic ${Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET_KEY}`).toString("base64")}`,
       },
       body: JSON.stringify({
-        amount: { value: "99.00", currency: "RUB" },
+        amount: { value: `${extraRequestsPrice}.00`, currency: "RUB" },
         capture: true,
         confirmation: {
           type: "redirect",
           return_url: YOOKASSA_RETURN_URL,
         },
-        description: "10 дополнительных запросов",
+        description,
         metadata: {
           user_id: userId,
           type: "extra_requests",
@@ -70,9 +89,9 @@ export async function POST(request: NextRequest) {
               customer: { email: profile.email },
               items: [
                 {
-                  description: "10 дополнительных запросов",
+                  description,
                   quantity: "1",
-                  amount: { value: "99.00", currency: "RUB" },
+                  amount: { value: `${extraRequestsPrice}.00`, currency: "RUB" },
                   vat_code: 1,
                 },
               ],
@@ -97,12 +116,12 @@ export async function POST(request: NextRequest) {
       user_id: userId,
       yookassa_payment_id: payment.id,
       yookassa_status: payment.status,
-      amount: 99,
+      amount: extraRequestsPrice,
       currency: "RUB",
       type: "extra_requests",
       status: "pending",
       metadata: {
-        description: "10 дополнительных запросов",
+        description,
         created_at: new Date().toISOString(),
       },
     });

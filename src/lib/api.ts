@@ -1395,3 +1395,85 @@ export async function createTrial(token: string): Promise<void> {
     throw new Error("Failed to create trial");
   }
 }
+
+/**
+ * Типы для администрирования чатов
+ */
+export interface AdminChat {
+  id: string;
+  user_id: string;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  email: string;
+  message_count: number;
+}
+
+export interface AdminChatList {
+  chats: AdminChat[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+export interface AdminChatMessage {
+  id: string;
+  chat_id: string;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+  vacancies: any[] | null;
+}
+
+export interface AdminChatDetail {
+  chat: AdminChat;
+  messages: AdminChatMessage[];
+}
+
+/**
+ * Получить список всех чатов (админка)
+ */
+export async function getAdminChats(
+  token: string,
+  page = 1,
+  limit = 50,
+  search?: string
+): Promise<AdminChatList> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+  if (search) params.append("search", search);
+
+  const response = await fetch(`${NEXT_API}/api/admin/chats?${params}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch chats");
+  }
+
+  return response.json();
+}
+
+/**
+ * Получить сообщения конкретного чата (админка)
+ */
+export async function getAdminChatMessages(
+  token: string,
+  chatId: string
+): Promise<AdminChatDetail> {
+  const response = await fetch(`${NEXT_API}/api/admin/chats/${chatId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch chat messages");
+  }
+
+  return response.json();
+}

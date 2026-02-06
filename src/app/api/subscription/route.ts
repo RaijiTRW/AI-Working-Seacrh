@@ -155,6 +155,30 @@ export async function GET(request: NextRequest) {
       subscriptionPrice = (priceSetting.value as { price: number }).price;
     }
 
+    // Получаем цену дополнительных запросов из настроек
+    let extraRequestsPrice = 99; // дефолтное значение
+    const { data: extraPriceSetting } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("id", "extra_requests_price")
+      .single();
+
+    if (extraPriceSetting?.value && typeof extraPriceSetting.value === 'object' && 'price' in extraPriceSetting.value) {
+      extraRequestsPrice = (extraPriceSetting.value as { price: number }).price;
+    }
+
+    // Получаем количество дополнительных запросов из настроек
+    let extraRequestsCount = 10; // дефолтное значение
+    const { data: extraCountSetting } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("id", "extra_requests_count")
+      .single();
+
+    if (extraCountSetting?.value && typeof extraCountSetting.value === 'object' && 'count' in extraCountSetting.value) {
+      extraRequestsCount = (extraCountSetting.value as { count: number }).count;
+    }
+
     // Получаем настройку скидки
     let discountPercent = 0;
     let discountEnabled = false;
@@ -197,8 +221,8 @@ export async function GET(request: NextRequest) {
       prices: {
         subscription: regularPrice,
         subscription_discounted: discountedPrice,
-        extra_requests: 99,
-        extra_requests_count: 10,
+        extra_requests: extraRequestsPrice,
+        extra_requests_count: extraRequestsCount,
       },
       discount: {
         enabled: showDiscount,
