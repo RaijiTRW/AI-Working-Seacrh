@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useSubscriptionContext } from "@/components/subscription";
 
 export default function SubscriptionSection() {
-  const { subscription, loading, checkout, buyExtra } = useSubscriptionContext();
+  const { subscription, loading, checkout, buyExtra, cancelAutoRenewal, refresh } = useSubscriptionContext();
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [canceling, setCanceling] = useState(false);
 
   if (loading) {
     return (
@@ -49,6 +52,16 @@ export default function SubscriptionSection() {
   const handleBuyExtra = async () => {
     const url = await buyExtra();
     if (url) window.location.href = url;
+  };
+
+  const handleCancelAutoRenewal = async () => {
+    setCanceling(true);
+    const success = await cancelAutoRenewal();
+    setCanceling(false);
+    setShowCancelModal(false);
+    if (success) {
+      await refresh();
+    }
   };
 
   return (
@@ -246,6 +259,27 @@ export default function SubscriptionSection() {
             </button>
           )}
 
+          {/* Временно показываем всегда для скриншота YooKassa */}
+          <button
+            onClick={() => setShowCancelModal(true)}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-xl transition-colors border border-red-200"
+          >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+              Отменить автопродление подписки
+            </button>
+
           <Link
             href="/subscription"
             className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors"
@@ -322,6 +356,52 @@ export default function SubscriptionSection() {
           <p className="text-xs text-blue-700/70 mt-3">
             Лента вакансий и чат с работодателями — бесплатно для всех
           </p>
+        </div>
+      )}
+
+      {/* Модальное окно отмены подписки */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              Отменить автопродление подписки?
+            </h3>
+
+            <div className="space-y-3 mb-6 text-sm text-gray-600">
+              <p>После отмены:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>Автопродление подписки будет отключено</li>
+                <li>Сохранённая платёжная карта будет удалена</li>
+                <li>Подписка останется активной до конца оплаченного периода</li>
+                <li>После окончания периода вы перейдёте на бесплатный Base план</li>
+              </ul>
+              <p className="mt-4">
+                <strong>Что вы потеряете после окончания подписки:</strong>
+              </p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>15 AI-запросов в день → 3 запроса в день</li>
+                <li>Поиск в сети (HH, SuperJob, Avito)</li>
+                <li>Возможность докупить запросы</li>
+              </ul>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors"
+                disabled={canceling}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleCancelAutoRenewal}
+                className="flex-1 py-3 px-4 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
+                disabled={canceling}
+              >
+                {canceling ? "Отмена..." : "Отменить подписку"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

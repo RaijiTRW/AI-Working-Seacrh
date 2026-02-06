@@ -12,6 +12,7 @@ interface SubscriptionContextValue {
   refresh: () => Promise<void>;
   checkout: () => Promise<string | null>;
   buyExtra: () => Promise<string | null>;
+  cancelAutoRenewal: () => Promise<boolean>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextValue | null>(null);
@@ -29,11 +30,11 @@ interface SubscriptionProviderProps {
 }
 
 export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
-  const { subscription, loading, error, refresh, checkout, buyExtra } = useSubscription();
+  const { subscription, loading, error, refresh, checkout, buyExtra, cancelAutoRenewal } = useSubscription();
 
   return (
     <SubscriptionContext.Provider
-      value={{ subscription, loading, error, refresh, checkout, buyExtra }}
+      value={{ subscription, loading, error, refresh, checkout, buyExtra, cancelAutoRenewal }}
     >
       {children}
 
