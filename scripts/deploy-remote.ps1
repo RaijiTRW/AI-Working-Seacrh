@@ -1,6 +1,6 @@
-# JobAI Deploy Script (FIXED VERSION 2)
+# JobAI Deploy Script (FIXED VERSION 3)
 # Called by GitHub Actions via SSH
-# This version fixes git stderr handling issues
+# This version fixes npm EPERM errors
 
 param(
     [string]$AppDir = "C:\apps\AI-Working-Seacrh"
@@ -216,14 +216,37 @@ if ($oldVersion -ne "unknown" -and $oldVersion -eq $newVersion) {
     & git log --oneline origin/main -3 2>&1 | Out-Host
 }
 
-# Step 5: Clear ALL caches + delete node_modules
+# Step 5: Clear ALL caches + delete node_modules - AGGRESSIVE VERSION
 Write-Host ""
 Write-Host "[5/9] Clearing ALL caches..."
 $cacheDirs = @(".next", "node_modules", ".turbo", ".swc")
 foreach ($dir in $cacheDirs) {
     if (Test-Path $dir) {
         Write-Host "  Removing $dir..."
-        Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue
+        # Try multiple methods to delete
+        try {
+            Remove-Item -Recurse -Force $dir -ErrorAction Stop
+            Write-Host "    Removed with Remove-Item"
+        } catch {
+            Write-Host "    Remove-Item failed, trying cmd /c rmdir..."
+            try {
+                cmd /c "rmdir /s /q `"$dir`"" 2>&1 | Out-Null
+                Write-Host "    Removed with cmd /c rmdir"
+            } catch {
+                Write-Host "    cmd /c rmdir failed, trying robocopy..."
+                try {
+                    # Create empty directory and use robocopy to mirror (delete everything)
+                    $emptyDir = "$env:TEMP\empty_dir_$(Get-Random)"
+                    New-Item -ItemType Directory -Path $emptyDir -Force | Out-Null
+                    robocopy $emptyDir $dir /MIR /R:1 /W:1 /NFL /NDL /NJH /NJS | Out-Null
+                    Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue
+                    Remove-Item -Recurse -Force $emptyDir -ErrorAction SilentlyContinue
+                    Write-Host "    Removed with robocopy"
+                } catch {
+                    Write-Host "    WARNING: Could not remove $dir - $_"
+                }
+            }
+        }
     }
 }
 try {
@@ -233,15 +256,58 @@ try {
 }
 Write-Host "Caches cleared!"
 
-# Step 6: Install dependencies (fresh)
+# Step 6: Install dependencies (fresh) - WITH RETRY
 Write-Host ""
 Write-Host "[6/9] Installing dependencies..."
 $ErrorActionPreference = "Continue"
-& npm ci 2>&1 | Out-Host
-$npmExitCode = $LASTEXITCODE
+
+# Try npm ci first, if fails try npm install
+$npmSuccess = $false
+$maxRetries = 3
+
+for ($retry = 1; $retry -le $maxRetries; $retry++) {
+    Write-Host "  Attempt $retry/$maxRetries..."
+
+    if ($retry -eq 1) {
+        # First try: npm ci
+        & npm ci 2>&1 | Out-Host
+        $npmExitCode = $LASTEXITCODE
+    } else {
+        # Retry with npm install (more tolerant)
+        Write-Host "  npm ci failed, trying npm install..."
+        & npm install --force 2>&1 | Out-Host
+        $npmExitCode = $LASTEXITCODE
+    }
+
+    if ($npmExitCode -eq 0) {
+        $npmSuccess = $true
+        Write-Host "  Dependencies installed successfully!"
+        break
+    } else {
+        Write-Host "  Attempt $retry failed with exit code $npmExitCode"
+        if ($retry -lt $maxRetries) {
+            Write-Host "  Waiting 5 seconds before retry..."
+            Start-Sleep -Seconds 5
+
+            # Additional cleanup before retry
+            Write-Host "  Additional cleanup before retry..."
+            if (Test-Path "node_modules") {
+                try {
+                    Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
+                } catch {
+                    cmd /c "rmdir /s /q node_modules" 2>&1 | Out-Null
+                }
+            }
+        }
+    }
+}
+
 $ErrorActionPreference = "Stop"
-if ($npmExitCode -ne 0) {
-    Write-Host "ERROR: npm ci failed with exit code $npmExitCode"
+
+if (-not $npmSuccess) {
+    Write-Host "ERROR: All npm install attempts failed"
+    Write-Host "This is likely due to file locks (antivirus, Windows Defender, etc.)"
+    Write-Host "Try running the deployment manually on the server."
     try {
         & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
     } catch {}
@@ -345,7 +411,7 @@ if ($sampleChunk) {
     $chunkName = $sampleChunk.Name
     Write-Host "  Sample chunk on disk: $chunkName"
 
-    # Try to fetch the chunk
+    # Try to fetch chunk
     try {
         $chunkUrl = "http://127.0.0.1:3000/_next/static/chunks/$chunkName"
         $chunkResponse = Invoke-WebRequest -Uri $chunkUrl -UseBasicParsing -TimeoutSec 5
