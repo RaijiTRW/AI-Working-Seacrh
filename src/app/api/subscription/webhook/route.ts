@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
           })
           .eq("user_id", userId);
 
-        log.webhook(" Saved payment_method_id for user:", userId, payment.payment_method.id);
+        log.webhook("Saved payment_method_id for user:", { userId, paymentMethodId: payment.payment_method.id });
       }
 
       // Обновляем статус платежа
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
           })
           .eq("user_id", userId);
 
-        log.webhook(" Extra requests added for user:", userId, "count:", extraRequestsCount);
+        log.webhook("Extra requests added for user:", { userId, count: extraRequestsCount });
       }
 
     } else if (body.event === "payment.canceled") {

@@ -131,7 +131,7 @@ export async function GET(
           })
           .eq("user_id", userId);
 
-        log.info("[Check Payment] Saved payment_method_id for user:", userId, payment.payment_method.id);
+        log.info("[Check Payment] Saved payment_method_id for user:", { userId, paymentMethodId: payment.payment_method.id });
       }
 
       // Обрабатываем платеж
