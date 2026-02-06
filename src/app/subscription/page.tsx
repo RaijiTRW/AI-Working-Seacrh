@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import { useSubscription } from "@/lib/useSubscription";
@@ -10,7 +10,9 @@ import AppHeader from "@/components/app/Header";
 export default function SubscriptionPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const { subscription, loading: subLoading, checkout, buyExtra } = useSubscription();
+  const { subscription, loading: subLoading, checkout, buyExtra, cancelAutoRenewal, refresh } = useSubscription();
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [canceling, setCanceling] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -43,11 +45,22 @@ export default function SubscriptionPage() {
           {/* Current subscription */}
           <div>
             {subscription ? (
-              <SubscriptionCard
-                subscription={subscription}
-                onCheckout={checkout}
-                onBuyExtra={buyExtra}
-              />
+              <div>
+                <SubscriptionCard
+                  subscription={subscription}
+                  onCheckout={checkout}
+                  onBuyExtra={buyExtra}
+                />
+                {/* Кнопка отмены подписки для Pro с автопродлением */}
+                {subscription.is_pro && subscription.has_saved_payment_method && (
+                  <button
+                    onClick={() => setShowCancelModal(true)}
+                    className="mt-4 w-full py-3 px-4 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-xl transition-colors text-sm"
+                  >
+                    Отменить автопродление подписки
+                  </button>
+                )}
+              </div>
             ) : (
               <div className="bg-white rounded-2xl shadow-lg p-6">
                 <p className="text-gray-500 text-center">
@@ -261,6 +274,60 @@ export default function SubscriptionPage() {
             </div>
           </div>
         </div>
+
+        {/* Модальное окно отмены подписки */}
+        {showCancelModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Отменить автопродление подписки?
+              </h3>
+
+              <div className="space-y-3 mb-6 text-sm text-gray-600">
+                <p>После отмены:</p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>Автопродление подписки будет отключено</li>
+                  <li>Сохранённая платёжная карта будет удалена</li>
+                  <li>Подписка останется активной до конца оплаченного периода</li>
+                  <li>После окончания периода вы перейдёте на бесплатный Base план</li>
+                </ul>
+                <p className="mt-4">
+                  <strong>Что вы потеряете после окончания подписки:</strong>
+                </p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>15 AI-запросов в день → 3 запроса в день</li>
+                  <li>Поиск в сети (HH, SuperJob, Avito)</li>
+                  <li>Возможность докупить запросы</li>
+                </ul>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="flex-1 py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors"
+                  disabled={canceling}
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={async () => {
+                    setCanceling(true);
+                    const success = await cancelAutoRenewal();
+                    setCanceling(false);
+                    setShowCancelModal(false);
+                    if (success) {
+                      await refresh();
+                    }
+                  }}
+                  className="flex-1 py-3 px-4 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-colors disabled:opacity-50"
+                  disabled={canceling}
+                >
+                  {canceling ? "Отмена..." : "Отменить подписку"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

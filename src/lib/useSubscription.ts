@@ -8,6 +8,7 @@ import {
   createSubscriptionCheckout,
   buyExtraRequests,
   createTrial,
+  cancelAutoRenewal,
   type SubscriptionInfo,
 } from "./api";
 
@@ -19,6 +20,7 @@ interface UseSubscriptionReturn {
   checkout: () => Promise<string | null>;
   buyExtra: () => Promise<string | null>;
   initTrial: () => Promise<boolean>;
+  cancelAutoRenewal: () => Promise<boolean>;
 }
 
 // Дефолтные значения когда API недоступен
@@ -41,6 +43,7 @@ const DEFAULT_SUBSCRIPTION: SubscriptionInfo = {
     extra_requests: 99,
     extra_requests_count: 10,
   },
+  has_saved_payment_method: false,
 };
 
 export function useSubscription(): UseSubscriptionReturn {
@@ -166,6 +169,25 @@ export function useSubscription(): UseSubscriptionReturn {
     }
   }, [fetchSubscription]);
 
+  // Отменить автопродление подписки
+  const cancelAutoRenewalCallback = useCallback(async (): Promise<boolean> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setError("Нет активной сессии");
+        return false;
+      }
+
+      await cancelAutoRenewal(session.access_token);
+      await fetchSubscription();
+      return true;
+    } catch (err) {
+      console.error("[useSubscription] cancelAutoRenewal error:", err);
+      setError(err instanceof Error ? err.message : "Ошибка отмены автопродления");
+      return false;
+    }
+  }, [fetchSubscription]);
+
   return {
     subscription,
     loading,
@@ -174,5 +196,6 @@ export function useSubscription(): UseSubscriptionReturn {
     checkout,
     buyExtra,
     initTrial,
+    cancelAutoRenewal: cancelAutoRenewalCallback,
   };
 }

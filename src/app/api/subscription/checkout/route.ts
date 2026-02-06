@@ -75,15 +75,6 @@ export async function POST(request: NextRequest) {
       ? `Job AI Search — Pro подписка на 1 месяц (скидка ${discountPercent}%). Ежемесячная подписка с автопродлением.`
       : "Job AI Search — Pro подписка на 1 месяц. Ежемесячная подписка с автопродлением.";
 
-    // Проверяем есть ли сохранённый платёжный метод
-    const { data: existingProfile } = await supabase
-      .from("profiles")
-      .select("yookassa_payment_method_id")
-      .eq("user_id", userId)
-      .single();
-
-    const savedPaymentMethodId = existingProfile?.yookassa_payment_method_id;
-
     // Создаем платеж в YooKassa
     const response = await fetch("https://api.yookassa.ru/v3/payments", {
       method: "POST",
@@ -95,19 +86,13 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         amount: { value: `${finalPrice}.00`, currency: "RUB" },
         capture: true,
-        confirmation: savedPaymentMethodId ? undefined : {
+        confirmation: {
           type: "redirect",
           return_url: YOOKASSA_RETURN_URL,
         },
         description,
-        // Сохраняем платёжный метод для автосписания (только для первого платежа)
-        save_payment_method: !savedPaymentMethodId,
-        // Используем сохранённый метод если есть
-        payment_method_id: savedPaymentMethodId || undefined,
-        // Автосписание через сохранённый метод
-        payment_method_data: savedPaymentMethodId ? undefined : {
-          type: "bank_card",
-        },
+        // Сохраняем платёжный метод для будущих автосписаний
+        save_payment_method: true,
         metadata: {
           user_id: userId,
           type: "subscription",
@@ -115,7 +100,7 @@ export async function POST(request: NextRequest) {
           discount_applied: applyDiscount,
           discount_percent: applyDiscount ? discountPercent : 0,
           original_price: regularPrice,
-          auto_renewal: true, // Флаг для автосписания
+          auto_renewal: true,
         },
         receipt: profile?.email
           ? {

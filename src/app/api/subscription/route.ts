@@ -201,6 +201,15 @@ export async function GET(request: NextRequest) {
       ? Math.round(regularPrice * (1 - discountPercent / 100))
       : regularPrice;
 
+    // Проверяем есть ли сохранённый платёжный метод
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("yookassa_payment_method_id")
+      .eq("user_id", userId)
+      .single();
+
+    const hasSavedPaymentMethod = !!profileData?.yookassa_payment_method_id;
+
     return NextResponse.json({
       subscription: subscription ? {
         ...subscription,
@@ -229,6 +238,7 @@ export async function GET(request: NextRequest) {
         percent: showDiscount ? discountPercent : 0,
         is_first_purchase: isFirstPurchase,
       },
+      has_saved_payment_method: hasSavedPaymentMethod,
     });
   } catch (e) {
     console.error("[Subscription] Exception:", e);

@@ -1257,6 +1257,7 @@ export interface SubscriptionInfo {
   is_pro_expired: boolean;     // Платная Pro подписка истекла
   prices: SubscriptionPrices;
   discount?: DiscountInfo;     // Информация о скидке на первую покупку
+  has_saved_payment_method?: boolean; // Есть ли сохранённый платёжный метод для автосписания
 }
 
 export interface CheckoutResponse {
@@ -1393,6 +1394,22 @@ export async function createTrial(token: string): Promise<void> {
 
   if (!response.ok) {
     throw new Error("Failed to create trial");
+  }
+}
+
+/**
+ * Отменить автопродление подписки
+ */
+export async function cancelAutoRenewal(token: string): Promise<void> {
+  const response = await fetch(`${NEXT_API}/api/subscription/cancel-auto-renewal`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to cancel auto renewal");
   }
 }
 
