@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { ArrowLeft, CheckCircle } from "lucide-react";
 
-export default function EmailChangeConfirmationPage() {
+function EmailChangeConfirmationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -120,5 +120,13 @@ export default function EmailChangeConfirmationPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function EmailChangeConfirmationPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center h-full">Загрузка...</div>}>
+      <EmailChangeConfirmationContent />
+    </Suspense>
   );
 }
