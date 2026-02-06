@@ -376,7 +376,7 @@ export default function ChatPage() {
       }
       // Игнорируем ошибку если запрос был отменен
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log("Request was aborted");
+        
         return;
       }
       console.error("Error sending message:", error);
@@ -548,7 +548,7 @@ export default function ChatPage() {
       }
       // Игнорируем ошибку если запрос был отменен
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log("Request was aborted");
+        
         return;
       }
       console.error("Error sending message:", error);

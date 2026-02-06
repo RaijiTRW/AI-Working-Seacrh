@@ -89,3 +89,7 @@ yarn-error.log*
 .version-old
 /logs
 deploy.tar.gz
+
+# Application logs (only server-side)
+logs/*.log
+logs/*.txt

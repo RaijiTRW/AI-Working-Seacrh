@@ -91,16 +91,15 @@ export default function SecuritySection({ userEmail }: SecuritySectionProps) {
       });
 
       if (error) {
-        console.error("Update user error:", error);
+        
         throw error;
       }
 
-      console.log("Email change initiated, data:", data);
       setNewEmailSentTo(email);
       setEmailSent(true);
       setMessage({ type: "success", text: `Отправили письмо для подтверждения на ${email}` });
     } catch (err: any) {
-      console.error("Email change error:", err);
+      
       setMessage({ type: "error", text: err?.message || "Ошибка отправки письма" });
     } finally {
       setSavingEmail(false);

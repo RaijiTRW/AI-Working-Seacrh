@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin, getUserFromToken } from "@/lib/supabase-admin";
+import { log } from "@/lib/logger";
 
 const YOOKASSA_SHOP_ID = process.env.YOOKASSA_SHOP_ID;
 const YOOKASSA_SECRET_KEY = process.env.YOOKASSA_SECRET_KEY;
@@ -130,7 +131,7 @@ export async function GET(
           })
           .eq("user_id", userId);
 
-        console.log("[Check Payment] Saved payment_method_id for user:", userId, payment.payment_method.id);
+        log.info("[Check Payment] Saved payment_method_id for user:", userId, payment.payment_method.id);
       }
 
       // Обрабатываем платеж
@@ -212,7 +213,7 @@ export async function GET(
 
     return NextResponse.json({ status: payment.status });
   } catch (e) {
-    console.error("[Check Payment] Exception:", e);
+    log.error("[Check Payment] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

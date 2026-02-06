@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin, getUserFromToken } from "@/lib/supabase-admin";
+import { log } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,14 +19,14 @@ export async function POST(request: NextRequest) {
       })
       .eq("user_id", userId);
 
-    console.log("[Cancel Auto-renewal] Removed payment_method_id for user:", userId);
+    log.info("[Cancel Auto-renewal] Removed payment_method_id for user:", userId);
 
     return NextResponse.json({
       success: true,
       message: "Автопродление подписки отключено",
     });
   } catch (e) {
-    console.error("[Cancel Auto-renewal] Exception:", e);
+    log.error("[Cancel Auto-renewal] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

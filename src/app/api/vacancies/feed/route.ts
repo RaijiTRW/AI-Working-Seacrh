@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { log } from "@/lib/logger";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -102,7 +103,7 @@ export async function GET(request: NextRequest) {
       const { data: networkData, count: networkCount, error: networkError } = await networkQuery;
 
       if (networkError) {
-        console.error("[VacancyFeed] Network vacancies error:", networkError);
+        log.error("[VacancyFeed] Network vacancies error:", networkError);
       } else {
         networkVacancies = (networkData || []).map((v: any) => ({
           id: `${v.source}_${v.source_id}`,
@@ -167,7 +168,7 @@ export async function GET(request: NextRequest) {
       const { data: platformData, count: platformCount, error: platformError } = await platformQuery;
 
       if (platformError) {
-        console.error("[VacancyFeed] Platform vacancies error:", platformError);
+        log.error("[VacancyFeed] Platform vacancies error:", platformError);
       } else {
         platformVacancies = (platformData || []).map((v: any) => ({
           id: `platform_${v.id}`,
@@ -187,7 +188,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log(
+    log.info(
       `[VacancyFeed] Network: ${networkVacancies.length} (total: ${networkTotal}), Platform: ${platformVacancies.length} (total: ${platformTotal}), source=${source}`
     );
 
@@ -204,7 +205,7 @@ export async function GET(request: NextRequest) {
       has_next: page < pages,
     });
   } catch (error) {
-    console.error("[VacancyFeed] Error:", error);
+    log.error("[VacancyFeed] Error:", error);
     return NextResponse.json(
       {
         vacancies: [],

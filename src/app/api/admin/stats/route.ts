@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin, getUserFromToken } from "@/lib/supabase-admin";
+import { log } from "@/lib/logger";
 
 async function isAdmin(userId: string): Promise<boolean> {
   const supabase = getSupabaseAdmin();
@@ -9,10 +10,10 @@ async function isAdmin(userId: string): Promise<boolean> {
     .eq("user_id", userId)
     .single();
 
-  console.log("[isAdmin] Checking userId:", userId);
-  console.log("[isAdmin] Profile data:", data);
-  console.log("[isAdmin] Error:", error);
-  console.log("[isAdmin] Is admin:", data?.role === "admin");
+  log.info("[isAdmin] Checking userId:", userId);
+  log.info("[isAdmin] Profile data:", data);
+  log.info("[isAdmin] Error:", error);
+  log.info("[isAdmin] Is admin:", data?.role === "admin");
 
   return data?.role === "admin";
 }
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
       platform_vacancies: platformVacancies || 0,
     });
   } catch (e) {
-    console.error("[Admin Stats] Exception:", e);
+    log.error("[Admin Stats] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

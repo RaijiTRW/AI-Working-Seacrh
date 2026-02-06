@@ -67,13 +67,11 @@ function getUserLinkedAccounts(userEmail: string): LinkedAccount[] {
   try {
     const stored = localStorage.getItem(LINKED_ACCOUNTS_KEY);
     if (!stored) {
-      console.log("[Accounts] No data in localStorage");
       return [];
     }
     const allAccounts: Record<string, LinkedAccount[]> = JSON.parse(stored);
     const normalizedEmail = userEmail.toLowerCase();
     const accounts = allAccounts[normalizedEmail] || [];
-    console.log("[Accounts] getUserLinkedAccounts for", normalizedEmail, ":", accounts);
     return accounts;
   } catch (e) {
     console.error("[Accounts] Error reading localStorage:", e);
@@ -84,7 +82,6 @@ function getUserLinkedAccounts(userEmail: string): LinkedAccount[] {
 function setUserLinkedAccounts(userEmail: string, accounts: LinkedAccount[]) {
   try {
     const stored = localStorage.getItem(LINKED_ACCOUNTS_KEY);
-    console.log("[Accounts] setUserLinkedAccounts - stored before:", stored);
 
     // Handle corrupted data: if stored is an array (old format), convert to object
     let allAccounts: Record<string, LinkedAccount[]> = {};
@@ -92,7 +89,6 @@ function setUserLinkedAccounts(userEmail: string, accounts: LinkedAccount[]) {
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed)) {
         // Old/corrupted format - it's an array, clear it and start fresh
-        console.log("[Accounts] WARNING: Found array in localStorage, converting to object format");
         allAccounts = {};
       } else if (typeof parsed === 'object' && parsed !== null) {
         allAccounts = parsed;
@@ -100,7 +96,6 @@ function setUserLinkedAccounts(userEmail: string, accounts: LinkedAccount[]) {
     }
 
     const normalizedEmail = userEmail.toLowerCase();
-    console.log("[Accounts] setUserLinkedAccounts - normalizedEmail:", normalizedEmail, "accounts:", accounts.length);
 
     if (accounts.length > 0) {
       allAccounts[normalizedEmail] = accounts;
@@ -110,15 +105,12 @@ function setUserLinkedAccounts(userEmail: string, accounts: LinkedAccount[]) {
       delete allAccounts[userEmail];
     }
 
-    console.log("[Accounts] setUserLinkedAccounts - allAccounts keys:", Object.keys(allAccounts));
 
     if (Object.keys(allAccounts).length > 0) {
       const jsonStr = JSON.stringify(allAccounts);
       localStorage.setItem(LINKED_ACCOUNTS_KEY, jsonStr);
-      console.log("[Accounts] Saved to localStorage:", jsonStr);
     } else {
       localStorage.removeItem(LINKED_ACCOUNTS_KEY);
-      console.log("[Accounts] Cleared localStorage");
     }
   } catch (e) {
     console.error("[Accounts] Error saving to localStorage:", e);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin, getUserFromToken } from "@/lib/supabase-admin";
+import { log } from "@/lib/logger";
 
 const YOOKASSA_SHOP_ID = process.env.YOOKASSA_SHOP_ID;
 const YOOKASSA_SECRET_KEY = process.env.YOOKASSA_SECRET_KEY;
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!YOOKASSA_SHOP_ID || !YOOKASSA_SECRET_KEY) {
-      console.error("[Checkout] YooKassa not configured");
+      log.error("[Checkout] YooKassa not configured");
       return NextResponse.json(
         { error: "Payment system not configured" },
         { status: 500 }
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
       .eq("status", "succeeded");
 
     const isFirstPurchase = (previousPurchases || 0) === 0;
-    console.log(`[Checkout] User ${userId} isFirstPurchase: ${isFirstPurchase}, previousPurchases: ${previousPurchases}`);
+    log.info(`[Checkout] User ${userId} isFirstPurchase: ${isFirstPurchase}, previousPurchases: ${previousPurchases}`);
 
     // Получаем настройку скидки
     let discountPercent = 0;
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
       ? Math.round(regularPrice * (1 - discountPercent / 100))
       : regularPrice;
 
-    console.log(`[Checkout] Price calculation: regular=${regularPrice}, discount=${discountPercent}%, applyDiscount=${applyDiscount}, final=${finalPrice}`);
+    log.info(`[Checkout] Price calculation: regular=${regularPrice}, discount=${discountPercent}%, applyDiscount=${applyDiscount}, final=${finalPrice}`);
 
     const idempotenceKey = `${userId}-pro-${Date.now()}`;
     const description = applyDiscount
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("[Checkout] YooKassa error:", error);
+      log.error("[Checkout] YooKassa error:", error);
       return NextResponse.json(
         { error: "Failed to create payment" },
         { status: 500 }
@@ -153,7 +154,7 @@ export async function POST(request: NextRequest) {
       payment_url: payment.confirmation.confirmation_url,
     });
   } catch (e) {
-    console.error("[Checkout] Exception:", e);
+    log.error("[Checkout] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

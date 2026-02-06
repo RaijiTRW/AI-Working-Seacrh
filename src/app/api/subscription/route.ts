@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin, getUserFromToken } from "@/lib/supabase-admin";
+import { log } from "@/lib/logger";
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
       const now = new Date();
       if (now > expiresAt) {
         const previousPlan = subscription.plan; // Сохраняем какой план истёк
-        console.log(`[Subscription] Expired for user ${userId}, downgrading from ${previousPlan} to base`);
+        log.subscription(`Expired for user ${userId}, downgrading from ${previousPlan} to base`);
         // Даунгрейд подписки с сохранением previous_plan
         await supabase
           .from("user_subscriptions")
@@ -126,7 +127,7 @@ export async function GET(request: NextRequest) {
     const isProExpired = expiredPlanType === "pro";
 
     // Debug log
-    console.log(`[Subscription] Debug for user ${userId}:`, {
+    log.subscription(`Debug for user ${userId}:`, {
       plan,
       isBase,
       previous_plan: subscription?.previous_plan,

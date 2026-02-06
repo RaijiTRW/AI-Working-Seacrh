@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
+import { log } from "@/lib/logger";
 
 const YOOKASSA_SHOP_ID = process.env.YOOKASSA_SHOP_ID;
 const YOOKASSA_SECRET_KEY = process.env.YOOKASSA_SECRET_KEY;
@@ -9,17 +10,17 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    console.log("[Webhook] Received:", JSON.stringify(body, null, 2));
+    log.webhook(" Received:", JSON.stringify(body, null, 2));
 
     // Проверяем тип события
     if (body.event !== "payment.succeeded" && body.event !== "payment.canceled") {
-      console.log("[Webhook] Ignoring event:", body.event);
+      log.webhook(" Ignoring event:", body.event);
       return NextResponse.json({ status: "ignored" });
     }
 
     const payment = body.object;
     if (!payment?.id) {
-      console.error("[Webhook] No payment ID in webhook");
+      log.error("No payment ID in webhook");
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
@@ -35,13 +36,13 @@ export async function POST(request: NextRequest) {
       );
 
       if (!verifyResponse.ok) {
-        console.error("[Webhook] Failed to verify payment");
+        log.error("[Webhook] Failed to verify payment");
         return NextResponse.json({ error: "Verification failed" }, { status: 400 });
       }
 
       const verifiedPayment = await verifyResponse.json();
       if (verifiedPayment.status !== payment.status) {
-        console.error("[Webhook] Status mismatch");
+        log.error("[Webhook] Status mismatch");
         return NextResponse.json({ error: "Status mismatch" }, { status: 400 });
       }
     }
@@ -51,12 +52,12 @@ export async function POST(request: NextRequest) {
     const paymentType = payment.metadata?.type;
 
     if (!userId) {
-      console.error("[Webhook] No user_id in metadata");
+      log.error("No user_id in metadata");
       return NextResponse.json({ error: "No user_id" }, { status: 400 });
     }
 
     if (body.event === "payment.succeeded") {
-      console.log("[Webhook] Processing successful payment for user:", userId);
+      log.webhook(" Processing successful payment for user:", userId);
 
       // Сохраняем payment_method_id для автосписания (если есть)
       if (payment.payment_method?.id) {
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
           })
           .eq("user_id", userId);
 
-        console.log("[Webhook] Saved payment_method_id for user:", userId, payment.payment_method.id);
+        log.webhook(" Saved payment_method_id for user:", userId, payment.payment_method.id);
       }
 
       // Обновляем статус платежа
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
             onConflict: "user_id",
           });
 
-        console.log("[Webhook] Subscription activated for user:", userId);
+        log.webhook(" Subscription activated for user:", userId);
 
       } else if (paymentType === "extra_requests") {
         // Получаем количество дополнительных запросов из настроек
@@ -142,11 +143,11 @@ export async function POST(request: NextRequest) {
           })
           .eq("user_id", userId);
 
-        console.log("[Webhook] Extra requests added for user:", userId, "count:", extraRequestsCount);
+        log.webhook(" Extra requests added for user:", userId, "count:", extraRequestsCount);
       }
 
     } else if (body.event === "payment.canceled") {
-      console.log("[Webhook] Payment canceled:", payment.id);
+      log.webhook(" Payment canceled:", payment.id);
 
       await supabase
         .from("payment_history")
@@ -159,7 +160,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ status: "ok" });
   } catch (e) {
-    console.error("[Webhook] Exception:", e);
+    log.error("[Webhook] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

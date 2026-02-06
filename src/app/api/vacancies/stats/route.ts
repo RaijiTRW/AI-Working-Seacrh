@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { log } from "@/lib/logger";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -30,7 +31,7 @@ export async function GET() {
     const network = networkCount || 0;
     const total = platform + network;
 
-    console.log(`[VacancyStats] Platform: ${platform}, Network: ${network}, Total: ${total}`);
+    log.info(`[VacancyStats] Platform: ${platform}, Network: ${network}, Total: ${total}`);
 
     return NextResponse.json({
       platform,
@@ -38,7 +39,7 @@ export async function GET() {
       total,
     });
   } catch (error) {
-    console.error("[VacancyStats] Error:", error);
+    log.error("[VacancyStats] Error:", error);
     return NextResponse.json(
       {
         platform: 0,
