@@ -72,8 +72,17 @@ export async function POST(request: NextRequest) {
 
     const idempotenceKey = `${userId}-pro-${Date.now()}`;
     const description = applyDiscount
-      ? `Pro подписка на 1 месяц (скидка ${discountPercent}% на первую покупку)`
-      : "Pro подписка на 1 месяц";
+      ? `Job AI Search — Pro подписка на 1 месяц (скидка ${discountPercent}%). Ежемесячная подписка с автопродлением.`
+      : "Job AI Search — Pro подписка на 1 месяц. Ежемесячная подписка с автопродлением.";
+
+    // Проверяем есть ли сохранённый платёжный метод
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("yookassa_payment_method_id")
+      .eq("user_id", userId)
+      .single();
+
+    const savedPaymentMethodId = existingProfile?.yookassa_payment_method_id;
 
     // Создаем платеж в YooKassa
     const response = await fetch("https://api.yookassa.ru/v3/payments", {
@@ -86,11 +95,19 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         amount: { value: `${finalPrice}.00`, currency: "RUB" },
         capture: true,
-        confirmation: {
+        confirmation: savedPaymentMethodId ? undefined : {
           type: "redirect",
           return_url: YOOKASSA_RETURN_URL,
         },
         description,
+        // Сохраняем платёжный метод для автосписания (только для первого платежа)
+        save_payment_method: !savedPaymentMethodId,
+        // Используем сохранённый метод если есть
+        payment_method_id: savedPaymentMethodId || undefined,
+        // Автосписание через сохранённый метод
+        payment_method_data: savedPaymentMethodId ? undefined : {
+          type: "bank_card",
+        },
         metadata: {
           user_id: userId,
           type: "subscription",
@@ -98,6 +115,7 @@ export async function POST(request: NextRequest) {
           discount_applied: applyDiscount,
           discount_percent: applyDiscount ? discountPercent : 0,
           original_price: regularPrice,
+          auto_renewal: true, // Флаг для автосписания
         },
         receipt: profile?.email
           ? {

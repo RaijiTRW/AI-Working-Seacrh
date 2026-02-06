@@ -121,6 +121,18 @@ export async function GET(
         });
       }
 
+      // Сохраняем payment_method_id для автосписания (если есть)
+      if (payment.payment_method?.id) {
+        await supabase
+          .from("profiles")
+          .update({
+            yookassa_payment_method_id: payment.payment_method.id,
+          })
+          .eq("user_id", userId);
+
+        console.log("[Check Payment] Saved payment_method_id for user:", userId, payment.payment_method.id);
+      }
+
       // Обрабатываем платеж
       if (paymentType === "subscription") {
         const expiresAt = new Date();
@@ -183,7 +195,10 @@ export async function GET(
       // Обновляем статус платежа
       await supabase
         .from("payment_history")
-        .update({ status: "succeeded" })
+        .update({
+          status: "succeeded",
+          payment_method_id: payment.payment_method?.id || null,
+        })
         .eq("yookassa_payment_id", paymentId);
 
       return NextResponse.json({ status: "succeeded" });

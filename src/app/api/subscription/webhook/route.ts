@@ -58,12 +58,25 @@ export async function POST(request: NextRequest) {
     if (body.event === "payment.succeeded") {
       console.log("[Webhook] Processing successful payment for user:", userId);
 
+      // Сохраняем payment_method_id для автосписания (если есть)
+      if (payment.payment_method?.id) {
+        await supabase
+          .from("profiles")
+          .update({
+            yookassa_payment_method_id: payment.payment_method.id,
+          })
+          .eq("user_id", userId);
+
+        console.log("[Webhook] Saved payment_method_id for user:", userId, payment.payment_method.id);
+      }
+
       // Обновляем статус платежа
       await supabase
         .from("payment_history")
         .update({
           status: "succeeded",
           yookassa_status: payment.status,
+          payment_method_id: payment.payment_method?.id || null,
         })
         .eq("yookassa_payment_id", payment.id);
 
