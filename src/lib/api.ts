@@ -1223,6 +1223,7 @@ export interface Subscription {
   expires_at: string | null;  // null для base плана
   days_left: number | null;   // null для base плана
   can_search_online: boolean; // false для base плана
+  purchase_price?: number;    // Цена, по которой пользователь купил подписку (для автопродления)
 }
 
 export interface RequestLimits {

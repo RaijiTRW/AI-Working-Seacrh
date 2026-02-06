@@ -259,11 +259,11 @@ export default function SubscriptionSection() {
             </button>
           )}
 
-          {/* Временно показываем всегда для скриншота YooKassa */}
-          <button
-            onClick={() => setShowCancelModal(true)}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-xl transition-colors border border-red-200"
-          >
+          {subscription.has_saved_payment_method && (
+            <button
+              onClick={() => setShowCancelModal(true)}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-xl transition-colors border border-red-200"
+            >
               <svg
                 className="w-5 h-5"
                 fill="none"
@@ -279,6 +279,7 @@ export default function SubscriptionSection() {
               </svg>
               Отменить автопродление подписки
             </button>
+          )}
 
           <Link
             href="/subscription"

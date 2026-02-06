@@ -138,15 +138,21 @@ export async function GET(
         const expiresAt = new Date();
         expiresAt.setMonth(expiresAt.getMonth() + 1);
 
-        // Обновляем или создаем подписку
+        // Получаем цену из платежа (это то, что пользователь фактически заплатил)
+        const purchasePrice = parseFloat(payment.amount.value);
+
+        // Обновляем или создаем подписку с сохранением цены покупки
         await supabase
           .from("user_subscriptions")
           .upsert({
             user_id: userId,
             plan: "pro",
             status: "active",
+            can_search_online: true,
             started_at: new Date().toISOString(),
             expires_at: expiresAt.toISOString(),
+            yookassa_payment_id: paymentId,
+            purchase_price: purchasePrice,
           });
 
         // Обновляем лимиты

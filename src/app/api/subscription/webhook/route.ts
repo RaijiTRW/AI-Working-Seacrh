@@ -85,7 +85,10 @@ export async function POST(request: NextRequest) {
         const expiresAt = new Date();
         expiresAt.setMonth(expiresAt.getMonth() + 1);
 
-        // Обновляем подписку
+        // Получаем цену из платежа (это то, что пользователь фактически заплатил)
+        const purchasePrice = parseFloat(payment.amount.value);
+
+        // Обновляем подписку с сохранением цены покупки
         await supabase
           .from("user_subscriptions")
           .upsert({
@@ -96,6 +99,7 @@ export async function POST(request: NextRequest) {
             started_at: new Date().toISOString(),
             expires_at: expiresAt.toISOString(),
             yookassa_payment_id: payment.id,
+            purchase_price: purchasePrice,
           }, {
             onConflict: "user_id",
           });
