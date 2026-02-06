@@ -85,10 +85,9 @@ export default function SecuritySection({ userEmail }: SecuritySectionProps) {
     setMessage(null);
 
     try {
-      // redirectTo указывает куда перенаправить после подтверждения
+      // Supabase автоматически отправит письмо для подтверждения
       const { data, error } = await supabase.auth.updateUser({
         email,
-        emailRedirectTo: `${window.location.origin}/auth/email-change-confirmation`,
       });
 
       if (error) {
