@@ -156,6 +156,15 @@ export async function GET(
           })
           .eq("user_id", userId);
       } else if (paymentType === "extra_requests") {
+        // Получаем количество дополнительных запросов из настроек
+        const { data: countSetting } = await supabase
+          .from("site_settings")
+          .select("value")
+          .eq("id", "extra_requests_count")
+          .single();
+
+        const extraRequestsCount = countSetting?.value?.count || 10;
+
         // Добавляем бонусные запросы
         const { data: currentLimits } = await supabase
           .from("user_request_limits")
@@ -166,7 +175,7 @@ export async function GET(
         await supabase
           .from("user_request_limits")
           .update({
-            bonus_requests: (currentLimits?.bonus_requests || 0) + 10,
+            bonus_requests: (currentLimits?.bonus_requests || 0) + extraRequestsCount,
           })
           .eq("user_id", userId);
       }
