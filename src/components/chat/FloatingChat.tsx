@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "@/lib/useAuth";
+import { useSiteSettings } from "@/lib/useSiteSettings";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -131,6 +132,7 @@ type ViewMode = "home" | "chat" | "support";
 
 export default function FloatingChat() {
   const { user, loading: authLoading } = useAuth();
+  const { settings } = useSiteSettings();
   const [isOpen, setIsOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("home");
   const [quickQuestions, setQuickQuestions] = useState<QuickQuestion[]>([]);
@@ -433,6 +435,18 @@ export default function FloatingChat() {
     try {
       setIsLoading(true);
 
+      // Проверяем, включён ли чат
+      if (!settings.chat_enabled) {
+        const disabledMsg: Message = {
+          id: Date.now().toString() + "-disabled",
+          role: "system",
+          content: "AI-чат поддержки временно недоступен. Пожалуйста, попробуйте позже.",
+          created_at: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, disabledMsg]);
+        return;
+      }
+
       // Собираем контекст из последних сообщений
       const context = messages.slice(-10).map(m =>
         `${m.role === "user" ? "Пользователь" : "Ассистент"}: ${m.content}`
@@ -637,10 +651,25 @@ export default function FloatingChat() {
             {/* Home View */}
             {viewMode === "home" && (
               <div className="p-4">
+                {!settings.chat_enabled && (
+                  <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <svg className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p className="text-sm text-yellow-800">AI-чат поддержки временно недоступен</p>
+                    </div>
+                  </div>
+                )}
                 {/* New Chat Button */}
                 <button
                   onClick={startNewChat}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl mb-4 transition-colors"
+                  disabled={!settings.chat_enabled}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-4 transition-colors ${
+                    settings.chat_enabled
+                      ? "bg-orange-500 hover:bg-orange-600 text-white"
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -707,7 +736,21 @@ export default function FloatingChat() {
             {/* Chat / Support View */}
             {(viewMode === "chat" || viewMode === "support") && (
               <div className="p-4 space-y-3">
-                {messages.length === 0 && viewMode === "chat" && (
+                {!settings.chat_enabled && viewMode === "chat" && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                    <svg className="w-8 h-8 text-yellow-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-sm text-yellow-800">AI-чат поддержки временно недоступен</p>
+                    <button
+                      onClick={goHome}
+                      className="text-xs text-yellow-600 hover:text-yellow-800 font-medium mt-2"
+                    >
+                      ← Вернуться
+                    </button>
+                  </div>
+                )}
+                {messages.length === 0 && viewMode === "chat" && settings.chat_enabled && (
                   <div className="text-center py-4">
                     <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
                       <svg className="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

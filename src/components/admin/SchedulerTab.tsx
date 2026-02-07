@@ -62,10 +62,11 @@ export default function SchedulerTab({ token }: SchedulerTabProps) {
 
   useEffect(() => {
     fetchData();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchData, 30000);
+    // Refresh every 3 seconds if any job is running, otherwise 30 seconds
+    const hasRunningJob = status?.jobs.some(j => j.status === "running");
+    const interval = setInterval(fetchData, hasRunningJob ? 3000 : 30000);
     return () => clearInterval(interval);
-  }, [fetchData]);
+  }, [fetchData, status]);
 
   const handlePause = async (jobId: string) => {
     try {
@@ -102,6 +103,23 @@ export default function SchedulerTab({ token }: SchedulerTabProps) {
     } catch (err) {
       console.error("Error triggering job:", err);
       setError("Не удалось запустить задачу");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleStop = async (jobId: string) => {
+    try {
+      setActionLoading(jobId);
+      const response = await fetch(`${API_URL}/api/admin/scheduler/jobs/${jobId}/stop`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error("Failed to stop job");
+      await fetchData();
+    } catch (err) {
+      console.error("Error stopping job:", err);
+      setError("Не удалось остановить задачу");
     } finally {
       setActionLoading(null);
     }
@@ -202,6 +220,7 @@ export default function SchedulerTab({ token }: SchedulerTabProps) {
             job={job}
             onPause={() => handlePause(job.job_id)}
             onResume={() => handleResume(job.job_id)}
+            onStop={() => handleStop(job.job_id)}
             onTrigger={() => handleTrigger(job.job_id)}
             isLoading={actionLoading === job.job_id}
           />

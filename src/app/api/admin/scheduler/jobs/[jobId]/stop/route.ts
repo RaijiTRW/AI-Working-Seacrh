@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 /**
- * POST /api/admin/scheduler/jobs/[jobId]/resume
- * Proxy to Python backend resume job endpoint
+ * POST /api/admin/scheduler/jobs/[jobId]/stop
+ * Proxy to Python backend stop job endpoint
  */
 export async function POST(
   req: NextRequest,
@@ -14,7 +14,7 @@ export async function POST(
     const authHeader = req.headers.get("authorization");
     const { jobId } = await params;
 
-    const response = await fetch(`${BACKEND_URL}/api/admin/scheduler/jobs/${jobId}/resume`, {
+    const response = await fetch(`${BACKEND_URL}/api/admin/scheduler/jobs/${jobId}/stop`, {
       method: "POST",
       headers: {
         "Authorization": authHeader || "",
@@ -24,9 +24,9 @@ export async function POST(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[Scheduler Resume] Backend error:", response.status, errorText);
+      console.error("[Scheduler Stop] Backend error:", response.status, errorText);
       return NextResponse.json(
-        { error: "Failed to resume job" },
+        { error: "Failed to stop job" },
         { status: response.status }
       );
     }
@@ -39,7 +39,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    console.error("[Scheduler Resume] Error:", error);
+    console.error("[Scheduler Stop] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

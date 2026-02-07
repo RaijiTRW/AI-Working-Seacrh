@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { useSiteSettings } from "@/lib/useSiteSettings";
 import { ArrowLeft } from "lucide-react";
 
 type Step = "email" | "password" | "code";
@@ -13,6 +14,7 @@ export default function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isSwitch = searchParams.get("switch") === "true";
+  const { settings: siteSettings } = useSiteSettings();
 
   const [step, setStep] = useState<Step>("email");
   const [mode, setMode] = useState<Mode>("login");
@@ -250,7 +252,10 @@ export default function AuthForm() {
               {mode === "login" ? "Войти в аккаунт" : "Создать аккаунт"}
             </h2>
             <p className="text-gray-500 mb-8">
-              Введи email для {mode === "login" ? "входа" : "регистрации"}
+              {mode === "signup" && !siteSettings.registration_enabled
+                ? "Регистрация временно недоступна"
+                : `Введи email для ${mode === "login" ? "входа" : "регистрации"}`
+              }
             </p>
 
             <form onSubmit={handleEmailSubmit} className="space-y-4">
@@ -266,7 +271,8 @@ export default function AuthForm() {
                   placeholder="your@email.com"
                   required
                   autoFocus
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all"
+                  disabled={mode === "signup" && !siteSettings.registration_enabled}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -274,7 +280,8 @@ export default function AuthForm() {
 
               <button
                 type="submit"
-                className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-medium hover:from-orange-600 hover:to-orange-700 transition-all"
+                disabled={mode === "signup" && !siteSettings.registration_enabled}
+                className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-medium hover:from-orange-600 hover:to-orange-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Продолжить
               </button>
@@ -290,7 +297,10 @@ export default function AuthForm() {
             {/* OAuth */}
             <button
               onClick={() => handleOAuth("google")}
-              className="w-full flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              disabled={mode === "signup" && !siteSettings.registration_enabled}
+              className={`w-full flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors ${
+                mode === "signup" && !siteSettings.registration_enabled ? "opacity-50 cursor-not-allowed" : ""
+              }`}
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -304,7 +314,10 @@ export default function AuthForm() {
             {/* Toggle mode */}
             <p className="mt-6 text-center text-sm text-gray-500">
               {mode === "login" ? "Нет аккаунта?" : "Уже есть аккаунт?"}{" "}
-              <button onClick={toggleMode} className="text-orange-500 hover:text-orange-600 font-medium">
+              <button
+                onClick={toggleMode}
+                className="text-orange-500 hover:text-orange-600 font-medium"
+              >
                 {mode === "login" ? "Зарегистрироваться" : "Войти"}
               </button>
             </p>
@@ -505,6 +518,13 @@ export default function AuthForm() {
           </>
         )}
       </div>
+
+      {/* Уведомление об отключенной регистрации */}
+      {mode === "signup" && !siteSettings.registration_enabled && (
+        <div className="fixed bottom-0 left-0 right-0 bg-gray-900 text-white p-4 text-center">
+          <p className="text-sm">Регистрация временно недоступна. Пожалуйста, войдите в существующий аккаунт.</p>
+        </div>
+      )}
     </div>
   );
 }

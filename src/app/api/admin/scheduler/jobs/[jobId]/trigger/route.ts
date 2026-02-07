@@ -32,7 +32,12 @@ export async function POST(
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    // Disable caching
+    return NextResponse.json(data, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+      },
+    });
   } catch (error) {
     console.error("[Scheduler Trigger] Error:", error);
     return NextResponse.json(

@@ -220,6 +220,17 @@ export default function ChatPage() {
   const handleLoadMore = async (messageId: string) => {
     if (!user?.id || !currentChatId) return;
 
+    // Проверяем, включён ли AI-поиск
+    if (!settings.chat_enabled && !isAdmin) {
+      const errorMessage: Message = {
+        id: `assistant-${Date.now()}`,
+        role: "assistant",
+        content: "AI временно не доступен, мы уже работаем над проблемой.",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      return;
+    }
+
     // Найти сообщение с этим ID
     const message = messages.find((m) => m.id === messageId);
     if (!message || message.role !== "assistant" || !message.vacancies) return;
@@ -384,7 +395,7 @@ export default function ChatPage() {
       const errorMessage: Message = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
-        content: "Не удалось связаться с сервером. Проверь подключение и попробуй снова.",
+        content: "AI временно не доступен, мы уже работаем над проблемой.",
       };
 
       setMessages((prev) => [...prev, errorMessage]);
@@ -397,6 +408,17 @@ export default function ChatPage() {
 
   const handleSend = async (content: string, searchMode: SearchMode) => {
     if (!user?.id) return;
+
+    // Проверяем, включён ли AI-поиск
+    if (!settings.chat_enabled && !isAdmin) {
+      const errorMessage: Message = {
+        id: `assistant-${Date.now()}`,
+        role: "assistant",
+        content: "AI временно не доступен, мы уже работаем над проблемой.",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      return;
+    }
 
     let chatId = currentChatId;
 
@@ -556,7 +578,7 @@ export default function ChatPage() {
       const errorMessage: Message = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
-        content: "Не удалось связаться с сервером. Проверь подключение и попробуй снова.",
+        content: "AI временно не доступен, мы уже работаем над проблемой.",
       };
 
       setMessages((prev) => [...prev, errorMessage]);

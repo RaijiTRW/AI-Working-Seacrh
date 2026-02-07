@@ -941,9 +941,12 @@ export interface VolumeDataPoint {
  * Получить статус планировщика
  */
 export async function getSchedulerStatus(token: string): Promise<SchedulerStatus> {
-  const response = await fetch(`${API_URL}/api/admin/scheduler/status`, {
+  // Add cache-busting parameter
+  const cacheBuster = Date.now();
+  const response = await fetch(`${API_URL}/api/admin/scheduler/status?_=${cacheBuster}`, {
     headers: {
       Authorization: `Bearer ${token}`,
+      'Cache-Control': 'no-cache',
     },
   });
 
@@ -1044,6 +1047,73 @@ export async function getVolumeStats(
   }
 
   return response.json();
+}
+
+export async function stopJob(token: string, jobId: string): Promise<void> {
+  const response = await fetch(`${API_URL}/api/admin/scheduler/jobs/${jobId}/stop`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to stop job");
+  }
+}
+
+// === AI Agents API ===
+
+export interface AgentInfo {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  model_type: "main" | "fast";
+}
+
+export interface AgentsStatus {
+  [agentId: string]: AgentInfo;
+}
+
+export async function getAgentsStatus(token: string): Promise<AgentsStatus> {
+  // Add cache-busting parameter
+  const cacheBuster = Date.now();
+  const response = await fetch(`${NEXT_API}/api/admin/agents/status?_=${cacheBuster}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Cache-Control': 'no-cache',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[getAgentsStatus] Error:", response.status, errorText);
+    throw new Error("Failed to fetch agents status");
+  }
+
+  return response.json();
+}
+
+export async function toggleAgent(
+  token: string,
+  agentId: string,
+  enabled: boolean
+): Promise<void> {
+  const response = await fetch(`${NEXT_API}/api/admin/agents/toggle`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ agent_id: agentId, enabled }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[toggleAgent] Error:", response.status, errorText);
+    throw new Error("Failed to toggle agent");
+  }
 }
 
 // === Conversations API ===

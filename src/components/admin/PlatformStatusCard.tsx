@@ -7,6 +7,7 @@ interface PlatformStatusCardProps {
   job: SchedulerJobStatus;
   onPause: () => void;
   onResume: () => void;
+  onStop: () => void;
   onTrigger: () => void;
   isLoading?: boolean;
 }
@@ -80,6 +81,7 @@ export default function PlatformStatusCard({
   job,
   onPause,
   onResume,
+  onStop,
   onTrigger,
   isLoading,
 }: PlatformStatusCardProps) {
@@ -166,30 +168,42 @@ export default function PlatformStatusCard({
 
       {/* Actions */}
       <div className="flex gap-2">
-        {job.is_paused ? (
+        {job.status === "running" ? (
           <button
-            onClick={onResume}
+            onClick={onStop}
             disabled={isLoading}
-            className="flex-1 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50"
+            className="w-full px-3 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
           >
-            Старт
+            Остановить
           </button>
+        ) : job.is_paused ? (
+          <>
+            <button
+              onClick={onResume}
+              disabled={isLoading}
+              className="flex-1 px-3 py-2 text-sm font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors disabled:opacity-50"
+            >
+              Старт
+            </button>
+          </>
         ) : (
-          <button
-            onClick={onPause}
-            disabled={isLoading}
-            className="flex-1 px-3 py-2 text-sm font-medium text-yellow-700 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors disabled:opacity-50"
-          >
-            Стоп
-          </button>
+          <>
+            <button
+              onClick={onPause}
+              disabled={isLoading}
+              className="flex-1 px-3 py-2 text-sm font-medium text-yellow-700 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition-colors disabled:opacity-50"
+            >
+              Стоп
+            </button>
+            <button
+              onClick={onTrigger}
+              disabled={isLoading}
+              className="flex-1 px-3 py-2 text-sm font-medium text-orange-700 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors disabled:opacity-50"
+            >
+              Запуск
+            </button>
+          </>
         )}
-        <button
-          onClick={onTrigger}
-          disabled={isLoading || job.status === "running"}
-          className="flex-1 px-3 py-2 text-sm font-medium text-orange-700 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors disabled:opacity-50"
-        >
-          Запуск
-        </button>
       </div>
     </div>
   );

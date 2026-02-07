@@ -9,13 +9,17 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization");
+    const url = new URL(req.url);
+    const queryString = url.search; // Get query string including cache-buster
 
-    const response = await fetch(`${BACKEND_URL}/api/admin/scheduler/status`, {
+    const response = await fetch(`${BACKEND_URL}/api/admin/scheduler/status${queryString}`, {
       method: "GET",
       headers: {
         "Authorization": authHeader || "",
         "Content-Type": "application/json",
       },
+      // Disable caching
+      cache: "no-store",
     });
 
     if (!response.ok) {
@@ -28,7 +32,14 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    // Disable response caching
+    return NextResponse.json(data, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+      },
+    });
   } catch (error) {
     console.error("[Scheduler Status] Error:", error);
     return NextResponse.json(

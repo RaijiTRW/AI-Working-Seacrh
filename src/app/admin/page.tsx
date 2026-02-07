@@ -20,13 +20,13 @@ import {
   AdminUser,
   SiteSetting,
 } from "@/lib/api";
-import SchedulerTab from "@/components/admin/SchedulerTab";
 import SupportChatTab from "@/components/admin/SupportChatTab";
 import ModerationTab from "@/components/admin/ModerationTab";
 import ChatHistoryTab from "@/components/admin/ChatHistoryTab";
+import AgentsTab from "@/components/admin/AgentsTab";
 import AppHeader from "@/components/app/Header";
 
-type Tab = "stats" | "users" | "settings" | "scheduler" | "support" | "moderation" | "chats";
+type Tab = "stats" | "users" | "settings" | "support" | "moderation" | "chats" | "agents";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -382,8 +382,8 @@ export default function AdminPage() {
             { id: "chats" as Tab, label: "Чаты" },
             { id: "support" as Tab, label: "Чат поддержки" },
             { id: "moderation" as Tab, label: "Модерация вакансий" },
+            { id: "agents" as Tab, label: "AI Агенты" },
             { id: "settings" as Tab, label: "Настройки" },
-            { id: "scheduler" as Tab, label: "Парсинг" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -928,11 +928,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Scheduler Tab */}
-        {activeTab === "scheduler" && token && (
-          <SchedulerTab token={token} />
-        )}
-
         {/* Support Chat Tab */}
         {activeTab === "support" && token && (
           <SupportChatTab token={token} />
@@ -946,6 +941,11 @@ export default function AdminPage() {
         {/* Moderation Tab */}
         {activeTab === "moderation" && token && (
           <ModerationTab token={token} />
+        )}
+
+        {/* Agents Tab */}
+        {activeTab === "agents" && token && (
+          <AgentsTab token={token} />
         )}
       </main>
 
