@@ -148,12 +148,14 @@ export default function CreateVacancyPage() {
       if (publish) {
         const publishResult = await publishVacancy(vacancy.id, token);
         // Show success message and redirect to My Vacancies
+        setSubmitting(false);
         setSuccessMessage("Вакансия отправлена на модерацию! Обычно проверка занимает 1-2 рабочих дня.");
         setTimeout(() => {
           router.push("/vacancies/my");
         }, 2000);
       } else {
         // Draft saved - redirect to My Vacancies
+        setSubmitting(false);
         setSuccessMessage("Черновик сохранён!");
         setTimeout(() => {
           router.push("/vacancies/my");

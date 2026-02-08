@@ -382,8 +382,10 @@ export default function VacancyFilters({ onSearch, onFilterChange, initialFilter
         {(filters.cities.length > 0 || filters.salaryFrom || filters.experience || filters.sources.length > 0) && (
           <button
             onClick={() => {
-              setFilters({ query: filters.query, cities: [], salaryFrom: "", experience: "", sources: [] });
+              const resetFilters = { query: filters.query, cities: [], salaryFrom: "", experience: "", sources: [] };
+              setFilters(resetFilters);
               setCitySearch("");
+              onFilterChange?.(resetFilters);
             }}
             className="mt-3 sm:mt-4 text-sm text-orange-600 hover:text-orange-700 min-h-11 flex items-center"
           >

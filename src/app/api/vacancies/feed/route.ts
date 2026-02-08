@@ -161,7 +161,12 @@ export async function GET(request: NextRequest) {
         const expPatterns = getExperiencePatterns(experience);
         if (expPatterns.length > 0) {
           const expConditions = expPatterns.map(p => `experience.ilike.%${p}%`).join(",");
-          platformQuery = platformQuery.or(`(${expConditions})`);
+          // Для no_experience также включаем вакансии без указанного опыта
+          if (experience === "no_experience") {
+            platformQuery = platformQuery.or(`${expConditions},experience.is.null,experience.eq.`);
+          } else {
+            platformQuery = platformQuery.or(expConditions);
+          }
         }
       }
 
