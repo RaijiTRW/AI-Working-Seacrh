@@ -16,9 +16,12 @@ import {
   setUserRole,
   addUserRequests,
   resetDailyUsage,
+  getSupportChatStatus,
+  toggleSupportChat,
   AdminStats,
   AdminUser,
   SiteSetting,
+  SupportChatStatus,
 } from "@/lib/api";
 import SupportChatTab from "@/components/admin/SupportChatTab";
 import ModerationTab from "@/components/admin/ModerationTab";
@@ -41,6 +44,7 @@ export default function AdminPage() {
   const [usersPage, setUsersPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [settings, setSettings] = useState<SiteSetting[]>([]);
+  const [supportChatStatus, setSupportChatStatus] = useState<SupportChatStatus | null>(null);
 
   // Modal
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -109,6 +113,10 @@ export default function AdminPage() {
     try {
       const result = await getSiteSettings(token);
       setSettings(result);
+
+      // Also fetch Support Chat status
+      const supportChat = await getSupportChatStatus(token);
+      setSupportChatStatus(supportChat);
     } catch (e) {
       console.error("Failed to fetch settings:", e);
     }
@@ -266,6 +274,17 @@ export default function AdminPage() {
     } catch (e) {
       console.error("Failed to update setting:", e);
       alert("Ошибка при обновлении настройки");
+    }
+  };
+
+  const handleToggleSupportChat = async () => {
+    if (!token || !supportChatStatus) return;
+    try {
+      await toggleSupportChat(token, !supportChatStatus.enabled);
+      await fetchSettings();
+    } catch (e) {
+      console.error("Failed to toggle support chat:", e);
+      alert("Ошибка при обновлении чата поддержки");
     }
   };
 
@@ -644,6 +663,40 @@ export default function AdminPage() {
               );
               })}
             </div>
+
+            {/* Support Chat - отдельная секция */}
+            {supportChatStatus && (
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="font-medium text-gray-900">Чат поддержки (в углу экрана)</div>
+                      <div className="text-sm text-gray-500">
+                        {supportChatStatus.enabled ? "Включён" : "Выключен"}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleToggleSupportChat}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${supportChatStatus.enabled ? "bg-purple-500" : "bg-gray-200"
+                      }`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${supportChatStatus.enabled ? "translate-x-5" : "translate-x-0"
+                        }`}
+                    />
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-3">
+                  Когда выключен, виджет чата в углу экрана скрывается, и пользователи не могут писать в поддержку.
+                </p>
+              </div>
+            )}
 
             {/* Настройка скидки */}
             <div className="bg-white rounded-xl border border-gray-200 p-4">

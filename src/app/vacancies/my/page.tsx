@@ -9,6 +9,7 @@ import {
   getMyVacancies,
   deleteVacancy,
   publishVacancy,
+  withdrawVacancy,
   EmployerVacancy,
 } from "@/lib/api";
 
@@ -28,6 +29,22 @@ function formatSalary(from?: number, to?: number): string {
 function formatDate(dateStr?: string): string {
   if (!dateStr) return "";
   return new Date(dateStr).toLocaleDateString("ru-RU");
+}
+
+function formatTimeAgo(dateStr?: string): string {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return "только что";
+  if (diffMins < 60) return `${diffMins} мин. назад`;
+  if (diffHours < 24) return `${diffHours} ч. назад`;
+  if (diffDays < 7) return `${diffDays} дн. назад`;
+  return formatDate(dateStr);
 }
 
 function getStatusBadge(status: string) {
@@ -121,6 +138,18 @@ export default function MyVacanciesPage() {
     }
   };
 
+  const handleWithdraw = async (id: string) => {
+    if (!token) return;
+    if (!confirm("Вы уверены, что хотите отозвать вакансию с модерации? Она вернётся в статус черновика.")) return;
+    try {
+      await withdrawVacancy(id, token);
+      fetchVacancies();
+    } catch (error) {
+      console.error("Failed to withdraw vacancy:", error);
+      alert("Не удалось отозвать вакансию");
+    }
+  };
+
   if (loading && vacancies.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -210,13 +239,23 @@ export default function MyVacanciesPage() {
                   >
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <span className={`text-xs font-medium px-2 py-1 rounded-full ${statusBadge.className}`}>
                             {statusBadge.label}
                           </span>
-                          {vacancy.published_at && (
+                          {vacancy.status === "pending_review" && vacancy.moderation_checked_at && (
+                            <span className="text-xs text-orange-600">
+                              На модерации {formatTimeAgo(vacancy.moderation_checked_at)}
+                            </span>
+                          )}
+                          {vacancy.status === "published" && vacancy.published_at && (
                             <span className="text-xs text-gray-500">
                               Опубликована {formatDate(vacancy.published_at)}
+                            </span>
+                          )}
+                          {vacancy.status === "rejected" && vacancy.moderation_checked_at && (
+                            <span className="text-xs text-gray-500">
+                              Отклонена {formatDate(vacancy.moderation_checked_at)}
                             </span>
                           )}
                         </div>
@@ -257,31 +296,74 @@ export default function MyVacanciesPage() {
                       </span>
                     </div>
 
+                    {/* Rejection reason */}
+                    {vacancy.status === "rejected" && vacancy.rejection_reason && (
+                      <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-xs font-medium text-red-600 uppercase mb-1">Причина отклонения</p>
+                        <p className="text-sm text-red-700">{vacancy.rejection_reason}</p>
+                      </div>
+                    )}
+
+                    {/* Info message for pending_review */}
+                    {vacancy.status === "pending_review" && (
+                      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-sm text-blue-700">
+                          <svg className="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Вакансия на модерации. Обычно проверка занимает 1-2 рабочих дня.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Actions */}
-                    <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+                    <div className="flex items-center gap-2 pt-3 border-t border-gray-100 flex-wrap">
                       <Link
                         href={`/vacancies/${vacancy.id}`}
                         className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                       >
                         Просмотр
                       </Link>
-                      <Link
-                        href={`/vacancies/edit/${vacancy.id}`}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                      >
-                        Редактировать
-                      </Link>
-                      {vacancy.status === "draft" && !vacancyBanned && (
-                        <button
-                          onClick={() => handlePublish(vacancy.id)}
-                          className="px-4 py-2 text-sm font-medium text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      {vacancy.status === "draft" || vacancy.status === "rejected" ? (
+                        <>
+                          <Link
+                            href={`/vacancies/edit/${vacancy.id}`}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                          >
+                            Редактировать
+                          </Link>
+                          {!vacancyBanned && (
+                            <button
+                              onClick={() => handlePublish(vacancy.id)}
+                              className="px-4 py-2 text-sm font-medium text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            >
+                              {vacancy.status === "rejected" ? "Отправить повторно" : "Опубликовать"}
+                            </button>
+                          )}
+                        </>
+                      ) : vacancy.status === "pending_review" ? (
+                        <>
+                          <button
+                            onClick={() => handleWithdraw(vacancy.id)}
+                            className="px-4 py-2 text-sm font-medium text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                          >
+                            Отозвать с модерации
+                          </button>
+                          <span className="text-xs text-gray-500 ml-auto">
+                            Редактирование недоступно на модерации
+                          </span>
+                        </>
+                      ) : vacancy.status === "published" ? (
+                        <Link
+                          href={`/vacancies/edit/${vacancy.id}`}
+                          className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                         >
-                          Опубликовать
-                        </button>
-                      )}
+                          Редактировать
+                        </Link>
+                      ) : null}
                       <button
                         onClick={() => handleDelete(vacancy.id)}
-                        className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-auto"
+                        className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       >
                         Удалить
                       </button>

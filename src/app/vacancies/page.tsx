@@ -194,7 +194,7 @@ export default function VacanciesPage() {
       </section>
 
       {/* Main content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-8 pb-24 lg:pb-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-8 pb-32 sm:pb-40 lg:pb-8">
         <div className="flex gap-6 lg:gap-8">
           {/* Sidebar - filters */}
           <aside className="hidden lg:block w-72 shrink-0">

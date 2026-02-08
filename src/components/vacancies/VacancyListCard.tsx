@@ -15,6 +15,8 @@ export interface Vacancy {
   url: string;
   source: string;
   user_id?: string;
+  created_at?: string;
+  published_at?: string;
 }
 
 interface VacancyListCardProps {

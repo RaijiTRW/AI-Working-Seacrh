@@ -276,6 +276,9 @@ export interface EmployerVacancy {
   created_at?: string;
   updated_at?: string;
   published_at?: string;
+  rejection_reason?: string;
+  moderation_checked_at?: string;
+  moderated_by?: string;
 }
 
 export interface EmployerVacancyCreate {
@@ -397,6 +400,28 @@ export async function deleteVacancy(
 
   if (!response.ok) {
     throw new Error("Failed to delete vacancy");
+  }
+}
+
+/**
+ * Отозвать вакансию с модерации (вернуть в черновики)
+ */
+export async function withdrawVacancy(
+  vacancyId: string,
+  token: string
+): Promise<void> {
+  const response = await fetch(
+    `/api/employer/vacancies/${vacancyId}/withdraw`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to withdraw vacancy");
   }
 }
 
@@ -958,6 +983,26 @@ export async function getSchedulerStatus(token: string): Promise<SchedulerStatus
 }
 
 /**
+ * Получить состояние джобов (is_paused) напрямую из Supabuse
+ */
+export async function getJobStates(token: string): Promise<Record<string, { is_paused: boolean }>> {
+  const response = await fetch(`${NEXT_API}/api/admin/scheduler/job-state`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    // Если ошибка, возвращаем пустой объект (по умолчанию все активны)
+    console.error("Failed to fetch job states, using defaults");
+    return {};
+  }
+
+  return response.json();
+}
+
+/**
  * Поставить джоб на паузу
  */
 export async function pauseJob(token: string, jobId: string): Promise<void> {
@@ -1113,6 +1158,48 @@ export async function toggleAgent(
     const errorText = await response.text();
     console.error("[toggleAgent] Error:", response.status, errorText);
     throw new Error("Failed to toggle agent");
+  }
+}
+
+// === Support Chat API ===
+
+export interface SupportChatStatus {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+}
+
+export async function getSupportChatStatus(token: string): Promise<SupportChatStatus> {
+  const response = await fetch(`${NEXT_API}/api/admin/support-chat/status`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    // Если ошибка, возвращаем дефолтное значение
+    return { id: "support_chat", name: "AI-чат поддержки", description: "Чат поддержки в углу экрана", enabled: true };
+  }
+
+  return response.json();
+}
+
+export async function toggleSupportChat(token: string, enabled: boolean): Promise<void> {
+  const response = await fetch(`${NEXT_API}/api/admin/support-chat/toggle`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ enabled }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("[toggleSupportChat] Error:", response.status, errorText);
+    throw new Error("Failed to toggle support chat");
   }
 }
 

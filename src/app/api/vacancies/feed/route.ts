@@ -22,6 +22,8 @@ interface Vacancy {
   url: string;
   source: string;
   user_id?: string;
+  created_at?: string;
+  published_at?: string;
 }
 
 // GET /api/vacancies/feed - Получить ленту вакансий
@@ -117,6 +119,8 @@ export async function GET(request: NextRequest) {
           description: v.description || "",
           url: v.url,
           source: v.source,
+          created_at: v.created_at,
+          published_at: v.created_at, // Use created_at as published_at for network vacancies
         }));
         networkTotal = networkCount || 0;
       }
@@ -183,6 +187,8 @@ export async function GET(request: NextRequest) {
           url: `/vacancies/${v.id}`, // Внутренняя ссылка
           source: "platform",
           user_id: v.user_id,
+          created_at: v.created_at,
+          published_at: v.published_at || v.created_at,
         }));
         platformTotal = platformCount || 0;
       }

@@ -39,6 +39,7 @@ export default function CreateVacancyPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [vacancyBanned, setVacancyBanned] = useState(false);
   const [vacancyBanReason, setVacancyBanReason] = useState("");
 
@@ -107,6 +108,7 @@ export default function CreateVacancyPage() {
   const handleSubmit = async (e: React.FormEvent, publish = false) => {
     e.preventDefault();
     setError("");
+    setSuccessMessage("");
     setSubmitting(true);
 
     try {
@@ -115,37 +117,50 @@ export default function CreateVacancyPage() {
 
       if (!token) {
         setError("Необходимо авторизоваться");
+        setSubmitting(false);
         return;
       }
 
       // Validate required fields
       if (!formData.title || formData.title.length < 3) {
         setError("Название должно быть минимум 3 символа");
+        setSubmitting(false);
         return;
       }
       if (!formData.company) {
         setError("Укажите название компании");
+        setSubmitting(false);
         return;
       }
       if (!formData.city) {
         setError("Укажите город");
+        setSubmitting(false);
         return;
       }
       if (!formData.description || formData.description.length < 50) {
         setError("Описание должно быть минимум 50 символов");
+        setSubmitting(false);
         return;
       }
 
       const vacancy = await createVacancy(formData, token);
 
       if (publish) {
-        await publishVacancy(vacancy.id, token);
+        const publishResult = await publishVacancy(vacancy.id, token);
+        // Show success message and redirect to My Vacancies
+        setSuccessMessage("Вакансия отправлена на модерацию! Обычно проверка занимает 1-2 рабочих дня.");
+        setTimeout(() => {
+          router.push("/vacancies/my");
+        }, 2000);
+      } else {
+        // Draft saved - redirect to My Vacancies
+        setSuccessMessage("Черновик сохранён!");
+        setTimeout(() => {
+          router.push("/vacancies/my");
+        }, 1500);
       }
-
-      router.push("/vacancies");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка при создании вакансии");
-    } finally {
       setSubmitting(false);
     }
   };
@@ -485,6 +500,16 @@ export default function CreateVacancyPage() {
                 </div>
               </div>
             </div>
+
+            {/* Success message */}
+            {successMessage && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-green-700 text-sm flex items-center gap-3">
+                <svg className="w-5 h-5 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {successMessage}
+              </div>
+            )}
 
             {/* Error */}
             {error && (

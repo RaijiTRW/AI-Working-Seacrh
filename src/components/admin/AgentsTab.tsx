@@ -10,7 +10,8 @@ import {
   pauseJob,
   resumeJob,
   triggerJob,
-  stopJob
+  stopJob,
+  getJobStates
 } from "@/lib/api";
 import AgentCard from "./AgentCard";
 
@@ -28,22 +29,35 @@ export default function AgentsTab({ token }: AgentsTabProps) {
   const fetchData = async () => {
     try {
       setError(null);
-      // Fetch both agents and scheduler status
-      const [agentsData, schedulerData] = await Promise.allSettled([
+      // Fetch agents, scheduler status, and job states (direct from DB)
+      const [agentsData, schedulerData, jobStatesData] = await Promise.allSettled([
         getAgentsStatus(token),
-        getSchedulerStatus(token)
+        getSchedulerStatus(token),
+        getJobStates(token)  // Прямое чтение из Supabuse
       ]);
 
       if (agentsData.status === 'fulfilled') {
         setAgents(agentsData.value);
       }
 
-      if (schedulerData.status === 'fulfilled') {
-        console.log('[AgentsTab] Scheduler jobs:', schedulerData.value.jobs);
+      if (schedulerData.status === 'fulfilled' && jobStatesData.status === 'fulfilled') {
+        const jobStates = jobStatesData.value || {};
+        console.log('[AgentsTab] Job states from DB:', jobStates);
+
+        // Объединяем scheduler status с job states из БД
+        const jobs = (schedulerData.value.jobs || []).map(job => ({
+          ...job,
+          is_paused: jobStates[job.job_id]?.is_paused || false
+        }));
+
+        console.log('[AgentsTab] Merged jobs:', jobs);
+        setSchedulerStatus(jobs);
+      } else if (schedulerData.status === 'fulfilled') {
+        // Если не удалось получить job states, просто используем scheduler data
         setSchedulerStatus(schedulerData.value.jobs || []);
       }
 
-      // Only show error if both failed
+      // Only show error if all failed
       if (agentsData.status === 'rejected' && schedulerData.status === 'rejected') {
         setError("Не удалось загрузить данные. Проверьте подключение к серверу.");
       }
@@ -78,21 +92,12 @@ export default function AgentsTab({ token }: AgentsTabProps) {
   const handlePauseJob = async (jobId: string) => {
     try {
       setActionLoading(jobId);
-
-      // Optimistically update status to paused immediately for UI feedback
-      setSchedulerStatus(prev => prev.map(job =>
-        job.job_id === jobId ? { ...job, status: "paused" as const, is_paused: true } : job
-      ));
-
       await pauseJob(token, jobId);
-
-      // Force refresh after a short delay to confirm the state
-      setTimeout(() => fetchData(), 500);
+      // Refresh data from DB to get actual state
+      await fetchData();
     } catch (err) {
       console.error("Error pausing job:", err);
       setError("Не удалось остановить задачу");
-      // Revert optimistic update on error
-      await fetchData();
     } finally {
       setActionLoading(null);
     }
@@ -101,21 +106,12 @@ export default function AgentsTab({ token }: AgentsTabProps) {
   const handleResumeJob = async (jobId: string) => {
     try {
       setActionLoading(jobId);
-
-      // Optimistically update status to active immediately for UI feedback
-      setSchedulerStatus(prev => prev.map(job =>
-        job.job_id === jobId ? { ...job, status: "active" as const, is_paused: false } : job
-      ));
-
       await resumeJob(token, jobId);
-
-      // Force refresh after a short delay to confirm the state
-      setTimeout(() => fetchData(), 500);
+      // Refresh data from DB to get actual state
+      await fetchData();
     } catch (err) {
       console.error("Error resuming job:", err);
       setError("Не удалось возобновить задачу");
-      // Revert optimistic update on error
-      await fetchData();
     } finally {
       setActionLoading(null);
     }
@@ -123,39 +119,24 @@ export default function AgentsTab({ token }: AgentsTabProps) {
 
   const handleTriggerJob = async (jobId: string) => {
     try {
-      // Optimistically update status to show running immediately
-      setSchedulerStatus(prev => prev.map(job =>
-        job.job_id === jobId ? { ...job, status: "running" as const } : job
-      ));
       await triggerJob(token, jobId);
+      // Refresh data from DB to get actual state
       await fetchData();
     } catch (err) {
       console.error("Error triggering job:", err);
       setError("Не удалось запустить задачу");
-      // Revert optimistic update on error
-      await fetchData();
     }
   };
 
   const handleStopJob = async (jobId: string) => {
     try {
       setActionLoading(jobId);
-
-      // Optimistically update status to paused immediately for UI feedback
-      setSchedulerStatus(prev => prev.map(job =>
-        job.job_id === jobId ? { ...job, status: "paused" as const, is_paused: true } : job
-      ));
-
-      // Call stop API
       await stopJob(token, jobId);
-
-      // Force refresh after a short delay to confirm the state
-      setTimeout(() => fetchData(), 500);
+      // Refresh data from DB to get actual state
+      await fetchData();
     } catch (err) {
       console.error("Error stopping job:", err);
       setError("Не удалось остановить задачу");
-      // Revert optimistic update on error
-      await fetchData();
     } finally {
       setActionLoading(null);
     }

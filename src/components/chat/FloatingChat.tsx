@@ -147,6 +147,9 @@ export default function FloatingChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Support Chat agent status
+  const [supportChatEnabled, setSupportChatEnabled] = useState(true);
+
   // Guest ID для неавторизованных пользователей
   const [guestId, setGuestId] = useState<string | null>(null);
 
@@ -167,6 +170,26 @@ export default function FloatingChat() {
 
   // Эффективный ID пользователя (user.id или guest_id)
   const effectiveUserId = user?.id || guestId;
+
+  // Загрузка статуса Support Chat агента
+  useEffect(() => {
+    const fetchSupportChatStatus = async () => {
+      try {
+        const response = await fetch("/api/admin/support-chat/status");
+        if (response.ok) {
+          const data = await response.json();
+          setSupportChatEnabled(data.enabled);
+        }
+      } catch (e) {
+        console.error("Failed to fetch support chat status:", e);
+      }
+    };
+
+    fetchSupportChatStatus();
+    // Проверяем каждые 30 секунд
+    const interval = setInterval(fetchSupportChatStatus, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Загрузка при открытии
   useEffect(() => {
@@ -588,6 +611,8 @@ export default function FloatingChat() {
   // Не показываем на странице авторизации
   if (authLoading) return null;
   if (typeof window !== "undefined" && window.location.pathname.startsWith("/auth")) return null;
+  // Не показываем если Support Chat агент выключен
+  if (!supportChatEnabled) return null;
 
   return (
     <>

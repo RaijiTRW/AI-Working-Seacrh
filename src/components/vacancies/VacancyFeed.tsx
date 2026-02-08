@@ -35,19 +35,28 @@ export default function VacancyFeed({
   ];
 
   // Sort vacancies (client-side for now)
+  // Note: Date sorting should ideally be done on backend for proper pagination
   const sortedVacancies = [...vacancies].sort((a, b) => {
     switch (sortBy) {
       case "salary_desc":
         return (b.salary_from || 0) - (a.salary_from || 0);
       case "salary_asc":
         return (a.salary_from || 0) - (b.salary_from || 0);
+      case "date":
+        // Use published_at timestamp for proper date sorting
+        const aDate = new Date(a.published_at || a.created_at || 0);
+        const bDate = new Date(b.published_at || b.created_at || 0);
+        return bDate.getTime() - aDate.getTime(); // Newest first
       default:
         return 0;
     }
   });
 
-  // Loading skeleton
-  if (loading && vacancies.length === 0) {
+  // Loading skeleton for initial load or filter change
+  const showInitialSkeleton = loading && vacancies.length === 0;
+  const showFilterOverlay = loading && vacancies.length > 0;
+
+  if (showInitialSkeleton) {
     return (
       <div className="space-y-3 sm:space-y-4">
         {[1, 2, 3].map((i) => (
@@ -134,7 +143,12 @@ export default function VacancyFeed({
       </div>
 
       {/* Vacancy list */}
-      <div className="space-y-3 sm:space-y-4">
+      <div className="space-y-3 sm:space-y-4 relative">
+        {showFilterOverlay && (
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
+            <div className="animate-spin w-6 h-6 sm:w-8 sm:h-8 border-3 border-orange-500 border-t-transparent rounded-full" />
+          </div>
+        )}
         {sortedVacancies.map((vacancy) => (
           <VacancyListCard key={vacancy.id} vacancy={vacancy} currentUserId={currentUserId} />
         ))}
