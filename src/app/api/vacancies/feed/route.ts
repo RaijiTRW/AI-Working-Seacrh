@@ -93,8 +93,13 @@ export async function GET(request: NextRequest) {
       if (experience) {
         const expPatterns = getExperiencePatterns(experience);
         if (expPatterns.length > 0) {
-          const expConditions = expPatterns.map(p => `experience.ilike.%${p}%`).join(",");
-          networkQuery = networkQuery.or(`(${expConditions})`);
+          // Для no_experience также включаем вакансии без указанного опыта
+          if (experience === "no_experience") {
+            networkQuery = networkQuery.or(`experience.ilike.%no_experience%,experience.ilike.%noexperience%,experience.ilike.%без опыта%,experience.ilike.%не требуется%,experience.ilike.%нет опыта%,experience.is.null`);
+          } else {
+            const expConditions = expPatterns.map(p => `experience.ilike.%${p}%`).join(",");
+            networkQuery = networkQuery.or(expConditions);
+          }
         }
       }
 
@@ -160,11 +165,11 @@ export async function GET(request: NextRequest) {
       if (experience) {
         const expPatterns = getExperiencePatterns(experience);
         if (expPatterns.length > 0) {
-          const expConditions = expPatterns.map(p => `experience.ilike.%${p}%`).join(",");
           // Для no_experience также включаем вакансии без указанного опыта
           if (experience === "no_experience") {
-            platformQuery = platformQuery.or(`${expConditions},experience.is.null,experience.eq.`);
+            platformQuery = platformQuery.or(`experience.ilike.%no_experience%,experience.ilike.%noexperience%,experience.ilike.%без опыта%,experience.ilike.%не требуется%,experience.ilike.%нет опыта%,experience.is.null`);
           } else {
+            const expConditions = expPatterns.map(p => `experience.ilike.%${p}%`).join(",");
             platformQuery = platformQuery.or(expConditions);
           }
         }
