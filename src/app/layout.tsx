@@ -154,6 +154,19 @@ export default function RootLayout({
     <html lang="ru">
       <head>
         <link rel="apple-touch-icon" href="/favicon-master-512.png?v=2" />
+        {/* RSS/Atom Feed Auto-discovery */}
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title="JobAISearch - Вакансии"
+          href={`${siteUrl}/api/vacancies/rss`}
+        />
+        <link
+          rel="alternate"
+          type="application/atom+xml"
+          title="JobAISearch - Вакансии"
+          href={`${siteUrl}/api/vacancies/atom`}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppJsonLd) }}

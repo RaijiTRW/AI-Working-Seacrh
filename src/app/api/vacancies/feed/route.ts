@@ -1,9 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { log } from "@/lib/logger";
+import { sanitizeString } from "@/lib/sanitize";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+// Security: Maximum query length to prevent DoS
+const MAX_QUERY_LENGTH = 100;
+
 
 function getSupabaseAdmin() {
   return createClient(supabaseUrl, supabaseServiceKey);
@@ -30,8 +35,17 @@ interface Vacancy {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
-  const query = searchParams.get("query") || undefined;
-  const city = searchParams.get("city") || undefined;
+  // Security: Sanitize and validate input
+  const rawQuery = searchParams.get("query");
+  const query = rawQuery
+    ? sanitizeString(rawQuery.slice(0, MAX_QUERY_LENGTH))
+    : undefined;
+
+  const rawCity = searchParams.get("city");
+  const city = rawCity
+    ? sanitizeString(rawCity.slice(0, MAX_QUERY_LENGTH))
+    : undefined;
+
   const salaryFrom = searchParams.get("salary_from") ? parseInt(searchParams.get("salary_from")!) : undefined;
   const experience = searchParams.get("experience") || undefined;
   const source = searchParams.get("source") || undefined; // platform, hh, superjob, avito, or comma-separated, or undefined (all)
@@ -58,7 +72,8 @@ export async function GET(request: NextRequest) {
       let networkQuery = supabase
         .from("vacancies_storage")
         .select("*", { count: "exact" })
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("is_public", true);  // Security: Only include public vacancies
 
       // Фильтр по источникам, если указаны конкретные
       if (networkSources.length > 0) {
@@ -91,12 +106,13 @@ export async function GET(request: NextRequest) {
 
       // Опыт работы (поддержка разных форматов)
       if (experience) {
-        const expPatterns = getExperiencePatterns(experience);
-        if (expPatterns.length > 0) {
-          // Для no_experience также включаем вакансии без указанного опыта
-          if (experience === "no_experience") {
-            networkQuery = networkQuery.or(`experience.ilike.%no_experience%,experience.ilike.%noexperience%,experience.ilike.%без опыта%,experience.ilike.%не требуется%,experience.ilike.%нет опыта%,experience.is.null`);
-          } else {
+        // Для no_experience включаем вакансии где опыт не указан (NULL или пустая строка)
+        if (experience === "no_experience") {
+          // Все условия в одном OR: IS NULL + empty string + text patterns
+          networkQuery = networkQuery.or(`experience.is.null,experience.eq.*,experience.ilike.%no_experience%,experience.ilike.%noexperience%,experience.ilike.%без опыта%,experience.ilike.%не требуется%,experience.ilike.%нет опыта%`);
+        } else {
+          const expPatterns = getExperiencePatterns(experience);
+          if (expPatterns.length > 0) {
             const expConditions = expPatterns.map(p => `experience.ilike.%${p}%`).join(",");
             networkQuery = networkQuery.or(expConditions);
           }
@@ -137,7 +153,8 @@ export async function GET(request: NextRequest) {
         .from("employer_vacancies")
         .select("*", { count: "exact" })
         .eq("status", "published")
-        .eq("is_active", true);
+        .eq("is_active", true)
+        .eq("is_public", true);  // Security: Only include public vacancies
 
       // Фильтры
       if (query) {
@@ -163,12 +180,13 @@ export async function GET(request: NextRequest) {
       }
 
       if (experience) {
-        const expPatterns = getExperiencePatterns(experience);
-        if (expPatterns.length > 0) {
-          // Для no_experience также включаем вакансии без указанного опыта
-          if (experience === "no_experience") {
-            platformQuery = platformQuery.or(`experience.ilike.%no_experience%,experience.ilike.%noexperience%,experience.ilike.%без опыта%,experience.ilike.%не требуется%,experience.ilike.%нет опыта%,experience.is.null`);
-          } else {
+        // Для no_experience включаем вакансии где опыт не указан (NULL или пустая строка)
+        if (experience === "no_experience") {
+          // Все условия в одном OR: IS NULL + empty string + text patterns
+          platformQuery = platformQuery.or(`experience.is.null,experience.eq.*,experience.ilike.%no_experience%,experience.ilike.%noexperience%,experience.ilike.%без опыта%,experience.ilike.%не требуется%,experience.ilike.%нет опыта%`);
+        } else {
+          const expPatterns = getExperiencePatterns(experience);
+          if (expPatterns.length > 0) {
             const expConditions = expPatterns.map(p => `experience.ilike.%${p}%`).join(",");
             platformQuery = platformQuery.or(expConditions);
           }

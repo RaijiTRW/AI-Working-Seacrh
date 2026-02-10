@@ -37,6 +37,36 @@ function formatSalary(from?: number, to?: number): string {
   return "";
 }
 
+function formatExperience(experience?: string): string | null {
+  if (!experience) return null;
+
+  const experienceMap: Record<string, string> = {
+    "no_experience": "Без опыта",
+    "noexperience": "Без опыта",
+    "1-3": "1-3 года",
+    "3-6": "3-6 лет",
+    "6+": "Более 6 лет",
+    "between1and3": "1-3 года",
+    "between3and6": "3-6 лет",
+    "morethan6": "Более 6 лет",
+  };
+
+  // Check for exact match first
+  if (experienceMap[experience]) {
+    return experienceMap[experience];
+  }
+
+  // Check for Russian text patterns - return as is if it's already in Russian
+  const russianPatterns = ["без опыта", "не требуется", "нет опыта", "от 1 до 3", "от 3 до 6", "более 6", "1-3 года", "3-6 лет"];
+  const lowerExp = experience.toLowerCase();
+  if (russianPatterns.some(pattern => lowerExp.includes(pattern))) {
+    return experience; // Return original as it's already in Russian
+  }
+
+  // If no match, return null to hide the badge
+  return null;
+}
+
 function getSourceLabel(source: string, isOwner: boolean): string {
   if (isOwner) return "Моя";
   const labels: Record<string, string> = {
@@ -61,6 +91,7 @@ function getSourceColor(source: string, isOwner: boolean): string {
 
 export default function VacancyListCard({ vacancy, currentUserId }: VacancyListCardProps) {
   const salary = formatSalary(vacancy.salary_from, vacancy.salary_to);
+  const experience = formatExperience(vacancy.experience);
   const isPlatform = vacancy.source === "platform";
   const isOwner = isPlatform && !!currentUserId && vacancy.user_id === currentUserId;
 
@@ -93,9 +124,9 @@ export default function VacancyListCard({ vacancy, currentUserId }: VacancyListC
 
           {/* Tags */}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
-            {vacancy.experience && (
+            {experience && (
               <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
-                {vacancy.experience}
+                {experience}
               </span>
             )}
             {vacancy.employment_type === "remote" && (

@@ -11,6 +11,8 @@ Disallow: /auth
 Disallow: /vacancies/create
 Disallow: /vacancies/edit/
 Disallow: /vacancies/my
+Disallow: /profile/
+Disallow: /chat
 
 # Sitemap
 Sitemap: https://jobaisearch.ru/sitemap.xml

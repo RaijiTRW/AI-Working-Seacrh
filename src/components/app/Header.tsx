@@ -92,6 +92,12 @@ export default function AppHeader({ showRequestCounter = false }: AppHeaderProps
           >
             AI-поиск
           </Link>
+          <Link
+            href="/resume-builder"
+            className={`text-sm font-medium transition-colors ${getActiveClass("/resume-builder")}`}
+          >
+            Резюме
+          </Link>
           {isLandingPage && (
             isAdmin ? (
               <Link
@@ -207,6 +213,16 @@ export default function AppHeader({ showRequestCounter = false }: AppHeaderProps
               }`}
             >
               AI-поиск
+            </Link>
+            <Link
+              href="/resume-builder"
+              className={`px-4 py-3 min-h-12 rounded-lg text-sm font-medium transition-colors flex items-center ${
+                isActive("/resume-builder")
+                  ? "bg-orange-50 text-orange-600"
+                  : "text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              Конструктор резюме
             </Link>
             {isLandingPage && (
               isAdmin ? (

@@ -279,6 +279,45 @@ export interface EmployerVacancy {
   rejection_reason?: string;
   moderation_checked_at?: string;
   moderated_by?: string;
+  // SEO fields
+  company_url?: string;
+  company_logo?: string;
+  skills?: string[];
+  work_hours?: string;
+  valid_through?: string;
+  is_public?: boolean;
+}
+
+/**
+ * Network vacancy type (hh.ru, avito, superjob)
+ */
+export interface NetworkVacancy {
+  id: string;
+  title: string;
+  company: string;
+  city: string;
+  salary_from?: number;
+  salary_to?: number;
+  salary_currency?: string;
+  experience?: string;
+  employment_type?: string;
+  schedule?: string;
+  description: string;
+  requirements?: string;
+  conditions?: string;
+  url: string;
+  source: "hh" | "avito" | "superjob";
+  source_id: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  published_at?: string;
+  company_url?: string;
+  company_logo?: string;
+  skills?: string[];
+  work_hours?: string;
+  valid_through?: string;
+  is_network: true;
 }
 
 export interface EmployerVacancyCreate {
@@ -440,6 +479,49 @@ export async function getVacancyById(
   }
 
   return response.json();
+}
+
+/**
+ * Get network vacancy by composite ID (format: "source_sourceId")
+ * Examples: "hh_12345678", "avito_98765432", "superjob_11223344"
+ */
+export async function getNetworkVacancy(
+  vacancyId: string
+): Promise<NetworkVacancy> {
+  const response = await fetch(
+    `/api/network-vacancies/${vacancyId}`
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch network vacancy");
+  }
+
+  return response.json();
+}
+
+/**
+ * Check if vacancy ID is a network vacancy (format: "source_sourceId")
+ */
+export function isNetworkVacancyId(vacancyId: string): boolean {
+  const parts = vacancyId.split("_");
+  if (parts.length < 2) return false;
+
+  const source = parts[0];
+  const validSources = ["hh", "avito", "superjob"];
+  return validSources.includes(source);
+}
+
+/**
+ * Get vacancy (platform or network) by ID
+ * Automatically detects type and fetches from appropriate source
+ */
+export async function getVacancy(
+  vacancyId: string
+): Promise<EmployerVacancy | NetworkVacancy> {
+  if (isNetworkVacancyId(vacancyId)) {
+    return getNetworkVacancy(vacancyId);
+  }
+  return getVacancyById(vacancyId);
 }
 
 /**

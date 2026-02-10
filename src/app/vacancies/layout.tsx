@@ -39,6 +39,10 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: `${siteUrl}/vacancies`,
+    types: {
+      "application/rss+xml": `${siteUrl}/api/vacancies/rss`,
+      "application/atom+xml": `${siteUrl}/api/vacancies/atom`,
+    },
   },
 };
 

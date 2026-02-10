@@ -1,0 +1,15 @@
+# OpenGraph Image Placeholder
+
+The SEO implementation references `/og-image.png` for social media sharing.
+
+To create this image, you should generate a 1200x630px PNG image with:
+- JobAISearch branding
+- Tagline: "Умный поиск работы с ИИ"
+- Professional design
+
+For now, the implementation will fall back to the favicon if the OG image is missing.
+
+Recommended tools:
+- Canva: https://www.canva.com/templates/s/og-image/
+- Figma: Create a 1200x630px frame
+- Online generator: https://www.opengraph.xyz/

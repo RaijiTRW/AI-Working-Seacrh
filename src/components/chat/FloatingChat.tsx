@@ -150,8 +150,54 @@ export default function FloatingChat() {
   // Support Chat agent status
   const [supportChatEnabled, setSupportChatEnabled] = useState(true);
 
+  // Состояние для скрытия чата на определенных страницах
+  const [isVisible, setIsVisible] = useState(true);
+
   // Guest ID для неавторизованных пользователей
   const [guestId, setGuestId] = useState<string | null>(null);
+
+  // Отслеживаем изменение pathname для скрытия/показа чата
+  useEffect(() => {
+    const checkVisibility = () => {
+      if (typeof window === "undefined") return;
+
+      const pathname = window.location.pathname;
+      // Скрываем на авторизации и редакторе резюме
+      const shouldHide = pathname.startsWith("/auth") || pathname === "/resume-builder";
+      setIsVisible(!shouldHide);
+    };
+
+    checkVisibility();
+
+    // Добавляем listener для навигации
+    const handleRouteChange = () => {
+      checkVisibility();
+    };
+
+    // Следим за изменениями в pathname (для Next.js app router)
+    const originalPush = window.history.pushState;
+    const originalReplace = window.history.replaceState;
+
+    window.history.pushState = function(...args) {
+      originalPush.apply(this, args);
+      setTimeout(checkVisibility, 0);
+    };
+
+    window.history.replaceState = function(...args) {
+      originalReplace.apply(this, args);
+      setTimeout(checkVisibility, 0);
+    };
+
+    // Popstate handler (назад/вперёд)
+    const handlePopState = () => checkVisibility();
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.history.pushState = originalPush;
+      window.history.replaceState = originalReplace;
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
 
   // Получение или генерация guest_id
   useEffect(() => {
@@ -608,11 +654,10 @@ export default function FloatingChat() {
     return date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
   };
 
-  // Не показываем на странице авторизации
-  if (authLoading) return null;
-  if (typeof window !== "undefined" && window.location.pathname.startsWith("/auth")) return null;
-  // Не показываем если Support Chat агент выключен
+  // Не показываем если агент выключен
   if (!supportChatEnabled) return null;
+  // Не показываем если authLoading или скрыт
+  if (authLoading || !isVisible) return null;
 
   return (
     <>
