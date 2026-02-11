@@ -470,8 +470,14 @@ export async function withdrawVacancy(
 export async function getVacancyById(
   vacancyId: string
 ): Promise<EmployerVacancy> {
+  // Use absolute URL for server-side rendering compatibility
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://jobaisearch.ru";
   const response = await fetch(
-    `/api/employer/vacancies/${vacancyId}`
+    `${baseUrl}/api/employer/vacancies/${vacancyId}`,
+    {
+      // Required for server-side rendering
+      cache: "no-store",
+    }
   );
 
   if (!response.ok) {
@@ -488,8 +494,14 @@ export async function getVacancyById(
 export async function getNetworkVacancy(
   vacancyId: string
 ): Promise<NetworkVacancy> {
+  // Use absolute URL for server-side rendering compatibility
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://jobaisearch.ru";
   const response = await fetch(
-    `/api/network-vacancies/${vacancyId}`
+    `${baseUrl}/api/network-vacancies/${vacancyId}`,
+    {
+      // Required for server-side rendering
+      cache: "no-store",
+    }
   );
 
   if (!response.ok) {
