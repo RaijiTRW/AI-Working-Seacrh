@@ -9,9 +9,10 @@ import { supabase } from "@/lib/supabase";
 
 interface AppHeaderProps {
   showRequestCounter?: boolean;
+  hideOnMobile?: boolean;
 }
 
-export default function AppHeader({ showRequestCounter = false }: AppHeaderProps) {
+export default function AppHeader({ showRequestCounter = false, hideOnMobile = false }: AppHeaderProps) {
   const { user, loading } = useAuth();
   const { isAdmin } = useIsAdmin();
   const pathname = usePathname();
@@ -72,7 +73,7 @@ export default function AppHeader({ showRequestCounter = false }: AppHeaderProps
   const isLandingPage = pathname === "/" || pathname?.startsWith("/?");
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100">
+    <header className={`fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100 ${hideOnMobile ? "hidden lg:block" : ""}`}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
         <Link href="/" className="text-xl font-semibold text-foreground">
           Job Search

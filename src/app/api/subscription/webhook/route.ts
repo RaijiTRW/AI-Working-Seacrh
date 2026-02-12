@@ -59,6 +59,18 @@ export async function POST(request: NextRequest) {
     if (body.event === "payment.succeeded") {
       log.webhook(" Processing successful payment for user:", userId);
 
+      // Идемпотентность: проверяем, не обработан ли уже платёж
+      const { data: existingPayment } = await supabase
+        .from("payment_history")
+        .select("status")
+        .eq("yookassa_payment_id", payment.id)
+        .single();
+
+      if (existingPayment?.status === "succeeded") {
+        log.webhook("Payment already processed, skipping:", payment.id);
+        return NextResponse.json({ status: "ok", already_processed: true });
+      }
+
       // Сохраняем payment_method_id для автосписания (если есть)
       if (payment.payment_method?.id) {
         await supabase

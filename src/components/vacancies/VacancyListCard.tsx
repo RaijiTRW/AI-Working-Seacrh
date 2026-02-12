@@ -206,9 +206,6 @@ export default function VacancyListCard({ vacancy, currentUserId }: VacancyListC
             >
               Откликнуться
             </a>
-            <button className="px-5 py-2.5 border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors">
-              Контакты
-            </button>
           </>
         )}
       </div>

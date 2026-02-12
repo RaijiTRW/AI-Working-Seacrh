@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -9,6 +9,7 @@ import ChatMessages, { Message, SearchPhase } from "@/components/chat/ChatMessag
 import { Chat } from "@/components/chat/ChatListModal";
 import { sendMessageStream, Vacancy } from "@/lib/api";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import VacancyFeedDrawer from "@/components/chat/VacancyFeedDrawer";
 import { useSubscriptionContext } from "@/components/subscription";
 import { useSiteSettings } from "@/lib/useSiteSettings";
 import AppHeader from "@/components/app/Header";
@@ -48,6 +49,40 @@ export default function ChatPage() {
   // Delete confirmation modal
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
+
+  // Vacancy feed drawer
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Сгруппировать вакансии по запросам пользователя
+  const vacancyGroups = useMemo(() => {
+    const groups: { query: string; vacancies: Vacancy[] }[] = [];
+
+    messages.forEach((msg, index) => {
+      // Ищем пары: user -> assistant с вакансиями
+      if (msg.role === "user" && index + 1 < messages.length) {
+        const nextMsg = messages[index + 1];
+        if (nextMsg?.role === "assistant" && nextMsg.vacancies && nextMsg.vacancies.length > 0) {
+          groups.push({
+            query: msg.content,
+            vacancies: nextMsg.vacancies,
+          });
+        }
+      }
+    });
+
+    // Добавляем текущие streaming вакансии
+    if (streamingVacancies.length > 0 && messages.length > 0) {
+      const lastUserMsg = [...messages].reverse().find(m => m.role === "user");
+      if (lastUserMsg) {
+        groups.push({
+          query: lastUserMsg.content,
+          vacancies: streamingVacancies,
+        });
+      }
+    }
+
+    return groups;
+  }, [messages, streamingVacancies]);
 
   const hasStarted = messages.length > 0 || isLoadingChat;
 
@@ -681,14 +716,14 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-[100dvh] flex flex-col bg-gray-50">
       {/* Universal Header */}
-      <AppHeader showRequestCounter={true} />
+      <AppHeader showRequestCounter={true} hideOnMobile={isDrawerOpen} />
 
       {/* Chat area */}
-      <main className="flex-1 flex flex-col relative overflow-hidden pt-16 sm:pt-20">
+      <main className="flex-1 flex flex-col relative overflow-hidden pt-16 sm:pt-20 min-h-0">
         {/* Messages area - always present but hidden when empty */}
-        <div className={`flex-1 overflow-y-auto pb-10 transition-opacity duration-500 ${hasStarted && showMessages ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+        <div className={`flex-1 overflow-y-auto overflow-x-hidden pb-40 sm:pb-10 transition-opacity duration-500 ${hasStarted && showMessages ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <ChatMessages
             messages={messages}
             isTyping={isTyping}
@@ -698,6 +733,8 @@ export default function ChatPage() {
             onLoadMore={handleLoadMore}
             searchPhase={searchPhase}
             showStartingText={showStartingText}
+            isDrawerOpen={isDrawerOpen}
+            onToggleDrawer={() => setIsDrawerOpen(!isDrawerOpen)}
           />
         </div>
 
@@ -732,6 +769,14 @@ export default function ChatPage() {
           />
         </div>
       </main>
+
+      {/* Vacancy feed drawer */}
+      <VacancyFeedDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        groups={vacancyGroups}
+        isLoading={isTyping}
+      />
 
       {/* Delete confirmation modal */}
       <ConfirmModal

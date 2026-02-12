@@ -111,13 +111,16 @@ export async function GET(
       // Проверяем не обработан ли уже платеж
       const { data: existingPayment } = await supabase
         .from("payment_history")
-        .select("status")
+        .select("status, metadata")
         .eq("yookassa_payment_id", paymentId)
         .single();
 
       if (existingPayment?.status === "succeeded") {
+        // Берём type из metadata в БД
+        const paymentTypeFromDB = (existingPayment.metadata as { type?: string })?.type;
         return NextResponse.json({
           status: "succeeded",
+          type: paymentTypeFromDB || paymentType,
           already_processed: true,
         });
       }

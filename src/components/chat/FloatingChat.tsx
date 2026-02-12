@@ -162,8 +162,8 @@ export default function FloatingChat() {
       if (typeof window === "undefined") return;
 
       const pathname = window.location.pathname;
-      // Скрываем на авторизации и редакторе резюме
-      const shouldHide = pathname.startsWith("/auth") || pathname === "/resume-builder";
+      // Скрываем на авторизации, редакторе резюме и AI поиске
+      const shouldHide = pathname.startsWith("/auth") || pathname === "/resume-builder" || pathname === "/chat";
       setIsVisible(!shouldHide);
     };
 

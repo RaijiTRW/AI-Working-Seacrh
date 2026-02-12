@@ -44,8 +44,11 @@ serve(async (req) => {
 
     console.log(`[Auto-renew] Starting for date: ${today}`);
 
-    // Находим все Pro подписки, которые истекают сегодня
-    const { data: expiringSubscriptions, error } = await supabase
+    // Находим все Pro подписки, которые истекают сегодня ИЛИ истёкшие (status=expired)
+    // (no) = .or() в Supabase не поддерживается с inner join, используем два запроса
+
+    // Сначала ищем активные подписки, истекающие сегодня
+    const { data: activeExpiring, error: error1 } = await supabase
       .from("user_subscriptions")
       .select(`
         user_id,
@@ -59,6 +62,33 @@ serve(async (req) => {
       .eq("status", "active")
       .gte("expires_at", `${today}T00:00:00Z`)
       .lt("expires_at", `${today}T23:59:59Z`);
+
+    // Затем ищем истёкшие подписки сегодня (статус expired)
+    const { data: expiredToday, error: error2 } = await supabase
+      .from("user_subscriptions")
+      .select(`
+        user_id,
+        purchase_price,
+        expires_at,
+        profiles!inner(
+          yookassa_payment_method_id
+        )
+      `)
+      .eq("plan", "pro")
+      .eq("status", "expired")
+      .gte("expires_at", `${today}T00:00:00Z`)
+      .lt("expires_at", `${today}T23:59:59Z`);
+
+    if (error1 || error2) {
+      console.error("[Auto-renew] Database error:", error1 || error2);
+      return new Response(JSON.stringify({ error: "Database error" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Объединяем результаты
+    const expiringSubscriptions = [...(activeExpiring || []), ...(expiredToday || [])];
 
     if (error) {
       console.error("[Auto-renew] Database error:", error);
@@ -100,6 +130,24 @@ serve(async (req) => {
         console.log(`[Auto-renew] Skipping ${userId} - no saved payment method`);
         failed++;
         results.push({ user_id: userId, success: false, error: "No payment method" });
+        continue;
+      }
+
+      // Проверяем не списывали ли уже сегодня для этого юзера
+      const { data: todayPayment } = await supabase
+        .from("payment_history")
+        .select("status")
+        .eq("user_id", userId)
+        .eq("type", "subscription")
+        .eq("status", "succeeded")
+        .gte("created_at", `${today}T00:00:00Z`)
+        .lte("created_at", `${today}T23:59:59Z`)
+        .maybeSingle();
+
+      if (todayPayment) {
+        console.log(`[Auto-renew] Skipping ${userId} - already charged today`);
+        failed++;
+        results.push({ user_id: userId, success: false, error: "Already charged today" });
         continue;
       }
 
@@ -165,8 +213,19 @@ serve(async (req) => {
           await supabase
             .from("user_subscriptions")
             .update({
+              status: "active",  // Важно: меняем expired на active!
+              can_search_online: true,
               expires_at: expiresAt.toISOString(),
               updated_at: new Date().toISOString(),
+            })
+            .eq("user_id", userId);
+
+          // Также обновляем в profiles
+          await supabase
+            .from("profiles")
+            .update({
+              subscription_type: "pro",
+              subscription_expires_at: expiresAt.toISOString(),
             })
             .eq("user_id", userId);
 

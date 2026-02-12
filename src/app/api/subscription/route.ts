@@ -27,28 +27,53 @@ export async function GET(request: NextRequest) {
       const now = new Date();
       if (now > expiresAt) {
         const previousPlan = subscription.plan; // Сохраняем какой план истёк
-        log.subscription(`Expired for user ${userId}, downgrading from ${previousPlan} to base`);
-        // Даунгрейд подписки с сохранением previous_plan
-        await supabase
-          .from("user_subscriptions")
-          .update({
-            plan: "base",
-            previous_plan: previousPlan, // Сохраняем предыдущий план
-            status: "active",
-            expires_at: "2099-12-31T00:00:00Z",
-            can_search_online: false,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("user_id", userId);
 
-        // Даунгрейд лимитов
-        await supabase
-          .from("user_request_limits")
-          .update({
-            daily_limit: 3,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("user_id", userId);
+        // Проверяем есть ли сохранённый платёжный метод
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("yookassa_payment_method_id")
+          .eq("user_id", userId)
+          .single();
+
+        const hasPaymentMethod = !!profile?.yookassa_payment_method_id;
+
+        if (hasPaymentMethod) {
+          // Есть платёжный метод - даунгрейдим НЕ СРАЗУ, даём время для автосписания
+          // Оставляем plan="pro", но status="expired" чтобы cron мог найти и продлить
+          log.subscription(`Expired for user ${userId}, setting status=expired for auto-renew (has payment method)`);
+          await supabase
+            .from("user_subscriptions")
+            .update({
+              status: "expired", // Статус expired, а не base!
+              previous_plan: previousPlan,
+              can_search_online: false,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("user_id", userId);
+        } else {
+          // Нет платёжного метода - даунгрейдим на base
+          log.subscription(`Expired for user ${userId}, downgrading from ${previousPlan} to base (no payment method)`);
+          await supabase
+            .from("user_subscriptions")
+            .update({
+              plan: "base",
+              previous_plan: previousPlan,
+              status: "active",
+              expires_at: "2099-12-31T00:00:00Z",
+              can_search_online: false,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("user_id", userId);
+
+          // Даунгрейд лимитов
+          await supabase
+            .from("user_request_limits")
+            .update({
+              daily_limit: 3,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("user_id", userId);
+        }
 
         // Re-fetch
         const { data: updated } = await supabase
@@ -88,7 +113,8 @@ export async function GET(request: NextRequest) {
 
     const isProTrial = plan === "pro_trial" && status === "active";
     const isBase = plan === "base";
-    const isPro = plan === "pro" && status === "active";
+    // isPro = true для plan="pro" с status="active" ИЛИ "expired" (истёкшая, но ждёт автосписания)
+    const isPro = plan === "pro" && (status === "active" || status === "expired");
 
     // Проверяем есть ли предыдущие успешные покупки подписки
     const { count: previousPurchases } = await supabase
@@ -100,7 +126,13 @@ export async function GET(request: NextRequest) {
 
     // Определяем какой план истёк
     let expiredPlanType: "pro_trial" | "pro" | null = null;
-    if (isBase) {
+
+    // Проверяем истёкшую Pro подписку (plan="pro", status="expired")
+    if (plan === "pro" && status === "expired") {
+      expiredPlanType = "pro";
+    }
+    // Проверяем base с previous_plan (даунгрейженная)
+    else if (isBase) {
       // Сначала проверяем previous_plan (самый надёжный способ)
       if (subscription?.previous_plan === "pro") {
         expiredPlanType = "pro";

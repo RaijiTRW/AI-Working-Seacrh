@@ -23,6 +23,8 @@ interface ChatMessagesProps {
   onLoadMore?: (messageId: string) => void;
   searchPhase?: SearchPhase;
   showStartingText?: boolean;
+  isDrawerOpen?: boolean;
+  onToggleDrawer?: () => void;
 }
 
 function TypingDots() {
@@ -74,6 +76,7 @@ function AssistantMessage({
   animate,
   onLoadMore,
   messageId,
+  onToggleDrawer,
 }: {
   content: string;
   vacancies?: Vacancy[];
@@ -81,6 +84,7 @@ function AssistantMessage({
   animate?: boolean;
   onLoadMore?: (messageId: string) => void;
   messageId?: string;
+  onToggleDrawer?: () => void;
 }) {
   const [displayedText, setDisplayedText] = useState(animate ? "" : content);
   const [isComplete, setIsComplete] = useState(!animate);
@@ -111,7 +115,7 @@ function AssistantMessage({
   }, [content, animate]);
 
   return (
-    <div className="max-w-4xl group">
+    <div className={`group transition-all duration-300 ${onToggleDrawer ? 'max-w-4xl lg:max-w-2xl' : 'max-w-4xl'}`}>
       <div className="flex gap-3">
         <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
           <span className="text-white text-xs font-bold">AI</span>
@@ -120,13 +124,24 @@ function AssistantMessage({
           <div className="flex items-center gap-2 pb-4">
             <p>Zend:</p>
             {vacancies && vacancies.length > 0 && onLoadMore && messageId && !animate && (
-              <button
-                onClick={() => onLoadMore(messageId)}
-                className="text-xs px-2 py-1 rounded-md bg-orange-50 text-orange-600 hover:bg-orange-100 hover:text-orange-700 transition-colors font-medium"
-                title="Найти еще вакансии по этому запросу"
-              >
-                Еще
-              </button>
+              <>
+                <button
+                  onClick={() => onLoadMore(messageId)}
+                  className="text-xs px-2 py-1 rounded-md bg-orange-50 text-orange-600 hover:bg-orange-100 hover:text-orange-700 transition-colors font-medium"
+                  title="Найти еще вакансии по этому запросу"
+                >
+                  Еще
+                </button>
+                <button
+                  onClick={onToggleDrawer}
+                  className="p-1 rounded hover:bg-gray-200 transition-colors"
+                  title="Открыть ленту вакансий"
+                >
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+              </>
             )}
             {isComplete && <CopyButton text={content} />}
           </div>
@@ -176,6 +191,8 @@ export default function ChatMessages({
   onLoadMore,
   searchPhase = 'idle',
   showStartingText = false,
+  isDrawerOpen = false,
+  onToggleDrawer,
 }: ChatMessagesProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [lastMessageId, setLastMessageId] = useState<string | null>(null);
@@ -268,6 +285,7 @@ export default function ChatMessages({
                 animate={msg.id === lastMessageId && !isHistory && isTyping}
                 onLoadMore={onLoadMore}
                 messageId={msg.id}
+                onToggleDrawer={onToggleDrawer}
               />
             )}
           </div>
@@ -282,6 +300,7 @@ export default function ChatMessages({
             vacancies={streamingVacancies}
             rejectedVacancies={streamingRejectedVacancies}
             animate={false}
+            onToggleDrawer={(streamingVacancies?.length ?? 0) > 0 ? onToggleDrawer : undefined}
           />
         </div>
       )}

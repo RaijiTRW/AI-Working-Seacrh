@@ -190,3 +190,43 @@ html {
 .animate-slide-up {
   animation: slide-up 0.3s ease-out forwards;
 }
+
+/* iOS Safari viewport fix */
+@supports (height: 100dvh) {
+  :root {
+    --viewport-height: 100dvh;
+  }
+}
+
+@supports not (height: 100dvh) {
+  :root {
+    --viewport-height: 100vh;
+  }
+}
+
+/* iOS Safari bounce scrolling fix for chat page */
+body {
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix for mobile input zoom on iOS */
+input,
+textarea,
+select {
+  font-size: 16px !important;
+}
+
+/* iOS keyboard viewport fix */
+@supports (height: 100dvh) {
+  .ios-viewport-fix {
+    height: 100dvh;
+  }
+}
+
+/* Prevent body scroll when chat is open */
+body.chat-page-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
