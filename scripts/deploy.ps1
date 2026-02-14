@@ -239,12 +239,23 @@ function Start-FallbackProcess {
     $stderrLog = Join-Path $logsDir "fallback-err.log"
 
     $launcherScript = @"
-`$ErrorActionPreference = "Stop"
+`$ErrorActionPreference = "Continue"
 `$env:NODE_ENV = "production"
 `$env:PORT = "3000"
 Set-Location "$WorkingDirectory"
-& "$nodeExe" "$nextPath" start -p 3000 1>>"$stdoutLog" 2>>"$stderrLog"
-exit `$LASTEXITCODE
+
+while (`$true) {
+  try {
+    Add-Content -Path "$stdoutLog" -Value "`$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [launcher] starting next"
+    `$proc = Start-Process -FilePath "$nodeExe" -ArgumentList @("$nextPath", "start", "-p", "3000") -WorkingDirectory "$WorkingDirectory" -WindowStyle Hidden -PassThru
+    `$proc.Id | Out-File -FilePath "$WorkingDirectory\node.pid" -Encoding UTF8
+    Wait-Process -Id `$proc.Id
+    Add-Content -Path "$stderrLog" -Value "`$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [launcher] next exited with code `$(`$proc.ExitCode)"
+  } catch {
+    Add-Content -Path "$stderrLog" -Value "`$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [launcher] error: `$(`$_.Exception.Message)"
+  }
+  Start-Sleep -Seconds 3
+}
 "@
 
     Set-Content -Path $launcherPath -Value $launcherScript -Encoding UTF8
@@ -253,7 +264,7 @@ exit `$LASTEXITCODE
     Remove-TaskIfExists -TaskName $fallbackTaskName
 
     $taskCmd = "powershell -NoProfile -ExecutionPolicy Bypass -File `"$launcherPath`""
-    $createOutput = cmd /c "schtasks /Create /TN `"$fallbackTaskName`" /TR `"$taskCmd`" /SC ONCE /ST 00:00 /F 2>&1"
+    $createOutput = cmd /c "schtasks /Create /TN `"$fallbackTaskName`" /TR `"$taskCmd`" /SC ONCE /ST 00:00 /RL HIGHEST /F 2>&1"
     if ($createOutput) {
         $createOutput | Out-Host
     }
@@ -433,6 +444,17 @@ try {
         $pidAfterFallback = Get-PortPid -Port 3000
         if ($pidBeforeFallback -and $pidAfterFallback -eq $pidBeforeFallback) {
             throw "Port 3000 is still owned by old PID $pidAfterFallback after fallback start. New code is not active."
+        }
+
+        Write-Host "  Checking fallback stability (30s)..." -ForegroundColor Cyan
+        Start-Sleep -Seconds 30
+        if (-not (Wait-Health -Url "http://127.0.0.1:3000/api/version" -Attempts 5 -DelaySeconds 2)) {
+            $fallbackErrLog = Join-Path $AppDir "logs\fallback-err.log"
+            if (Test-Path $fallbackErrLog) {
+                Write-Host "  Last lines from fallback-err.log:" -ForegroundColor Yellow
+                Get-Content -Path $fallbackErrLog -Tail 40 | Out-Host
+            }
+            throw "Fallback runtime is not stable after startup"
         }
     }
 
