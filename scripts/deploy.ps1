@@ -21,6 +21,22 @@ function Write-Section {
     Write-Host $Title -ForegroundColor Cyan
 }
 
+function Invoke-GitCommand {
+    param(
+        [string]$Command,
+        [string]$StepName
+    )
+
+    $output = cmd /c "$Command 2>&1"
+    if ($output) {
+        $output | Out-Host
+    }
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "$StepName failed (exit code $LASTEXITCODE)"
+    }
+}
+
 function Resolve-AppDirectory {
     param(
         [string]$Primary,
@@ -229,9 +245,9 @@ try {
     $authRepoUrl = ($RepoUrl -replace '^https://', "https://$gitToken@")
     & git remote set-url origin $authRepoUrl 2>&1 | Out-Null
 
-    & git fetch origin main 2>&1 | Out-Host
-    & git reset --hard origin/main 2>&1 | Out-Host
-    & git clean -fd 2>&1 | Out-Host
+    Invoke-GitCommand -Command "git fetch origin main" -StepName "git fetch"
+    Invoke-GitCommand -Command "git reset --hard origin/main" -StepName "git reset"
+    Invoke-GitCommand -Command "git clean -fd" -StepName "git clean"
 
     $newVersion = (& git rev-parse --short HEAD).Trim()
     Write-Host "Deploying commit: $newVersion"
