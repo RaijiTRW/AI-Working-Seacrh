@@ -1,5 +1,5 @@
 # Simple Deploy Script for JobAI Search
-# Kills Node.js, rebuilds, and restarts - no NSSM dependency
+# Kills Node.js, rebuilds, and restarts directly (no NSSM)
 
 param(
     [string]$AppDir = "C:\AI-Working-Seacrh"
@@ -37,44 +37,73 @@ Write-Host "Fetching and resetting..."
 $newVersion = & git rev-parse --short HEAD
 Write-Host "Deploying version: $newVersion"
 
-# Step 2: Kill Node.js process
+# Step 2: Kill Node.js processes aggressively
 Write-Host ""
 Write-Host "[2/5] Stopping Node.js..." -ForegroundColor Cyan
 
-$count = 0
-do {
+# First try to disable NSSM service (may fail without admin, that's ok)
+$NssmPath = "C:\nssm-2.24\win64\nssm.exe"
+$ServiceName = "jobai-frontend-1"
+
+# Check if service exists and is running
+$serviceStatus = & $NssmPath status $ServiceName 2>&1
+if ($serviceStatus -match "RUNNING") {
+    Write-Host "  WARNING: NSSM service is running and may auto-restart node.exe" -ForegroundColor Yellow
+    Write-Host "  To fix: Run as Administrator and execute:" -ForegroundColor Yellow
+    Write-Host "    & '$NssmPath' set $ServiceName Start SERVICE_DEMAND_START" -ForegroundColor Yellow
+    Write-Host "    & '$NssmPath' stop $ServiceName" -ForegroundColor Yellow
+}
+
+& $NssmPath set $ServiceName Start SERVICE_DEMAND_START 2>&1 | Out-Null
+& $NssmPath stop $ServiceName 2>&1 | Out-Null
+
+Start-Sleep -Seconds 3
+
+# Aggressively kill node processes
+for ($attempt = 1; $attempt -le 5; $attempt++) {
     $found = $false
     Get-Process -Name "node" -ErrorAction SilentlyContinue | ForEach-Object {
         $found = $true
-        Write-Host "  Killing node process $($_.Id)..."
+        Write-Host "  Killing node process $($_.Id) (attempt $attempt)..."
         Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
     }
-    if ($found) {
-        Start-Sleep -Seconds 2
-        $count++
-        if ($count -gt 5) {
-            Write-Host "  WARNING: Could not kill all node processes" -ForegroundColor Yellow
-            break
+
+    # Also check port 3000
+    Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | ForEach-Object {
+        $proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
+        if ($proc) {
+            $found = $true
+            Write-Host "  Killing process $($proc.Id) on port 3000"
+            Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue
         }
     }
-} while ($found)
 
-# Also kill via port
-Start-Sleep -Seconds 2
-Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | ForEach-Object {
-    $proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
-    if ($proc) {
-        Write-Host "  Killing process $($proc.Id) on port 3000"
-        Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue
+    if (-not $found) {
+        Write-Host "  All node processes stopped" -ForegroundColor Green
+        break
     }
+
+    Start-Sleep -Seconds 2
 }
+
+# Final verification
 Start-Sleep -Seconds 3
+$portCheck = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue
+if ($portCheck) {
+    Write-Host "  WARNING: Port 3000 still in use!" -ForegroundColor Yellow
+} else {
+    Write-Host "  Port 3000 is free" -ForegroundColor Green
+}
 
 # Step 3: Install dependencies
 Write-Host ""
 Write-Host "[3/5] Installing dependencies..." -ForegroundColor Cyan
 
-Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
+if (Test-Path "node_modules") {
+    Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+}
+
 & npm ci 2>&1 | Out-Host
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: npm ci failed!" -ForegroundColor Red
@@ -86,7 +115,10 @@ Write-Host "Dependencies installed"
 Write-Host ""
 Write-Host "[4/5] Building..." -ForegroundColor Cyan
 
-Remove-Item -Recurse -Force ".next" -ErrorAction SilentlyContinue
+if (Test-Path ".next") {
+    Remove-Item -Recurse -Force ".next" -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+}
 
 $env:PORT = "3000"
 & npm run build 2>&1 | Out-Host
@@ -111,27 +143,14 @@ if (-not (Test-Path "$AppDir\logs")) {
     New-Item -ItemType Directory -Path "$AppDir\logs" -Force | Out-Null
 }
 
-# Create startup script
-$startupBat = @"
-@echo off
-cd /d $AppDir
-set NODE_ENV=production
-set PORT=3000
-node node_modules\next\bin\next start
-"@
-
-$batPath = "$AppDir\start-node.bat"
-Set-Content -Path $batPath -Value $startupBat -Encoding ASCII
-
-# Start in background using scheduled task approach or start-process
-$nodeExe = "C:\Program Files\nodejs\node.exe"
-$nextStart = "node_modules\next\bin\next start"
-
 # Set environment
 $env:NODE_ENV = "production"
 $env:PORT = "3000"
 
 # Start the process
+$nodeExe = "C:\Program Files\nodejs\node.exe"
+$nextStart = "node_modules\next\bin\next start"
+
 $process = Start-Process -FilePath $nodeExe -ArgumentList $nextStart -WorkingDirectory $AppDir -WindowStyle Hidden -PassThru
 
 Write-Host "  Started with PID: $($process.Id)"
