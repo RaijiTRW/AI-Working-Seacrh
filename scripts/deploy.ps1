@@ -1,5 +1,5 @@
-# Simple Deploy Script - Start Node.js directly
-# Runs node.exe directly without NSSM or scheduled tasks
+# Deploy Script that keeps Node.js running
+# Uses nohup equivalent for Windows to survive SSH disconnect
 
 param(
     [string]$AppDir = "C:\AI-Working-Seacrh"
@@ -10,77 +10,10 @@ $ErrorActionPreference = "Stop"
 Set-Location $AppDir
 
 Write-Host "========================================"
-Write-Host "  JobAI Deploy"
+Write-Host "  JobAI Deploy (Persistent)"
 Write-Host "========================================"
 Write-Host "Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 Write-Host ""
-
-# Function to keep Node.js running
-function Start-NodeJs {
-    param(
-        [string]$WorkingDir,
-        [int]$Port = 3000
-    )
-
-    $env:NODE_ENV = "production"
-    $env:PORT = $Port
-
-    $nodeExe = "C:\Program Files\nodejs\node.exe"
-    $nextBin = "$WorkingDir\node_modules\next\dist\bin\next"
-    $nextStart = "$nextBin start"
-
-    # Start node in background
-    $process = Start-Process -FilePath $nodeExe -ArgumentList $nextStart -WorkingDirectory $WorkingDir -WindowStyle Hidden -PassThru
-
-    # Write PID to file for later killing
-    $process.Id | Out-File -FilePath "$WorkingDir\node.pid" -Encoding UTF8
-
-    return $process
-}
-
-# Function to kill Node.js
-function Stop-NodeJs {
-    param([string]$PidFile)
-
-    # Try to read PID file
-    if (Test-Path $PidFile) {
-        try {
-            $pid = Get-Content $PidFile
-            $proc = Get-Process -Id $pid -ErrorAction SilentlyContinue
-            if ($proc) {
-                Write-Host "  Killing process $pid (from PID file)..."
-                Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
-            }
-        } catch {}
-        Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
-    }
-
-    # Also kill all node processes on our port
-    Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | ForEach-Object {
-        $proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
-        if ($proc -and $proc.ProcessName -eq "node") {
-            Write-Host "  Killing process $($proc.Id) on port 3000..."
-            Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue
-        }
-    }
-
-    # Fallback: kill all node processes
-    Get-Process -Name "node" -ErrorAction SilentlyContinue | ForEach-Object {
-        Write-Host "  Killing node process $($_.Id)..."
-        Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
-    }
-
-    Start-Sleep -Seconds 3
-
-    # Verify port is free
-    $portCheck = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue
-    if ($portCheck) {
-        Write-Host "  WARNING: Port 3000 still in use!" -ForegroundColor Yellow
-        return $false
-    }
-
-    return $true
-}
 
 # Step 1: Pull latest code
 Write-Host "[1/5] Pulling latest code..." -ForegroundColor Cyan
@@ -104,15 +37,41 @@ Write-Host "Fetching and resetting..."
 $newVersion = & git rev-parse --short HEAD
 Write-Host "Deploying version: $newVersion"
 
-# Step 2: Stop Node.js
+# Step 2: Stop existing Node.js
 Write-Host ""
 Write-Host "[2/5] Stopping Node.js..." -ForegroundColor Cyan
 
-$stopped = Stop-NodeJs -PidFile "$AppDir\node.pid"
-if (-not $stopped) {
-    Write-Host "ERROR: Could not stop Node.js" -ForegroundColor Red
-    exit 1
+# Kill by PID file first
+$pidFile = "$AppDir\node.pid"
+if (Test-Path $pidFile) {
+    try {
+        $pid = Get-Content $pidFile
+        $proc = Get-Process -Id $pid -ErrorAction SilentlyContinue
+        if ($proc) {
+            Write-Host "  Killing PID $pid (from node.pid)..."
+            Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 2
+        }
+    } catch {}
+    Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
 }
+
+# Kill all node processes
+Get-Process -Name "node" -ErrorAction SilentlyContinue | ForEach-Object {
+    Write-Host "  Killing node process $($_.Id)..."
+    Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+}
+
+# Kill by port
+Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | ForEach-Object {
+    $proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
+    if ($proc) {
+        Write-Host "  Killing process $($proc.Id) on port 3000"
+        Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue
+    }
+}
+
+Start-Sleep -Seconds 5
 
 # Step 3: Install dependencies
 Write-Host ""
@@ -153,18 +112,53 @@ if (Test-Path $buildIdPath) {
     Write-Host "New BUILD_ID: $newBuildId"
 }
 
-# Step 5: Start Node.js
+# Step 5: Start Node.js in background (persistent)
 Write-Host ""
-Write-Host "[5/5] Starting Node.js..." -ForegroundColor Cyan
+Write-Host "[5/5] Starting Node.js (persistent)..." -ForegroundColor Cyan
 
-$process = Start-NodeJs -WorkingDir $AppDir -Port 3000
-Write-Host "  Started with PID: $($process.Id)"
+# Create startup script that runs in background
+$startScript = @"
+# Start-Node.ps1 - Generated by deploy script
+# This keeps Node.js running after SSH disconnect
 
-Start-Sleep -Seconds 10
+`$env:NODE_ENV = "production"
+`$env:PORT = "3000"
+
+`$nodeExe = "C:\Program Files\nodejs\node.exe"
+`$nextBin = "C:\AI-Working-Seacrh\node_modules\next\dist\bin\next"
+`$nextStart = "`$nextBin start"
+
+# Start process and save PID
+`$process = Start-Process -FilePath `$nodeExe -ArgumentList `$nextStart -WorkingDirectory "C:\AI-Working-Seacrh" -WindowStyle Hidden -PassThru
+
+`$process.Id | Out-File -FilePath "C:\AI-Working-Seacrh\node.pid" -Encoding UTF8
+
+Write-Host "Started with PID: `$(`$process.Id)"
+"@
+
+$startScriptPath = "$AppDir\Start-Node.ps1"
+Set-Content -Path $startScriptPath -Value $startScript -Encoding UTF8
+
+# Start using PowerShell with -NoExit to keep running after SSH ends
+$powershell = "powershell.exe"
+$args = "-NoProfile -ExecutionPolicy Bypass -File `"$startScriptPath`" -NoExit"
+
+# Start in detached mode
+$processInfo = New-Object System.Diagnostics.ProcessStartInfo
+$processInfo.FileName = $powershell
+$processInfo.Arguments = $args
+$processInfo.UseShellExecute = $false
+$processInfo.WorkingDirectory = $AppDir
+$processInfo.CreateNoWindow = $true
+
+$proc = [System.Diagnostics.Process]::Start($processInfo)
+
+Write-Host "  Launcher started, waiting for Node.js..."
+Start-Sleep -Seconds 15
 
 # Step 6: Health check
 Write-Host ""
-Write-Host "[5/5] Health check..." -ForegroundColor Cyan
+Write-Host "[6/6] Health check..." -ForegroundColor Cyan
 
 $healthy = $false
 for ($i = 1; $i -le 30; $i++) {
@@ -184,8 +178,6 @@ for ($i = 1; $i -le 30; $i++) {
 
 if (-not $healthy) {
     Write-Host "ERROR: Health check failed!" -ForegroundColor Red
-    # Kill the process we just started
-    Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
     exit 1
 }
 
@@ -197,8 +189,7 @@ Write-Host "========================================"
 Write-Host "  Deploy Complete!"
 Write-Host "========================================"
 Write-Host "Version: $newVersion"
-Write-Host "PID: $($process.Id)"
-Write-Host "PID File: $AppDir\node.pid"
+Write-Host "Node.js will keep running after SSH disconnect"
 Write-Host "Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 Write-Host "========================================"
 
