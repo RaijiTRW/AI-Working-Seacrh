@@ -1,5 +1,5 @@
-# Deploy Script for JobAI Search - Uses bat file wrapper
-# This works around NSSM issues with Next.js start command
+# Deploy Script for JobAI Search - Run Node.js directly without NSSM
+# Works without admin rights by starting node.exe directly
 
 param(
     [string]$AppDir = "C:\AI-Working-Seacrh"
@@ -16,7 +16,7 @@ Write-Host "Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 Write-Host ""
 
 # Step 1: Pull latest code
-Write-Host "[1/6] Pulling latest code..." -ForegroundColor Cyan
+Write-Host "[1/5] Pulling latest code..." -ForegroundColor Cyan
 
 $gitToken = $env:GH_DEPLOY_TOKEN
 if (-not $gitToken) {
@@ -37,34 +37,34 @@ Write-Host "Fetching and resetting..."
 $newVersion = & git rev-parse --short HEAD
 Write-Host "Deploying version: $newVersion"
 
-# Step 2: Create proper bat file wrapper
+# Step 2: Create startup script
 Write-Host ""
-Write-Host "[2/6] Creating startup script..." -ForegroundColor Cyan
+Write-Host "[2/5] Creating startup script..." -ForegroundColor Cyan
 
 $batContent = @"
 @echo off
-cd /d $AppDir
+cd /d {0}
 set NODE_ENV=production
 set PORT=3000
-node "node_modules\next\dist\bin\next" start
-"@
+"{1}\node.exe" "{0}\node_modules\next\dist\bin\next" start
+"@ -f $AppDir, "C:\Program Files\nodejs"
 
 $batPath = "$AppDir\start-nextjs.bat"
 Set-Content -Path $batPath -Value $batContent -Encoding ASCII
 Write-Host "  Created: $batPath"
 
-# Step 3: Stop service and kill processes
+# Also create PowerShell wrapper for scheduled task
+$psWrapper = @"
+Start-Process -FilePath 'C:\Program Files\nodejs\node.exe' -ArgumentList 'node_modules\next\dist\bin\next start' -WorkingDirectory '$AppDir' -WindowStyle Hidden
+"@
+
+$psWrapperPath = "$AppDir\start-nextjs.ps1"
+Set-Content -Path $psWrapperPath -Value $psWrapperPath -Encoding UTF8
+
+# Step 3: Kill Node.js processes
 Write-Host ""
-Write-Host "[3/6] Stopping services..." -ForegroundColor Cyan
+Write-Host "[3/5] Stopping Node.js..." -ForegroundColor Cyan
 
-$NssmPath = "C:\nssm-2.24\win64\nssm.exe"
-$ServiceName = "jobai-frontend-1"
-
-# Try to stop service
-& $NssmPath stop $ServiceName 2>&1 | Out-Null
-Start-Sleep -Seconds 3
-
-# Kill node processes
 for ($attempt = 1; $attempt -le 10; $attempt++) {
     $found = $false
     Get-Process -Name "node" -ErrorAction SilentlyContinue | ForEach-Object {
@@ -95,7 +95,7 @@ Start-Sleep -Seconds 3
 
 # Step 4: Install dependencies and build
 Write-Host ""
-Write-Host "[4/6] Installing dependencies..." -ForegroundColor Cyan
+Write-Host "[4/5] Installing dependencies..." -ForegroundColor Cyan
 
 if (Test-Path "node_modules") {
     Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
@@ -131,32 +131,34 @@ if (Test-Path $buildIdPath) {
     Write-Host "New BUILD_ID: $newBuildId"
 }
 
-# Step 5: Update service to use bat file
+# Step 5: Start Node.js using scheduled task
 Write-Host ""
-Write-Host "[5/6] Updating service..." -ForegroundColor Cyan
+Write-Host "[5/5] Starting Node.js..." -ForegroundColor Cyan
 
-$cmdExe = "$env:SystemRoot\System32\cmd.exe"
-& $NssmPath set $ServiceName Application $cmdExe 2>&1 | Out-Null
-& $NssmPath set $ServiceName AppParameters "/c `"$batPath`"" 2>&1 | Out-Null
-& $NssmPath set $ServiceName AppDirectory $AppDir 2>&1 | Out-Null
+# Create/update scheduled task
+$TaskName = "JobAI-Frontend"
+$TaskAction = New-ScheduledTaskAction -Execute "C:\Program Files\nodejs\node.exe" -Argument "node_modules\next\dist\bin\next start" -WorkingDirectory $AppDir
+$TaskTrigger = New-ScheduledTaskTrigger -AtLogon -User $env:USERNAME
 
-Write-Host "  Service updated to use bat file"
+try {
+    Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+} catch {}
 
-# Step 6: Start service
-Write-Host ""
-Write-Host "[6/6] Starting service..." -ForegroundColor Cyan
+Register-ScheduledTask -TaskName $TaskName -Action $TaskAction -Trigger $TaskTrigger -User $env:USERNAME -Description "JobAI Search Frontend (Next.js)" | Out-Null
 
-# Create logs directory
-if (-not (Test-Path "$AppDir\logs")) {
-    New-Item -ItemType Directory -Path "$AppDir\logs" -Force | Out-Null
-}
+Write-Host "  Scheduled task created/updated"
 
-& $NssmPath start $ServiceName 2>&1 | Out-Host
+# Start the task
+Start-Sleep -Seconds 2
+Start-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+
+Write-Host "  Node.js starting..."
 Start-Sleep -Seconds 10
 
-# Health check
+# Step 6: Health check
 Write-Host ""
-Write-Host "Running health check..." -ForegroundColor Cyan
+Write-Host "[6/6] Health check..." -ForegroundColor Cyan
 
 $healthy = $false
 for ($i = 1; $i -le 30; $i++) {
@@ -176,7 +178,6 @@ for ($i = 1; $i -le 30; $i++) {
 
 if (-not $healthy) {
     Write-Host "ERROR: Health check failed!" -ForegroundColor Red
-    Write-Host "Check logs: $AppDir\logs\service-err.log" -ForegroundColor Yellow
     exit 1
 }
 
@@ -188,6 +189,7 @@ Write-Host "========================================"
 Write-Host "  Deploy Complete!"
 Write-Host "========================================"
 Write-Host "Version: $newVersion"
+Write-Host "Task: $TaskName"
 Write-Host "Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 Write-Host "========================================"
 
