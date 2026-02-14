@@ -12,16 +12,15 @@ jobs:
     steps:
       - name: Deploy
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          GH_DEPLOY_TOKEN: ${{ secrets.GH_DEPLOY_TOKEN }}
         with:
           host: ${{ secrets.VDS_HOST }}
           username: ${{ secrets.VDS_USERNAME }}
           key: ${{ secrets.VDS_SSH_KEY }}
           port: ${{ secrets.VDS_PORT }}
           command_timeout: 30m
+          script_stop: true
+          envs: GH_DEPLOY_TOKEN
           script: |
-            powershell -ExecutionPolicy Bypass -Command "
-              `$env:GH_DEPLOY_TOKEN='${{ secrets.GH_DEPLOY_TOKEN }}'
-              `$deployScript = if (Test-Path 'C:\AI-Working-Seacrh\scripts\deploy.ps1') { 'C:\AI-Working-Seacrh\scripts\deploy.ps1' } elseif (Test-Path 'C:\apps\AI-Working-Seacrh\scripts\deploy.ps1') { 'C:\apps\AI-Working-Seacrh\scripts\deploy.ps1' } else { throw 'deploy.ps1 not found in C:\AI-Working-Seacrh or C:\apps\AI-Working-Seacrh' }
-              & `$deployScript 2>&1 | Out-Host
-              exit `$LASTEXITCODE
-            "
+            powershell -NoProfile -ExecutionPolicy Bypass -Command '$ErrorActionPreference = "Stop"; if (Test-Path "C:\AI-Working-Seacrh\scripts\deploy.ps1") { $deployScript = "C:\AI-Working-Seacrh\scripts\deploy.ps1" } elseif (Test-Path "C:\apps\AI-Working-Seacrh\scripts\deploy.ps1") { $deployScript = "C:\apps\AI-Working-Seacrh\scripts\deploy.ps1" } else { throw "deploy.ps1 not found in C:\AI-Working-Seacrh or C:\apps\AI-Working-Seacrh" }; Write-Host "Using deploy script: $deployScript"; & $deployScript; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; $v3000 = Invoke-WebRequest -Uri "http://127.0.0.1:3000/api/version" -UseBasicParsing -TimeoutSec 15; Write-Host "Port 3000 version: $($v3000.Content)"; try { $v3001 = Invoke-WebRequest -Uri "http://127.0.0.1:3001/api/version" -UseBasicParsing -TimeoutSec 10; Write-Host "Port 3001 version: $($v3001.Content)" } catch { Write-Host "Port 3001 check skipped: $($_.Exception.Message)" }'
