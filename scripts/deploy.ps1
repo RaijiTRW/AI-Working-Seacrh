@@ -1,365 +1,205 @@
-# Unified Deploy Script for JobAI Search
-# Supports:
-# - dual service mode (jobai-frontend-1 on 3000 + jobai-frontend-2 on 3001)
-# - single service mode (jobai-frontend on 3000)
-# - fallback detached process mode when services are missing
+# Deploy Script for JobAI Search
+# Uses Windows Task Scheduler to keep Node.js running after SSH disconnect
 
 param(
     [string]$AppDir = "C:\AI-Working-Seacrh",
-    [string]$FallbackAppDir = "C:\apps\AI-Working-Seacrh",
-    [string]$NssmPath = "C:\nssm-2.24\win64\nssm.exe",
-    [string]$RepoUrl = "https://github.com/RaijiTRW/AI-Working-Seacrh.git",
-    [string]$ExternalHealthUrl = "https://jobaisearch.ru/api/version"
+    [string]$Port = "3000"
 )
 
 $ErrorActionPreference = "Stop"
-$ProgressPreference = "SilentlyContinue"
 
-function Write-Section {
-    param([string]$Title)
-    Write-Host ""
-    Write-Host $Title -ForegroundColor Cyan
-}
+Set-Location $AppDir
 
-function Resolve-AppDirectory {
-    param(
-        [string]$Primary,
-        [string]$Secondary
-    )
+Write-Host "========================================"
+Write-Host "  JobAI Auto Deploy"
+Write-Host "========================================"
+Write-Host "Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+Write-Host ""
 
-    $candidates = @($Primary, $Secondary) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
-    foreach ($candidate in $candidates) {
-        if ((Test-Path $candidate) -and (Test-Path (Join-Path $candidate ".git")) -and (Test-Path (Join-Path $candidate "package.json"))) {
-            return $candidate
-        }
-    }
-    throw "Could not find a valid app directory. Checked: $($candidates -join ', ')"
-}
+# Step 1: Pull latest code
+Write-Host "[1/6] Pulling latest code..." -ForegroundColor Cyan
 
-function Get-ServiceAppDirectory {
-    param(
-        [string]$NssmExecutable,
-        [string[]]$ServiceNames
-    )
-
-    if (-not (Test-Path $NssmExecutable)) {
-        return $null
-    }
-
-    foreach ($serviceName in $ServiceNames) {
-        try {
-            $dir = (& $NssmExecutable get $serviceName AppDirectory 2>$null)
-            if ($LASTEXITCODE -eq 0 -and $dir) {
-                $candidate = $dir.Trim()
-                if ((Test-Path $candidate) -and (Test-Path (Join-Path $candidate ".git")) -and (Test-Path (Join-Path $candidate "package.json"))) {
-                    return $candidate
-                }
-            }
-        } catch {}
-    }
-
-    return $null
-}
-
-function Sanitize-RemoteUrl {
-    param([string]$Url)
-    if ([string]::IsNullOrWhiteSpace($Url)) { return $Url }
-    return ($Url -replace 'https://[^@/]+@github\.com/', 'https://github.com/')
-}
-
-function Service-Exists {
-    param([string]$Name)
-    return $null -ne (Get-Service -Name $Name -ErrorAction SilentlyContinue)
-}
-
-function Stop-ServiceSafe {
-    param([string]$Name)
-    if (-not (Service-Exists -Name $Name)) { return }
-
-    try {
-        & $script:NssmPath stop $Name 2>&1 | Out-Host
-    } catch {
-        Write-Host "  Warning: failed to stop service $Name: $_" -ForegroundColor Yellow
-    }
-
-    Start-Sleep -Seconds 2
-}
-
-function Start-ServiceSafe {
-    param([string]$Name)
-    if (-not (Service-Exists -Name $Name)) {
-        throw "Service $Name not found"
-    }
-
-    & $script:NssmPath start $Name 2>&1 | Out-Host
-}
-
-function Clear-Port {
-    param([int]$Port)
-
-    try {
-        $listeners = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
-        foreach ($listener in $listeners) {
-            $pid = $listener.OwningProcess
-            if ($pid -and $pid -ne 0) {
-                Write-Host "  Killing PID $pid on port $Port"
-                Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
-            }
-        }
-    } catch {
-        Write-Host "  Warning: could not clear port $Port: $_" -ForegroundColor Yellow
-    }
-}
-
-function Wait-Health {
-    param(
-        [string]$Url,
-        [int]$Attempts = 30,
-        [int]$DelaySeconds = 2
-    )
-
-    for ($i = 1; $i -le $Attempts; $i++) {
-        try {
-            $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 5
-            if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 300) {
-                return $true
-            }
-        } catch {}
-
-        Write-Host "  Waiting for health: attempt $i/$Attempts"
-        Start-Sleep -Seconds $DelaySeconds
-    }
-
-    return $false
-}
-
-function Stop-PidFileProcess {
-    param([string]$FilePath)
-    if (-not (Test-Path $FilePath)) { return }
-
-    try {
-        $pid = Get-Content $FilePath -ErrorAction SilentlyContinue
-        if ($pid) {
-            Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
-        }
-    } catch {}
-
-    Remove-Item $FilePath -Force -ErrorAction SilentlyContinue
-}
-
-function Start-FallbackProcess {
-    param([string]$WorkingDirectory)
-
-    $nodeExe = "C:\Program Files\nodejs\node.exe"
-    $nextDistBin = Join-Path $WorkingDirectory "node_modules\next\dist\bin\next"
-    $nextBin = Join-Path $WorkingDirectory "node_modules\next\bin\next"
-
-    if (-not (Test-Path $nodeExe)) {
-        throw "node.exe not found at $nodeExe"
-    }
-
-    if (Test-Path $nextDistBin) {
-        $nextPath = $nextDistBin
-    } elseif (Test-Path $nextBin) {
-        $nextPath = $nextBin
-    } else {
-        throw "Next.js binary not found in node_modules"
-    }
-
-    $env:NODE_ENV = "production"
-    $env:PORT = "3000"
-
-    $process = Start-Process -FilePath $nodeExe -ArgumentList @($nextPath, "start", "-p", "3000") -WorkingDirectory $WorkingDirectory -WindowStyle Hidden -PassThru
-    $process.Id | Out-File -FilePath (Join-Path $WorkingDirectory "node.pid") -Encoding UTF8
-    Write-Host "  Fallback process started with PID: $($process.Id)" -ForegroundColor Green
-}
-
-try {
-    $script:NssmPath = $NssmPath
-
-    $serviceAppDir = Get-ServiceAppDirectory -NssmExecutable $NssmPath -ServiceNames @(
-        "jobai-frontend-1",
-        "jobai-frontend-2",
-        "jobai-frontend"
-    )
-
-    if ($serviceAppDir) {
-        $resolvedAppDir = $serviceAppDir
-    } else {
-        $resolvedAppDir = Resolve-AppDirectory -Primary $AppDir -Secondary $FallbackAppDir
-    }
-
-    $AppDir = $resolvedAppDir
-    Set-Location $AppDir
-
-    Write-Host "========================================"
-    Write-Host "  JobAI Deploy (Unified)"
-    Write-Host "========================================"
-    Write-Host "Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-    Write-Host "AppDir: $AppDir"
-    Write-Host ""
-
-    $originBefore = (& git remote get-url origin 2>$null)
-    $originBefore = if ($originBefore) { $originBefore.Trim() } else { $RepoUrl }
-    $originForRestore = Sanitize-RemoteUrl -Url $originBefore
-
-    $hasService1 = Service-Exists -Name "jobai-frontend-1"
-    $hasService2 = Service-Exists -Name "jobai-frontend-2"
-    $hasSingleService = Service-Exists -Name "jobai-frontend"
-    $dualMode = $hasService1 -and $hasService2
-
-    if ($dualMode) {
-        Write-Host "Mode: dual-service (3000 + 3001)" -ForegroundColor Green
-    } elseif ($hasSingleService) {
-        Write-Host "Mode: single-service (3000)" -ForegroundColor Green
-    } else {
-        Write-Host "Mode: fallback process (no NSSM service found)" -ForegroundColor Yellow
-    }
-
-    Write-Section "[1/6] Pulling latest code"
-
-    $gitToken = $env:GH_DEPLOY_TOKEN
-    if (-not $gitToken) {
-        throw "GH_DEPLOY_TOKEN is not set"
-    }
-
-    & git config --local --unset credential.helper 2>&1 | Out-Null
-    & git config --local credential.helper "" 2>&1 | Out-Null
-
-    $authRepoUrl = ($RepoUrl -replace '^https://', "https://$gitToken@")
-    & git remote set-url origin $authRepoUrl 2>&1 | Out-Null
-
-    & git fetch origin main 2>&1 | Out-Host
-    & git reset --hard origin/main 2>&1 | Out-Host
-    & git clean -fd 2>&1 | Out-Host
-
-    $newVersion = (& git rev-parse --short HEAD).Trim()
-    Write-Host "Deploying commit: $newVersion"
-
-    Write-Section "[2/6] Stopping previous runtime"
-
-    Stop-PidFileProcess -FilePath (Join-Path $AppDir "node.pid")
-
-    if ($dualMode) {
-        Stop-ServiceSafe -Name "jobai-frontend-1"
-        Stop-ServiceSafe -Name "jobai-frontend-2"
-    } elseif ($hasSingleService) {
-        Stop-ServiceSafe -Name "jobai-frontend"
-    }
-
-    Clear-Port -Port 3000
-    Clear-Port -Port 3001
-    Start-Sleep -Seconds 2
-
-    Write-Section "[3/6] Installing dependencies"
-
-    if (Test-Path "node_modules") {
-        Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
-    }
-
-    & npm ci 2>&1 | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        throw "npm ci failed"
-    }
-
-    Write-Section "[4/6] Building"
-
-    if (Test-Path ".next") {
-        Remove-Item -Recurse -Force ".next" -ErrorAction SilentlyContinue
-    }
-
-    & npm run build 2>&1 | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        throw "npm run build failed"
-    }
-
-    $buildIdPath = Join-Path $AppDir ".next\BUILD_ID"
-    if (-not (Test-Path $buildIdPath)) {
-        throw ".next/BUILD_ID not found after build"
-    }
-
-    $newBuildId = (Get-Content $buildIdPath).Trim()
-    Set-Content -Path (Join-Path $AppDir ".version") -Value $newVersion -Encoding UTF8
-
-    Write-Host "Build ID: $newBuildId"
-
-    Write-Section "[5/6] Starting runtime"
-
-    if ($dualMode) {
-        Start-ServiceSafe -Name "jobai-frontend-1"
-        if (-not (Wait-Health -Url "http://127.0.0.1:3000/api/version" -Attempts 40 -DelaySeconds 2)) {
-            throw "jobai-frontend-1 failed health check on port 3000"
-        }
-
-        Start-ServiceSafe -Name "jobai-frontend-2"
-        if (-not (Wait-Health -Url "http://127.0.0.1:3001/api/version" -Attempts 40 -DelaySeconds 2)) {
-            throw "jobai-frontend-2 failed health check on port 3001"
-        }
-
-        Set-Content -Path (Join-Path $AppDir "active-instance.txt") -Value "1" -Encoding UTF8
-    } elseif ($hasSingleService) {
-        Start-ServiceSafe -Name "jobai-frontend"
-        if (-not (Wait-Health -Url "http://127.0.0.1:3000/api/version" -Attempts 40 -DelaySeconds 2)) {
-            throw "jobai-frontend failed health check on port 3000"
-        }
-    } else {
-        Start-FallbackProcess -WorkingDirectory $AppDir
-        if (-not (Wait-Health -Url "http://127.0.0.1:3000/api/version" -Attempts 40 -DelaySeconds 2)) {
-            throw "Fallback process failed health check on port 3000"
-        }
-    }
-
-    Write-Section "[6/6] Final checks"
-
-    try {
-        $localVersion = Invoke-WebRequest -Uri "http://127.0.0.1:3000/api/version" -UseBasicParsing -TimeoutSec 10
-        Write-Host "Local health: OK (3000)" -ForegroundColor Green
-        Write-Host $localVersion.Content
-    } catch {
-        throw "Final local check failed on port 3000: $_"
-    }
-
-    if ($dualMode) {
-        try {
-            $localVersion3001 = Invoke-WebRequest -Uri "http://127.0.0.1:3001/api/version" -UseBasicParsing -TimeoutSec 10
-            Write-Host "Local health: OK (3001)" -ForegroundColor Green
-            Write-Host $localVersion3001.Content
-        } catch {
-            throw "Final local check failed on port 3001: $_"
-        }
-    }
-
-    try {
-        $external = Invoke-WebRequest -Uri $ExternalHealthUrl -UseBasicParsing -TimeoutSec 15
-        Write-Host "External health: OK" -ForegroundColor Green
-        Write-Host $external.Content
-    } catch {
-        Write-Host "Warning: external check failed ($ExternalHealthUrl): $_" -ForegroundColor Yellow
-    }
-
-    Write-Host ""
-    Write-Host "========================================"
-    Write-Host "  Deploy Complete!"
-    Write-Host "========================================"
-    Write-Host "Commit: $newVersion"
-    Write-Host "Build:  $newBuildId"
-    Write-Host "Time:   $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-    Write-Host "========================================"
-
-    exit 0
-}
-catch {
-    Write-Host ""
-    Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "Deploy failed at: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor Red
+$gitToken = $env:GH_DEPLOY_TOKEN
+if (-not $gitToken) {
+    Write-Host "ERROR: GH_DEPLOY_TOKEN not set!" -ForegroundColor Red
     exit 1
 }
-finally {
-    try {
-        if (Test-Path $AppDir) {
-            Set-Location $AppDir
-            & git remote set-url origin $originForRestore 2>&1 | Out-Null
-            & git config --local --unset credential.helper 2>&1 | Out-Null
-        }
-    } catch {}
+
+& git config --local --unset credential.helper 2>&1 | Out-Null
+& git config --local credential.helper "" 2>&1 | Out-Null
+
+$repoUrl = "https://${gitToken}@github.com/RaijiTRW/AI-Working-Seacrh.git"
+& git remote set-url origin $repoUrl 2>&1 | Out-Null
+
+Write-Host "Fetching and resetting..."
+& git fetch origin main 2>&1 | Out-Host
+& git reset --hard origin/main 2>&1 | Out-Host
+
+$newVersion = & git rev-parse --short HEAD
+Write-Host "Deploying version: $newVersion"
+
+# Step 2: Stop ALL Node.js processes
+Write-Host ""
+Write-Host "[2/6] Stopping Node.js..." -ForegroundColor Cyan
+
+# Kill by port first
+Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue | ForEach-Object {
+    $proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
+    if ($proc) {
+        Write-Host "  Killing process $($proc.Id) on port $Port..."
+        Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue
+    }
 }
+
+# Kill all node processes
+Get-Process -Name "node" -ErrorAction SilentlyContinue | ForEach-Object {
+    Write-Host "  Killing node process $($_.Id)..."
+    Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+}
+
+Start-Sleep -Seconds 3
+
+# Step 3: Install dependencies
+Write-Host ""
+Write-Host "[3/6] Installing dependencies..." -ForegroundColor Cyan
+
+if (Test-Path "node_modules") {
+    Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+}
+
+& npm ci 2>&1 | Out-Host
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: npm ci failed!" -ForegroundColor Red
+    exit 1
+}
+Write-Host "Dependencies installed"
+
+# Step 4: Build
+Write-Host ""
+Write-Host "[4/6] Building..." -ForegroundColor Cyan
+
+if (Test-Path ".next") {
+    Remove-Item -Recurse -Force ".next" -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+}
+
+$env:PORT = $Port
+& npm run build 2>&1 | Out-Host
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: Build failed!" -ForegroundColor Red
+    exit 1
+}
+Write-Host "Build completed"
+
+$buildIdPath = "$AppDir\.next\BUILD_ID"
+if (Test-Path $buildIdPath) {
+    $newBuildId = Get-Content $buildIdPath
+    Write-Host "New BUILD_ID: $newBuildId"
+}
+
+# Step 5: Create persistent launcher script
+Write-Host ""
+Write-Host "[5/6] Creating persistent launcher..." -ForegroundColor Cyan
+
+$launcherScript = @"
+# Persistent Node.js Launcher for JobAI Search
+# Generated by deploy.ps1 - survives SSH disconnect
+
+`$ErrorActionPreference = "Stop"
+
+# Set environment
+`$env:NODE_ENV = "production"
+`$env:PORT = "$Port"
+
+# Paths
+`$nodeExe = "C:\Program Files\nodejs\node.exe"
+`$nextBin = "$AppDir\node_modules\next\dist\bin\next"
+`$workingDir = "$AppDir"
+
+# Start Node.js
+Write-Host "Starting Node.js at `(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`"
+`$process = Start-Process -FilePath `$nodeExe -ArgumentList "next start" -WorkingDirectory `$workingDir -WindowStyle Hidden -PassThru
+
+# Save PID
+`$process.Id | Out-File -FilePath "$AppDir\node.pid" -Encoding UTF8
+Write-Host "Started Node.js with PID: `$(`$process.Id)"
+
+# Keep this script running to maintain process tree
+try {
+    `$proc = Get-Process -Id `$process.Id -ErrorAction Stop
+    while (`$proc -and -not `$proc.HasExited) {
+        Start-Sleep -Seconds 5
+        `$proc.Refresh()
+    }
+} catch {
+    # Process ended
+}
+Write-Host "Node.js process exited at `(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`"
+"@
+
+$launcherPath = "$AppDir\scripts\run-node.ps1"
+Set-Content -Path $launcherPath -Value $launcherScript -Encoding UTF8
+
+# Step 6: Start via Task Scheduler (survives SSH)
+Write-Host ""
+Write-Host "[6/6] Starting Node.js via Task Scheduler..." -ForegroundColor Cyan
+
+$taskName = "JobAI-Node-Runner"
+
+# Delete existing task if exists
+schtasks /Delete /TN $taskName /F 2>&1 | Out-Null
+
+# Create task that runs immediately and keeps running
+$taskCmd = "powershell -NoProfile -ExecutionPolicy Bypass -File `"$launcherPath`""
+
+schtasks /Create /TN $taskName /TR $taskCmd /SC ONCE /ST 00:00 /F 2>&1 | Out-Null
+schtasks /Run /TN $taskName 2>&1 | Out-Null
+
+Write-Host "  Task created and started"
+Write-Host "  Waiting for Node.js to start..."
+Start-Sleep -Seconds 10
+
+# Step 7: Health check
+Write-Host ""
+Write-Host "[7/7] Health check..." -ForegroundColor Cyan
+
+$healthy = $false
+for ($i = 1; $i -le 30; $i++) {
+    try {
+        $response = Invoke-WebRequest -Uri "http://127.0.0.1:${Port}/api/version" -UseBasicParsing -TimeoutSec 5
+        if ($response.StatusCode -eq 200) {
+            $version = $response.Content | ConvertFrom-Json
+            Write-Host "  OK! Site is running" -ForegroundColor Green
+            Write-Host "  Version: $($version.version)" -ForegroundColor Cyan
+            $healthy = $true
+            break
+        }
+    } catch {
+        Write-Host "  Attempt $i/30..."
+        Start-Sleep -Seconds 2
+    }
+}
+
+if (-not $healthy) {
+    Write-Host "ERROR: Health check failed!" -ForegroundColor Red
+    exit 1
+}
+
+# Update .version file
+Set-Content -Path "$AppDir\.version" -Value $newVersion -Encoding UTF8
+
+Write-Host ""
+Write-Host "========================================"
+Write-Host "  Deploy Complete!"
+Write-Host "========================================"
+Write-Host "Version: $newVersion"
+Write-Host "Node.js is running via Task Scheduler"
+Write-Host "Site will stay up after SSH disconnect"
+Write-Host "Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+Write-Host "========================================"
+
+# Cleanup git credentials
+& git config --local --unset credential.helper 2>&1 | Out-Null
+
+exit 0
