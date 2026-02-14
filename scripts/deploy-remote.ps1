@@ -1,9 +1,9 @@
-# JobAI Deploy Script (FIXED VERSION 3)
+# JobAI Deploy Script
 # Called by GitHub Actions via SSH
-# This version fixes npm EPERM errors
+# Project is located at C:\AI-Working-Seacrh on VDS
 
 param(
-    [string]$AppDir = "C:\apps\AI-Working-Seacrh"
+    [string]$AppDir = "C:\AI-Working-Seacrh"
 )
 
 Set-Location $AppDir
@@ -134,13 +134,11 @@ if ($gitToken.Length -eq 0) {
     exit 1
 }
 
-# Fetch with error checking - FIXED to handle stderr properly
+# Fetch with error checking
 Write-Host "  Running git fetch..."
 Write-Host "  Fetching from origin/main..."
 
-# Use try-catch to handle PowerShell's stderr interpretation
 try {
-    # Redirect stderr to stdout to prevent PowerShell from treating it as an error
     $fetchOutput = cmd /c "git fetch origin main 2>&1" 2>&1
     $fetchExitCode = $LASTEXITCODE
 
@@ -216,14 +214,13 @@ if ($oldVersion -ne "unknown" -and $oldVersion -eq $newVersion) {
     & git log --oneline origin/main -3 2>&1 | Out-Host
 }
 
-# Step 5: Clear ALL caches + delete node_modules - AGGRESSIVE VERSION
+# Step 5: Clear ALL caches + delete node_modules
 Write-Host ""
 Write-Host "[5/9] Clearing ALL caches..."
 $cacheDirs = @(".next", "node_modules", ".turbo", ".swc")
 foreach ($dir in $cacheDirs) {
     if (Test-Path $dir) {
         Write-Host "  Removing $dir..."
-        # Try multiple methods to delete
         try {
             Remove-Item -Recurse -Force $dir -ErrorAction Stop
             Write-Host "    Removed with Remove-Item"
@@ -235,7 +232,6 @@ foreach ($dir in $cacheDirs) {
             } catch {
                 Write-Host "    cmd /c rmdir failed, trying robocopy..."
                 try {
-                    # Create empty directory and use robocopy to mirror (delete everything)
                     $emptyDir = "$env:TEMP\empty_dir_$(Get-Random)"
                     New-Item -ItemType Directory -Path $emptyDir -Force | Out-Null
                     robocopy $emptyDir $dir /MIR /R:1 /W:1 /NFL /NDL /NJH /NJS | Out-Null
@@ -261,7 +257,6 @@ Write-Host ""
 Write-Host "[6/9] Installing dependencies..."
 $ErrorActionPreference = "Continue"
 
-# Try npm ci first, if fails try npm install
 $npmSuccess = $false
 $maxRetries = 3
 
@@ -269,11 +264,9 @@ for ($retry = 1; $retry -le $maxRetries; $retry++) {
     Write-Host "  Attempt $retry/$maxRetries..."
 
     if ($retry -eq 1) {
-        # First try: npm ci
         & npm ci 2>&1 | Out-Host
         $npmExitCode = $LASTEXITCODE
     } else {
-        # Retry with npm install (more tolerant)
         Write-Host "  npm ci failed, trying npm install..."
         & npm install --force 2>&1 | Out-Host
         $npmExitCode = $LASTEXITCODE
@@ -289,7 +282,6 @@ for ($retry = 1; $retry -le $maxRetries; $retry++) {
             Write-Host "  Waiting 5 seconds before retry..."
             Start-Sleep -Seconds 5
 
-            # Additional cleanup before retry
             Write-Host "  Additional cleanup before retry..."
             if (Test-Path "node_modules") {
                 try {
@@ -307,7 +299,7 @@ $ErrorActionPreference = "Stop"
 if (-not $npmSuccess) {
     Write-Host "ERROR: All npm install attempts failed"
     Write-Host "This is likely due to file locks (antivirus, Windows Defender, etc.)"
-    Write-Host "Try running the deployment manually on the server."
+    Write-Host "Try running deployment manually on server."
     try {
         & "C:\nssm-2.24\win64\nssm.exe" start jobai-frontend 2>&1 | Out-Null
     } catch {}
@@ -397,30 +389,6 @@ if (-not $healthOk) {
     & "C:\nssm-2.24\win64\nssm.exe" status jobai-frontend
     Write-Host "ERROR: Frontend not responding after 10 attempts"
     exit 1
-}
-
-# Step 9b: Verify chunks are being served correctly
-Write-Host ""
-Write-Host "Verifying static assets..."
-$buildId = Get-Content ".next/BUILD_ID" -ErrorAction SilentlyContinue
-Write-Host "  Build ID: $buildId"
-
-# Get a sample chunk hash from disk
-$sampleChunk = Get-ChildItem ".next/static/chunks" -Filter "*.js" -ErrorAction SilentlyContinue | Select-Object -First 1
-if ($sampleChunk) {
-    $chunkName = $sampleChunk.Name
-    Write-Host "  Sample chunk on disk: $chunkName"
-
-    # Try to fetch chunk
-    try {
-        $chunkUrl = "http://127.0.0.1:3000/_next/static/chunks/$chunkName"
-        $chunkResponse = Invoke-WebRequest -Uri $chunkUrl -UseBasicParsing -TimeoutSec 5
-        if ($chunkResponse.StatusCode -eq 200) {
-            Write-Host "  Chunk fetch: OK (200)"
-        }
-    } catch {
-        Write-Host "  WARNING: Could not fetch chunk - $_"
-    }
 }
 
 Write-Host ""
