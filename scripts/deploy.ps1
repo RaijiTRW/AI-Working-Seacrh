@@ -1,5 +1,5 @@
-# Deploy Script for JobAI Search - Run Node.js directly without NSSM
-# Works without admin rights by starting node.exe directly
+# Simple Deploy Script - Start Node.js directly
+# Runs node.exe directly without NSSM or scheduled tasks
 
 param(
     [string]$AppDir = "C:\AI-Working-Seacrh"
@@ -14,6 +14,73 @@ Write-Host "  JobAI Deploy"
 Write-Host "========================================"
 Write-Host "Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 Write-Host ""
+
+# Function to keep Node.js running
+function Start-NodeJs {
+    param(
+        [string]$WorkingDir,
+        [int]$Port = 3000
+    )
+
+    $env:NODE_ENV = "production"
+    $env:PORT = $Port
+
+    $nodeExe = "C:\Program Files\nodejs\node.exe"
+    $nextBin = "$WorkingDir\node_modules\next\dist\bin\next"
+    $nextStart = "$nextBin start"
+
+    # Start node in background
+    $process = Start-Process -FilePath $nodeExe -ArgumentList $nextStart -WorkingDirectory $WorkingDir -WindowStyle Hidden -PassThru
+
+    # Write PID to file for later killing
+    $process.Id | Out-File -FilePath "$WorkingDir\node.pid" -Encoding UTF8
+
+    return $process
+}
+
+# Function to kill Node.js
+function Stop-NodeJs {
+    param([string]$PidFile)
+
+    # Try to read PID file
+    if (Test-Path $PidFile) {
+        try {
+            $pid = Get-Content $PidFile
+            $proc = Get-Process -Id $pid -ErrorAction SilentlyContinue
+            if ($proc) {
+                Write-Host "  Killing process $pid (from PID file)..."
+                Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+            }
+        } catch {}
+        Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
+    }
+
+    # Also kill all node processes on our port
+    Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | ForEach-Object {
+        $proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
+        if ($proc -and $proc.ProcessName -eq "node") {
+            Write-Host "  Killing process $($proc.Id) on port 3000..."
+            Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    # Fallback: kill all node processes
+    Get-Process -Name "node" -ErrorAction SilentlyContinue | ForEach-Object {
+        Write-Host "  Killing node process $($_.Id)..."
+        Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+    }
+
+    Start-Sleep -Seconds 3
+
+    # Verify port is free
+    $portCheck = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue
+    if ($portCheck) {
+        Write-Host "  WARNING: Port 3000 still in use!" -ForegroundColor Yellow
+        return $false
+    }
+
+    return $true
+}
 
 # Step 1: Pull latest code
 Write-Host "[1/5] Pulling latest code..." -ForegroundColor Cyan
@@ -37,65 +104,19 @@ Write-Host "Fetching and resetting..."
 $newVersion = & git rev-parse --short HEAD
 Write-Host "Deploying version: $newVersion"
 
-# Step 2: Create startup script
+# Step 2: Stop Node.js
 Write-Host ""
-Write-Host "[2/5] Creating startup script..." -ForegroundColor Cyan
+Write-Host "[2/5] Stopping Node.js..." -ForegroundColor Cyan
 
-$batContent = @"
-@echo off
-cd /d {0}
-set NODE_ENV=production
-set PORT=3000
-"{1}\node.exe" "{0}\node_modules\next\dist\bin\next" start
-"@ -f $AppDir, "C:\Program Files\nodejs"
-
-$batPath = "$AppDir\start-nextjs.bat"
-Set-Content -Path $batPath -Value $batContent -Encoding ASCII
-Write-Host "  Created: $batPath"
-
-# Also create PowerShell wrapper for scheduled task
-$psWrapper = @"
-Start-Process -FilePath 'C:\Program Files\nodejs\node.exe' -ArgumentList 'node_modules\next\dist\bin\next start' -WorkingDirectory '$AppDir' -WindowStyle Hidden
-"@
-
-$psWrapperPath = "$AppDir\start-nextjs.ps1"
-Set-Content -Path $psWrapperPath -Value $psWrapperPath -Encoding UTF8
-
-# Step 3: Kill Node.js processes
-Write-Host ""
-Write-Host "[3/5] Stopping Node.js..." -ForegroundColor Cyan
-
-for ($attempt = 1; $attempt -le 10; $attempt++) {
-    $found = $false
-    Get-Process -Name "node" -ErrorAction SilentlyContinue | ForEach-Object {
-        $found = $true
-        Write-Host "  Killing node process $($_.Id)..."
-        Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
-    }
-
-    # Check port 3000
-    Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | ForEach-Object {
-        $proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
-        if ($proc) {
-            $found = $true
-            Write-Host "  Killing process $($proc.Id) on port 3000"
-            Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue
-        }
-    }
-
-    if (-not $found) {
-        Write-Host "  All processes stopped" -ForegroundColor Green
-        break
-    }
-
-    Start-Sleep -Seconds 2
+$stopped = Stop-NodeJs -PidFile "$AppDir\node.pid"
+if (-not $stopped) {
+    Write-Host "ERROR: Could not stop Node.js" -ForegroundColor Red
+    exit 1
 }
 
-Start-Sleep -Seconds 3
-
-# Step 4: Install dependencies and build
+# Step 3: Install dependencies
 Write-Host ""
-Write-Host "[4/5] Installing dependencies..." -ForegroundColor Cyan
+Write-Host "[3/5] Installing dependencies..." -ForegroundColor Cyan
 
 if (Test-Path "node_modules") {
     Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
@@ -109,8 +130,9 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "Dependencies installed"
 
+# Step 4: Build
 Write-Host ""
-Write-Host "Building..." -ForegroundColor Cyan
+Write-Host "[4/5] Building..." -ForegroundColor Cyan
 
 if (Test-Path ".next") {
     Remove-Item -Recurse -Force ".next" -ErrorAction SilentlyContinue
@@ -131,34 +153,18 @@ if (Test-Path $buildIdPath) {
     Write-Host "New BUILD_ID: $newBuildId"
 }
 
-# Step 5: Start Node.js using scheduled task
+# Step 5: Start Node.js
 Write-Host ""
 Write-Host "[5/5] Starting Node.js..." -ForegroundColor Cyan
 
-# Create/update scheduled task
-$TaskName = "JobAI-Frontend"
-$TaskAction = New-ScheduledTaskAction -Execute "C:\Program Files\nodejs\node.exe" -Argument "node_modules\next\dist\bin\next start" -WorkingDirectory $AppDir
-$TaskTrigger = New-ScheduledTaskTrigger -AtLogon -User $env:USERNAME
+$process = Start-NodeJs -WorkingDir $AppDir -Port 3000
+Write-Host "  Started with PID: $($process.Id)"
 
-try {
-    Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false -ErrorAction SilentlyContinue
-    Start-Sleep -Seconds 1
-} catch {}
-
-Register-ScheduledTask -TaskName $TaskName -Action $TaskAction -Trigger $TaskTrigger -User $env:USERNAME -Description "JobAI Search Frontend (Next.js)" | Out-Null
-
-Write-Host "  Scheduled task created/updated"
-
-# Start the task
-Start-Sleep -Seconds 2
-Start-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-
-Write-Host "  Node.js starting..."
 Start-Sleep -Seconds 10
 
 # Step 6: Health check
 Write-Host ""
-Write-Host "[6/6] Health check..." -ForegroundColor Cyan
+Write-Host "[5/5] Health check..." -ForegroundColor Cyan
 
 $healthy = $false
 for ($i = 1; $i -le 30; $i++) {
@@ -178,6 +184,8 @@ for ($i = 1; $i -le 30; $i++) {
 
 if (-not $healthy) {
     Write-Host "ERROR: Health check failed!" -ForegroundColor Red
+    # Kill the process we just started
+    Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
     exit 1
 }
 
@@ -189,7 +197,8 @@ Write-Host "========================================"
 Write-Host "  Deploy Complete!"
 Write-Host "========================================"
 Write-Host "Version: $newVersion"
-Write-Host "Task: $TaskName"
+Write-Host "PID: $($process.Id)"
+Write-Host "PID File: $AppDir\node.pid"
 Write-Host "Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 Write-Host "========================================"
 
