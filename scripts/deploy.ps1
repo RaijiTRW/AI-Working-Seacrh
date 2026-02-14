@@ -56,6 +56,19 @@ function Invoke-NpmCommand {
     return $true
 }
 
+function Get-PortPid {
+    param([int]$Port)
+
+    try {
+        $listener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($listener -and $listener.OwningProcess -and $listener.OwningProcess -ne 0) {
+            return [int]$listener.OwningProcess
+        }
+    } catch {}
+
+    return $null
+}
+
 function Resolve-AppDirectory {
     param(
         [string]$Primary,
@@ -320,8 +333,7 @@ try {
         }
     }
 
-    & npm run build 2>&1 | Out-Host
-    if ($LASTEXITCODE -ne 0) {
+    if (-not (Invoke-NpmCommand -Command "npm run build" -StepName "npm run build")) {
         throw "npm run build failed"
     }
 
@@ -355,9 +367,19 @@ try {
             throw "jobai-frontend failed health check on port 3000"
         }
     } else {
+        $pidBeforeFallback = Get-PortPid -Port 3000
+        if ($pidBeforeFallback) {
+            Write-Host "  Warning: port 3000 is already occupied by PID $pidBeforeFallback before fallback start" -ForegroundColor Yellow
+        }
+
         Start-FallbackProcess -WorkingDirectory $AppDir
         if (-not (Wait-Health -Url "http://127.0.0.1:3000/api/version" -Attempts 40 -DelaySeconds 2)) {
             throw "Fallback process failed health check on port 3000"
+        }
+
+        $pidAfterFallback = Get-PortPid -Port 3000
+        if ($pidBeforeFallback -and $pidAfterFallback -eq $pidBeforeFallback) {
+            throw "Port 3000 is still owned by old PID $pidAfterFallback after fallback start. New code is not active."
         }
     }
 
