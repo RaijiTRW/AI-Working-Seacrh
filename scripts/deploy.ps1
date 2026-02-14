@@ -1,5 +1,5 @@
-# Simple Deploy Script for JobAI Search
-# Kills Node.js, rebuilds, and restarts directly (no NSSM)
+# Deploy Script for JobAI Search - Uses bat file wrapper
+# This works around NSSM issues with Next.js start command
 
 param(
     [string]$AppDir = "C:\AI-Working-Seacrh"
@@ -16,7 +16,7 @@ Write-Host "Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 Write-Host ""
 
 # Step 1: Pull latest code
-Write-Host "[1/5] Pulling latest code..." -ForegroundColor Cyan
+Write-Host "[1/6] Pulling latest code..." -ForegroundColor Cyan
 
 $gitToken = $env:GH_DEPLOY_TOKEN
 if (-not $gitToken) {
@@ -37,38 +37,43 @@ Write-Host "Fetching and resetting..."
 $newVersion = & git rev-parse --short HEAD
 Write-Host "Deploying version: $newVersion"
 
-# Step 2: Kill Node.js processes aggressively
+# Step 2: Create proper bat file wrapper
 Write-Host ""
-Write-Host "[2/5] Stopping Node.js..." -ForegroundColor Cyan
+Write-Host "[2/6] Creating startup script..." -ForegroundColor Cyan
 
-# First try to disable NSSM service (may fail without admin, that's ok)
+$batContent = @"
+@echo off
+cd /d $AppDir
+set NODE_ENV=production
+set PORT=3000
+node "node_modules\next\dist\bin\next" start
+"@
+
+$batPath = "$AppDir\start-nextjs.bat"
+Set-Content -Path $batPath -Value $batContent -Encoding ASCII
+Write-Host "  Created: $batPath"
+
+# Step 3: Stop service and kill processes
+Write-Host ""
+Write-Host "[3/6] Stopping services..." -ForegroundColor Cyan
+
 $NssmPath = "C:\nssm-2.24\win64\nssm.exe"
 $ServiceName = "jobai-frontend-1"
 
-# Check if service exists and is running
-$serviceStatus = & $NssmPath status $ServiceName 2>&1
-if ($serviceStatus -match "RUNNING") {
-    Write-Host "  WARNING: NSSM service is running and may auto-restart node.exe" -ForegroundColor Yellow
-    Write-Host "  To fix: Run as Administrator and execute:" -ForegroundColor Yellow
-    Write-Host "    & '$NssmPath' set $ServiceName Start SERVICE_DEMAND_START" -ForegroundColor Yellow
-    Write-Host "    & '$NssmPath' stop $ServiceName" -ForegroundColor Yellow
-}
-
-& $NssmPath set $ServiceName Start SERVICE_DEMAND_START 2>&1 | Out-Null
+# Try to stop service
 & $NssmPath stop $ServiceName 2>&1 | Out-Null
-
 Start-Sleep -Seconds 3
 
-# Aggressively kill node processes
-for ($attempt = 1; $attempt -le 5; $attempt++) {
+# Kill node processes
+for ($attempt = 1; $attempt -le 10; $attempt++) {
     $found = $false
     Get-Process -Name "node" -ErrorAction SilentlyContinue | ForEach-Object {
         $found = $true
-        Write-Host "  Killing node process $($_.Id) (attempt $attempt)..."
+        Write-Host "  Killing node process $($_.Id)..."
         Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
     }
 
-    # Also check port 3000
+    # Check port 3000
     Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | ForEach-Object {
         $proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
         if ($proc) {
@@ -79,25 +84,18 @@ for ($attempt = 1; $attempt -le 5; $attempt++) {
     }
 
     if (-not $found) {
-        Write-Host "  All node processes stopped" -ForegroundColor Green
+        Write-Host "  All processes stopped" -ForegroundColor Green
         break
     }
 
     Start-Sleep -Seconds 2
 }
 
-# Final verification
 Start-Sleep -Seconds 3
-$portCheck = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue
-if ($portCheck) {
-    Write-Host "  WARNING: Port 3000 still in use!" -ForegroundColor Yellow
-} else {
-    Write-Host "  Port 3000 is free" -ForegroundColor Green
-}
 
-# Step 3: Install dependencies
+# Step 4: Install dependencies and build
 Write-Host ""
-Write-Host "[3/5] Installing dependencies..." -ForegroundColor Cyan
+Write-Host "[4/6] Installing dependencies..." -ForegroundColor Cyan
 
 if (Test-Path "node_modules") {
     Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
@@ -111,9 +109,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "Dependencies installed"
 
-# Step 4: Build
 Write-Host ""
-Write-Host "[4/5] Building..." -ForegroundColor Cyan
+Write-Host "Building..." -ForegroundColor Cyan
 
 if (Test-Path ".next") {
     Remove-Item -Recurse -Force ".next" -ErrorAction SilentlyContinue
@@ -134,26 +131,27 @@ if (Test-Path $buildIdPath) {
     Write-Host "New BUILD_ID: $newBuildId"
 }
 
-# Step 5: Start Node.js
+# Step 5: Update service to use bat file
 Write-Host ""
-Write-Host "[5/5] Starting Node.js..." -ForegroundColor Cyan
+Write-Host "[5/6] Updating service..." -ForegroundColor Cyan
+
+$cmdExe = "$env:SystemRoot\System32\cmd.exe"
+& $NssmPath set $ServiceName Application $cmdExe 2>&1 | Out-Null
+& $NssmPath set $ServiceName AppParameters "/c `"$batPath`"" 2>&1 | Out-Null
+& $NssmPath set $ServiceName AppDirectory $AppDir 2>&1 | Out-Null
+
+Write-Host "  Service updated to use bat file"
+
+# Step 6: Start service
+Write-Host ""
+Write-Host "[6/6] Starting service..." -ForegroundColor Cyan
 
 # Create logs directory
 if (-not (Test-Path "$AppDir\logs")) {
     New-Item -ItemType Directory -Path "$AppDir\logs" -Force | Out-Null
 }
 
-# Set environment
-$env:NODE_ENV = "production"
-$env:PORT = "3000"
-
-# Start the process
-$nodeExe = "C:\Program Files\nodejs\node.exe"
-$nextStart = "node_modules\next\bin\next start"
-
-$process = Start-Process -FilePath $nodeExe -ArgumentList $nextStart -WorkingDirectory $AppDir -WindowStyle Hidden -PassThru
-
-Write-Host "  Started with PID: $($process.Id)"
+& $NssmPath start $ServiceName 2>&1 | Out-Host
 Start-Sleep -Seconds 10
 
 # Health check
@@ -178,6 +176,7 @@ for ($i = 1; $i -le 30; $i++) {
 
 if (-not $healthy) {
     Write-Host "ERROR: Health check failed!" -ForegroundColor Red
+    Write-Host "Check logs: $AppDir\logs\service-err.log" -ForegroundColor Yellow
     exit 1
 }
 
@@ -189,7 +188,6 @@ Write-Host "========================================"
 Write-Host "  Deploy Complete!"
 Write-Host "========================================"
 Write-Host "Version: $newVersion"
-Write-Host "PID: $($process.Id)"
 Write-Host "Time: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 Write-Host "========================================"
 
