@@ -22,5 +22,6 @@ jobs:
             powershell -ExecutionPolicy Bypass -Command "
               `$env:GH_DEPLOY_TOKEN='${{ secrets.GH_DEPLOY_TOKEN }}'
               & 'C:\AI-Working-Seacrh\scripts\deploy.ps1' 2>&1 | Out-Host
+              & 'C:\AI-Working-Seacrh\scripts\keep-alive.ps1' 2>&1 | Out-Host
               exit `$LASTEXITCODE
             "
