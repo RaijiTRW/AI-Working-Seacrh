@@ -37,6 +37,25 @@ function Invoke-GitCommand {
     }
 }
 
+function Invoke-NpmCommand {
+    param(
+        [string]$Command,
+        [string]$StepName
+    )
+
+    $output = cmd /c "$Command 2>&1"
+    if ($output) {
+        $output | Out-Host
+    }
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host ("  {0} failed (exit code {1})" -f $StepName, $LASTEXITCODE) -ForegroundColor Yellow
+        return $false
+    }
+
+    return $true
+}
+
 function Resolve-AppDirectory {
     param(
         [string]$Primary,
@@ -270,18 +289,35 @@ try {
     Write-Section "[3/6] Installing dependencies"
 
     if (Test-Path "node_modules") {
-        Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
+        try {
+            Remove-Item -Recurse -Force "node_modules" -ErrorAction Stop
+        } catch {
+            Write-Host "  Warning: could not fully remove node_modules, continuing with fallback installs" -ForegroundColor Yellow
+        }
     }
 
-    & npm ci 2>&1 | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-        throw "npm ci failed"
+    $depsOk = $false
+    if (Invoke-NpmCommand -Command "npm ci" -StepName "npm ci") {
+        $depsOk = $true
+    } elseif (Invoke-NpmCommand -Command "npm install --no-audit --no-fund" -StepName "npm install") {
+        $depsOk = $true
+    } elseif (Invoke-NpmCommand -Command "npm install --force" -StepName "npm install --force") {
+        $depsOk = $true
+    }
+
+    if (-not $depsOk) {
+        throw "Dependency installation failed after all retries"
     }
 
     Write-Section "[4/6] Building"
 
     if (Test-Path ".next") {
-        Remove-Item -Recurse -Force ".next" -ErrorAction SilentlyContinue
+        try {
+            Remove-Item -Recurse -Force ".next" -ErrorAction Stop
+        } catch {
+            Write-Host "  Warning: could not remove .next with Remove-Item, trying cmd rmdir" -ForegroundColor Yellow
+            cmd /c "rmdir /s /q .next" 2>&1 | Out-Host
+        }
     }
 
     & npm run build 2>&1 | Out-Host
