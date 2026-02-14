@@ -36,9 +36,9 @@ if ($currentActive -eq "1") {
     $newActive = "1"
     $stopService = "jobai-frontend-2"
     $startService = "jobai-frontend-1"
-    $buildPort = "3001"
-    $activePort = "3000"
-    $activeService = "jobai-frontend-1"
+    $buildPort = "3000"
+    $activePort = "3001"
+    $activeService = "jobai-frontend-2"
 }
 
 Write-Host "Current active: Instance $currentActive | New: $newActive (port $buildPort)"
@@ -59,12 +59,22 @@ if (-not $gitToken) {
 $repoUrl = "https://${gitToken}@github.com/RaijiTRW/AI-Working-Seacrh.git"
 & git remote set-url origin $repoUrl 2>&1 | Out-Null
 
+$hasChanges = $false
+
 try {
-    $fetchOutput = & git fetch origin main 2>&1 | Out-Host
-    $refStatus = & git rev-parse --verify origin/main 2>&1
-    if ($refStatus -ne $LASTEXITCODE) {
-        # commits exist
+    $currentCommit = & git rev-parse HEAD 2>&1
+    Write-Host "Current commit: $currentCommit"
+
+    & git fetch origin main 2>&1 | Out-Host
+
+    $originCommit = & git rev-parse origin/main 2>&1
+    Write-Host "Origin commit: $originCommit"
+
+    if ($currentCommit -ne $originCommit) {
         $hasChanges = $true
+        Write-Host "Changes detected!" -ForegroundColor Green
+    } else {
+        Write-Host "No changes detected" -ForegroundColor Yellow
     }
 } catch {
     Write-Host "Git check failed: $_" -ForegroundColor Yellow
@@ -72,13 +82,16 @@ try {
 
 if (-not $hasChanges) {
     Write-Host "No changes detected, skipping build"
-    $newVersion = git rev-parse --short HEAD
-    Write-Host "Skipping build, updating version to: $newVersion"
-    Set-Content -Path $ActiveFile -Value $newActive -Encoding UTF8
-} else {
-    Write-Host "Changes detected, proceeding with deploy..."
-    Write-Host "Current version: $(git rev-parse --short HEAD)"
+    $newVersion = & git rev-parse --short HEAD
+    Write-Host "Skipping build, exiting"
+    exit 0
 }
+
+Write-Host "Changes detected, proceeding with deploy..."
+Write-Host "Current version: $(git rev-parse --short HEAD)"
+
+try {
+    & git pull origin main 2>&1 | Out-Host
 } catch {
     Write-Host "ERROR: Git pull failed!" -ForegroundColor Red
     exit 1
@@ -241,6 +254,9 @@ Set-Content -Path $ActiveFile -Value $newActive -Encoding UTF8
 # Final health check through Caddy
 Write-Host ""
 Write-Host "[9/9] Final health check..." -ForegroundColor Cyan
+
+# Create .version file for API endpoint
+Set-Content -Path "$AppDir\.version" -Value $newVersion -Encoding UTF8
 
 try {
     $response = Invoke-WebRequest -Uri "https://jobaisearch.ru/api/version" -UseBasicParsing -TimeoutSec 10
