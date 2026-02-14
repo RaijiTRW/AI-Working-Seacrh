@@ -60,9 +60,25 @@ $repoUrl = "https://${gitToken}@github.com/RaijiTRW/AI-Working-Seacrh.git"
 & git remote set-url origin $repoUrl 2>&1 | Out-Null
 
 try {
-    & git fetch origin main 2>&1 | Out-Host
-    & git reset --hard origin/main 2>&1 | Out-Host
-    & git clean -fd 2>&1 | Out-Null
+    $fetchOutput = & git fetch origin main 2>&1 | Out-Host
+    $refStatus = & git rev-parse --verify origin/main 2>&1
+    if ($refStatus -ne $LASTEXITCODE) {
+        # commits exist
+        $hasChanges = $true
+    }
+} catch {
+    Write-Host "Git check failed: $_" -ForegroundColor Yellow
+}
+
+if (-not $hasChanges) {
+    Write-Host "No changes detected, skipping build"
+    $newVersion = git rev-parse --short HEAD
+    Write-Host "Skipping build, updating version to: $newVersion"
+    Set-Content -Path $ActiveFile -Value $newActive -Encoding UTF8
+} else {
+    Write-Host "Changes detected, proceeding with deploy..."
+    Write-Host "Current version: $(git rev-parse --short HEAD)"
+}
 } catch {
     Write-Host "ERROR: Git pull failed!" -ForegroundColor Red
     exit 1
