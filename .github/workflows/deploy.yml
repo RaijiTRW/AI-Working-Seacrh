@@ -21,7 +21,7 @@ jobs:
           script: |
             powershell -ExecutionPolicy Bypass -Command "
               `$env:GH_DEPLOY_TOKEN='${{ secrets.GH_DEPLOY_TOKEN }}'
-              & 'C:\AI-Working-Seacrh\scripts\deploy.ps1' 2>&1 | Out-Host
-              & 'C:\AI-Working-Seacrh\scripts\keep-alive.ps1' 2>&1 | Out-Host
+              `$deployScript = if (Test-Path 'C:\AI-Working-Seacrh\scripts\deploy.ps1') { 'C:\AI-Working-Seacrh\scripts\deploy.ps1' } elseif (Test-Path 'C:\apps\AI-Working-Seacrh\scripts\deploy.ps1') { 'C:\apps\AI-Working-Seacrh\scripts\deploy.ps1' } else { throw 'deploy.ps1 not found in C:\AI-Working-Seacrh or C:\apps\AI-Working-Seacrh' }
+              & `$deployScript 2>&1 | Out-Host
               exit `$LASTEXITCODE
             "
