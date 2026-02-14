@@ -148,10 +148,10 @@ function Clear-Port {
     try {
         $listeners = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
         foreach ($listener in $listeners) {
-            $pid = $listener.OwningProcess
-            if ($pid -and $pid -ne 0) {
-                Write-Host "  Killing PID $pid on port $Port"
-                Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+            $processId = $listener.OwningProcess
+            if ($processId -and $processId -ne 0) {
+                Write-Host "  Killing PID $processId on port $Port"
+                Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
             }
         }
     } catch {
@@ -186,9 +186,9 @@ function Stop-PidFileProcess {
     if (-not (Test-Path $FilePath)) { return }
 
     try {
-        $pid = Get-Content $FilePath -ErrorAction SilentlyContinue
-        if ($pid) {
-            Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+        $pidFromFile = Get-Content $FilePath -ErrorAction SilentlyContinue
+        if ($pidFromFile) {
+            Stop-Process -Id $pidFromFile -Force -ErrorAction SilentlyContinue
         }
     } catch {}
 
