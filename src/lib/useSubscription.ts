@@ -21,6 +21,7 @@ interface UseSubscriptionReturn {
   buyExtra: () => Promise<string | null>;
   initTrial: () => Promise<boolean>;
   cancelAutoRenewal: () => Promise<boolean>;
+  manualRenewal: () => Promise<boolean>;
 }
 
 // Дефолтные значения когда API недоступен
@@ -52,39 +53,6 @@ export function useSubscription(): UseSubscriptionReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const apiAvailable = useRef(true);
-
-  // Manual renewal function
-  const manualRenewal = useCallback(async (): Promise<boolean> => {
-    if (!user) {
-      setError("Нет активной сессии");
-      return false;
-    }
-
-    try {
-      const response = await fetch(`${NEXT_API}/api/subscription/manual-renew`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.access_token}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Refresh subscription after successful renewal
-        await fetchSubscription();
-        return true;
-      } else {
-        setError(data.error || 'Ошибка продления подписки');
-        return false;
-      }
-    } catch (err) {
-      console.error('[useSubscription] manual renewal error:', err);
-      setError(err instanceof Error ? err.message : 'Ошибка продления');
-      return false;
-    }
-  }, [user]);
   const retryCount = useRef(0);
 
   const fetchSubscription = useCallback(async () => {
@@ -128,6 +96,39 @@ export function useSubscription(): UseSubscriptionReturn {
       setLoading(false);
     }
   }, [user]);
+
+  // Ручное продление подписки
+  const manualRenewal = useCallback(async (): Promise<boolean> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setError("Нет активной сессии");
+        return false;
+      }
+
+      const response = await fetch("/api/subscription/manual-renew", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data?.success) {
+        setError(data?.error || "Ошибка продления подписки");
+        return false;
+      }
+
+      await fetchSubscription();
+      return true;
+    } catch (err) {
+      console.error("[useSubscription] manual renewal error:", err);
+      setError(err instanceof Error ? err.message : "Ошибка продления");
+      return false;
+    }
+  }, [fetchSubscription]);
 
   // Загрузка при монтировании и смене пользователя
   useEffect(() => {
@@ -230,6 +231,6 @@ export function useSubscription(): UseSubscriptionReturn {
     buyExtra,
     initTrial,
     cancelAutoRenewal: cancelAutoRenewalCallback,
-    manualRenewal: manualRenewal,
+    manualRenewal,
   };
 }
