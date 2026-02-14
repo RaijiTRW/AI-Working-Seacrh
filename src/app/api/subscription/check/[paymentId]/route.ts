@@ -25,17 +25,28 @@ export async function GET(
     const { paymentId } = await params;
     const supabase = getSupabaseAdmin();
 
-    // Проверяем - не истекло ли время ожидания платежа (более 1 часа)
+    // Проверяем локальную БД ПЕРЕД запросом к ЮKassa
     const { data: localPayment } = await supabase
       .from("payment_history")
       .select("*")
       .eq("yookassa_payment_id", paymentId)
       .single();
 
-    // Если платеж есть в базе и он pending более 1 часа - отменяем его
+    // Если платеж уже успешно обработан в БД - возвращаем success сразу
+    if (localPayment?.status === "succeeded") {
+      const paymentType = (localPayment.metadata as { type?: string })?.type;
+      log.info("[Check Payment] Payment already succeeded in DB, returning success:", paymentId);
+      return NextResponse.json({
+        status: "succeeded",
+        type: paymentType,
+        already_processed: true,
+      });
+    }
+
+    // Проверяем - не истекло ли время ожидания платежа (более 1 часа)
     if (localPayment?.status === "pending") {
       const paymentAge = Date.now() - new Date(localPayment.created_at).getTime();
-      const oneHour = 60 * 60 * 1000; // 1 час в миллисекундах
+      const oneHour = 60 * 60 * 1000; //1 час в миллисекундах
 
       if (paymentAge > oneHour) {
         // Автоматически отменяем просроченный платеж
@@ -60,7 +71,7 @@ export async function GET(
       }
     }
 
-    // Получаем статус платежа из YooKassa
+    // Получаем статус платежа из ЮKassa (только если не обработан локально)
     const response = await fetch(
       `https://api.yookassa.ru/v3/payments/${paymentId}`,
       {
@@ -79,7 +90,7 @@ export async function GET(
 
     const payment = await response.json();
 
-    // Если YooKassa вернул "canceled" - обновляем статус локально
+    // Если ЮKassa вернула "canceled" - обновляем статус локально (только если еще не succeeded)
     if (payment.status === "canceled") {
       await supabase
         .from("payment_history")
@@ -125,7 +136,7 @@ export async function GET(
         });
       }
 
-      // Сохраняем payment_method_id для автосписания (если есть)
+      // Сохраняем payment_method_id для автописания (если есть)
       if (payment.payment_method?.id) {
         await supabase
           .from("profiles")
@@ -145,7 +156,7 @@ export async function GET(
         // Получаем цену из платежа (это то, что пользователь фактически заплатил)
         const purchasePrice = parseFloat(payment.amount.value);
 
-        // Обновляем или создаем подписку с сохранением цены покупки
+        // Обновляем или создаём подписку с сохранением цены покупки
         await supabase
           .from("user_subscriptions")
           .upsert({
@@ -169,7 +180,7 @@ export async function GET(
             daily_reset_at: new Date().toISOString().split("T")[0],
           });
 
-        // Обновляем profiles для админки
+        // Обновляем профили для админки
         await supabase
           .from("profiles")
           .update({

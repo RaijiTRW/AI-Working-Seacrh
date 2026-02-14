@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 interface TrialExpiredModalProps {
   isProTrialExpired: boolean;
@@ -29,6 +30,7 @@ export function TrialExpiredModal({
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isManualRenewing, setIsManualRenewing] = useState(false);
 
   // Показываем если истёк либо Trial, либо платная подписка
   const hasExpiredSubscription = isProTrialExpired || isProExpired;
@@ -75,6 +77,55 @@ export function TrialExpiredModal({
   const handleGoToSubscription = () => {
     setIsOpen(false);
     router.push("/subscription");
+  };
+
+  const handleManualRenewal = async () => {
+    setIsManualRenewing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        alert("Нет активной сессии. Войдите снова.");
+        setIsManualRenewing(false);
+        return;
+      }
+
+      const response = await fetch("/api/subscription/manual-renew", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.needs_payment_method) {
+          // Нет сохранённого метода оплаты — отправляем на checkout
+          const paymentUrl = await onCheckout();
+          if (paymentUrl) {
+            window.location.href = paymentUrl;
+          }
+          return;
+        }
+        alert(data.error || "Не удалось продлить подписку");
+        return;
+      }
+
+      if (data.status === "succeeded") {
+        alert("Подписка успешно продлена!");
+        window.location.reload();
+      } else if (data.status === "pending") {
+        alert("Платёж обрабатывается. Пожалуйста, подождите...");
+        window.location.reload();
+      } else {
+        alert("Не удалось продлить. Попробуйте оплатить заново.");
+      }
+    } catch (error) {
+      console.error("Manual renewal error:", error);
+      alert("Произошла ошибка. Попробуйте позже.");
+    } finally {
+      setIsManualRenewing(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -138,7 +189,7 @@ export function TrialExpiredModal({
           <ul className="space-y-2">
             <li className="flex items-center gap-2 text-sm text-gray-700">
               <svg
-                className="w-5 h-5 text-green-500 flex-shrink-0"
+                className="w-5 h-5 text-green-500 shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -154,7 +205,7 @@ export function TrialExpiredModal({
             </li>
             <li className="flex items-center gap-2 text-sm text-gray-700">
               <svg
-                className="w-5 h-5 text-green-500 flex-shrink-0"
+                className="w-5 h-5 text-green-500 shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -170,7 +221,7 @@ export function TrialExpiredModal({
             </li>
             <li className="flex items-center gap-2 text-sm text-gray-700">
               <svg
-                className="w-5 h-5 text-green-500 flex-shrink-0"
+                className="w-5 h-5 text-green-500 shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -239,6 +290,16 @@ export function TrialExpiredModal({
           >
             Напомнить позже
           </button>
+
+          {isProExpired && (
+            <button
+              onClick={handleManualRenewal}
+              disabled={isManualRenewing}
+              className="w-full py-2 px-3 bg-amber-50 hover:bg-amber-100 disabled:bg-amber-50/50 text-amber-700 disabled:text-amber-700/50 text-sm font-medium rounded-lg transition-colors"
+            >
+              {isManualRenewing ? "Пробуем продлить..." : "Попробовать продлить ещё раз"}
+            </button>
+          )}
         </div>
       </div>
     </div>

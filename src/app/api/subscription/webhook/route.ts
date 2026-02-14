@@ -94,7 +94,40 @@ export async function POST(request: NextRequest) {
         .eq("yookassa_payment_id", payment.id);
 
       // Обрабатываем по типу платежа
-      if (paymentType === "subscription") {
+      if (paymentType === "save_payment_method" && payment.metadata?.refund_after) {
+        // Привязка карты для автопродления — делаем refund 1 рубля
+        const authHeader = `Basic ${Buffer.from(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET_KEY}`).toString("base64")}`;
+
+        try {
+          const refundResponse = await fetch(`https://api.yookassa.ru/v3/refunds`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Idempotence-Key": `refund-${payment.id}`,
+              "Authorization": authHeader,
+            },
+            body: JSON.stringify({
+              amount: {
+                value: "1.00",
+                currency: "RUB"
+              },
+              payment_id: payment.id,
+              description: "Возврат средств после привязки карты",
+            }),
+          });
+
+          if (refundResponse.ok) {
+            log.webhook("Refund initiated for payment:", payment.id);
+          } else {
+            log.error("[Webhook] Failed to create refund:", await refundResponse.text());
+          }
+        } catch (error) {
+          log.error("[Webhook] Exception during refund:", error);
+        }
+
+        log.webhook("Payment method saved for auto-renewal, user:", userId);
+
+      } else if (paymentType === "subscription") {
         const expiresAt = new Date();
         expiresAt.setMonth(expiresAt.getMonth() + 1);
 

@@ -55,12 +55,18 @@ export async function improveTextWithAI(
 /**
  * Проверяет, имеет ли пользователь доступ к AI функциям
  *
- * @param isPro - Прописка Pro
- * @param isProTrial - Пробный период Pro
- * @returns true если AI доступен
+ * AI функции доступны всем авторизованным пользователям с лимитом 5 генераций.
+ * Pro пользователи имеют безлимитный доступ.
+ *
+ * @param _isPro - Прописка Pro (не используется, все пользователи имеют доступ)
+ * @param _isProTrial - Пробный период Pro (не используется, все пользователи имеют доступ)
+ * @returns true если пользователь авторизован (вызывается только для UI)
+ * @deprecated Используйте прямую проверку isAuthenticated. Лимиты проверяются на сервере.
  */
-export function hasAIAccess(isPro?: boolean, isProTrial?: boolean): boolean {
-  return !!(isPro || isProTrial);
+export function hasAIAccess(_isPro?: boolean, _isProTrial?: boolean): boolean {
+  // AI функции доступны всем авторизованным пользователям
+  // Лимиты проверяются на сервере в API routes
+  return true;
 }
 
 /**

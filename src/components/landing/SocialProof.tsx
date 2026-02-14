@@ -2,7 +2,7 @@
 
 const stats = [
   {
-    value: "2,340+",
+    value: "40,340+",
     label: "вакансий в базе",
     subLabel: "обновляется каждые 2 часа",
   },
@@ -17,7 +17,7 @@ const stats = [
     subLabel: "от регистрации до результата",
   },
   {
-    value: "5+",
+    value: "2+",
     label: "площадок сканируем",
     subLabel: "hh, Avito, SuperJob и другие",
   },

@@ -3,11 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSubscriptionContext } from "@/components/subscription";
+import { supabase } from "@/lib/supabase";
 
 export default function SubscriptionSection() {
   const { subscription, loading, checkout, buyExtra, cancelAutoRenewal, refresh } = useSubscriptionContext();
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [canceling, setCanceling] = useState(false);
+  const [enablingAutoRenew, setEnablingAutoRenew] = useState(false);
 
   if (loading) {
     return (
@@ -64,20 +66,57 @@ export default function SubscriptionSection() {
     }
   };
 
+  const handleEnableAutoRenewal = async () => {
+    setEnablingAutoRenew(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        alert("Нет активной сессии. Войдите снова.");
+        return;
+      }
+
+      const response = await fetch("/api/subscription/enable-auto-renewal", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || "Не удалось включить автопродление");
+        if (data.details) {
+          console.error("Payment error details:", data.details);
+        }
+        return;
+      }
+
+      // Перенаправляем на платёжную страницу YooKassa
+      if (data.payment_url) {
+        window.location.href = data.payment_url;
+      }
+    } catch (error) {
+      console.error("Enable auto-renewal error:", error);
+      alert("Произошла ошибка. Попробуйте позже.");
+    } finally {
+      setEnablingAutoRenew(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Current subscription */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         <div
-          className={`px-6 py-4 ${
-            is_pro
+          className={`px-6 py-4 ${is_pro
               ? "bg-gradient-to-r from-blue-600 to-blue-700"
               : is_pro_trial
-              ? "bg-gradient-to-r from-purple-600 to-purple-700"
-              : is_base
-              ? "bg-gradient-to-r from-gray-500 to-gray-600"
-              : "bg-gradient-to-r from-gray-400 to-gray-500"
-          }`}
+                ? "bg-gradient-to-r from-purple-600 to-purple-700"
+                : is_base
+                  ? "bg-gradient-to-r from-gray-500 to-gray-600"
+                  : "bg-gradient-to-r from-gray-400 to-gray-500"
+            }`}
         >
           <div className="flex items-center justify-between">
             <div>
@@ -102,11 +141,10 @@ export default function SubscriptionSection() {
               </div>
             ) : sub && sub.days_left !== null && (
               <div
-                className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  sub.status === "active"
+                className={`px-3 py-1 rounded-full text-sm font-medium ${sub.status === "active"
                     ? "bg-white/20 text-white"
                     : "bg-red-100 text-red-700"
-                }`}
+                  }`}
               >
                 {sub.status === "active"
                   ? sub.days_left > 0
@@ -132,13 +170,12 @@ export default function SubscriptionSection() {
             </div>
             <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all ${
-                  limits.daily_used >= limits.daily_limit
+                className={`h-full rounded-full transition-all ${limits.daily_used >= limits.daily_limit
                     ? "bg-red-500"
                     : limits.daily_used >= limits.daily_limit * 0.8
-                    ? "bg-amber-500"
-                    : "bg-blue-500"
-                }`}
+                      ? "bg-amber-500"
+                      : "bg-blue-500"
+                  }`}
                 style={{
                   width: `${Math.min(100, (limits.daily_used / limits.daily_limit) * 100)}%`,
                 }}
@@ -176,9 +213,8 @@ export default function SubscriptionSection() {
           <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
             <span className="text-gray-600">Осталось сегодня</span>
             <span
-              className={`font-bold text-lg ${
-                limits.remaining > 0 ? "text-blue-600" : "text-red-500"
-              }`}
+              className={`font-bold text-lg ${limits.remaining > 0 ? "text-blue-600" : "text-red-500"
+                }`}
             >
               {limits.remaining}
             </span>
@@ -259,7 +295,7 @@ export default function SubscriptionSection() {
             </button>
           )}
 
-          {subscription.has_saved_payment_method && (
+          {is_pro && subscription.has_saved_payment_method && (
             <button
               onClick={() => setShowCancelModal(true)}
               className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-xl transition-colors border border-red-200"
@@ -278,6 +314,29 @@ export default function SubscriptionSection() {
                 />
               </svg>
               Отменить автопродление подписки
+            </button>
+          )}
+
+          {is_pro && !subscription.has_saved_payment_method && (
+            <button
+              onClick={handleEnableAutoRenewal}
+              disabled={enablingAutoRenew}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-green-50 hover:bg-green-100 disabled:bg-green-50/50 text-green-600 disabled:text-green-600/50 font-medium rounded-xl transition-colors border border-green-200"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              {enablingAutoRenew ? "Загрузка..." : "Включить автопродление"}
             </button>
           )}
 

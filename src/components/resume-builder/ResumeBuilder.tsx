@@ -12,7 +12,8 @@ import {
   clearGuestResume,
 } from "@/lib/resume-storage";
 import { useSubscription } from "@/lib/useSubscription";
-import { FileText, User as UserIcon, Briefcase, GraduationCap, Award, Languages, Sparkles, Menu, Eye, X } from "lucide-react";
+import { FileText, User as UserIcon, Briefcase, GraduationCap, Award, Languages, Sparkles, Menu, Eye, X, Wand2 } from "lucide-react";
+import MainSection from "./sections/MainSection";
 import PersonalInfoSection from "./sections/PersonalInfoSection";
 import ContactsSection from "./sections/ContactsSection";
 import ExperienceSection from "./sections/ExperienceSection";
@@ -41,9 +42,10 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
   const { subscription } = useSubscription();
   const [guestId, setGuestId] = useState<string | null>(null);
   const [resume, setResume] = useState<Resume>(createEmptyResume());
-  const [activeTab, setActiveTab] = useState<TabType>("personal_info");
+  const [activeTab, setActiveTab] = useState<TabType>("main");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [isManualSaving, setIsManualSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showGuestBanner, setShowGuestBanner] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
@@ -51,6 +53,39 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
   const [showPreview, setShowPreview] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const breakpoint = useBreakpoint();
+
+  // Ключи для localStorage
+  const ACTIVE_TAB_STORAGE_KEY = "resume_active_tab";
+  const ACTIVE_TAB_TIMESTAMP_KEY = "resume_active_tab_timestamp";
+  const TAB_STORAGE_TTL = 10 * 60 * 1000; // 10 минут в миллисекундах
+
+  // Восстановление активного раздела из localStorage (если прошло менее 10 минут)
+  useEffect(() => {
+    const savedTab = localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
+    const savedTimestamp = localStorage.getItem(ACTIVE_TAB_TIMESTAMP_KEY);
+
+    if (savedTab && savedTimestamp) {
+      const timestamp = parseInt(savedTimestamp, 10);
+      const now = Date.now();
+      const elapsed = now - timestamp;
+
+      if (elapsed < TAB_STORAGE_TTL) {
+        setActiveTab(savedTab as TabType);
+      } else {
+        // Прошло более 10 минут - очищаем
+        localStorage.removeItem(ACTIVE_TAB_STORAGE_KEY);
+        localStorage.removeItem(ACTIVE_TAB_TIMESTAMP_KEY);
+      }
+    }
+  }, [ACTIVE_TAB_STORAGE_KEY, ACTIVE_TAB_TIMESTAMP_KEY, TAB_STORAGE_TTL]);
+
+  // Сохранение активного раздела в localStorage
+  useEffect(() => {
+    if (!loading) {
+      localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeTab);
+      localStorage.setItem(ACTIVE_TAB_TIMESTAMP_KEY, Date.now().toString());
+    }
+  }, [activeTab, loading]);
 
   // Инициализация guest_id
   useEffect(() => {
@@ -146,10 +181,8 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
     }
   };
 
-  // Сохранение резюме
+  // Сохранение резюме (без визуального индикатора)
   const saveResume = useCallback(async () => {
-    setSaving(true);
-
     const now = new Date().toISOString();
     const resumeToSave = {
       ...resume,
@@ -204,16 +237,23 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
       setResume(resumeToSave);
     } catch (err) {
       console.error("Resume save error:", err);
-    } finally {
-      setSaving(false);
     }
   }, [resume, user]);
 
+  // Ручное сохранение (с индикатором на кнопке)
+  const handleManualSave = useCallback(async () => {
+    setIsManualSaving(true);
+    await saveResume();
+    setIsManualSaving(false);
+  }, [saveResume]);
+
   // Debounced autosave
   useEffect(() => {
-    const timeout = setTimeout(() => {
+    const timeout = setTimeout(async () => {
       if (!loading) {
-        saveResume();
+        setIsAutoSaving(true);
+        await saveResume();
+        setIsAutoSaving(false);
       }
     }, 2000); // Автосохранение через 2 секунды после изменений
 
@@ -274,6 +314,7 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
 
   // Навигация по секциям
   const tabs = [
+    { id: "main" as const, label: "Главная", icon: Wand2 },
     { id: "personal_info" as const, label: "Личные данные", icon: UserIcon },
     { id: "contacts" as const, label: "Контакты", icon: FileText },
     { id: "desired_position" as const, label: "Желаемая позиция", icon: Briefcase },
@@ -321,7 +362,7 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
                   {breakpoint.isMobile ? "Сохранено " : "Сохранено в "}{lastSaved.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
                 </span>
               )}
-              {saving && (
+              {isAutoSaving && (
                 <span className="text-xs sm:text-sm text-orange-500">Сохранение...</span>
               )}
             </div>
@@ -349,11 +390,11 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
             {breakpoint.isMobile ? "Назад" : "Назад"}
           </button>
           <button
-            onClick={saveResume}
-            disabled={saving}
+            onClick={handleManualSave}
+            disabled={isManualSaving}
             className="px-3 sm:px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 font-medium text-sm"
           >
-            {saving ? "..." : "Сохранить"}
+            {isManualSaving ? "..." : "Сохранить"}
           </button>
         </div>
       </header>
@@ -450,9 +491,30 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
               </h2>
 
               {/* Рендер соответствующей секции */}
+              {activeTab === "main" && (
+                <MainSection
+                  userId={user?.id}
+                  onResumeGenerated={(data) => {
+                    if (data.personal_info) updateResume("personal_info", data.personal_info);
+                    if (data.contacts) updateResume("contacts", data.contacts);
+                    if (data.desired_position) updateResume("desired_position", data.desired_position);
+                    if (data.desired_salary) updateResume("desired_salary", data.desired_salary);
+                    if (data.experience) updateResume("experience", data.experience);
+                    if (data.education) updateResume("education", data.education);
+                    if (data.skills) updateResume("skills", data.skills);
+                    if (data.languages) updateResume("languages", data.languages);
+                    if (data.achievements) updateResume("achievements", data.achievements);
+                    if (data.about) updateResume("about", data.about);
+                    if (data.template_id) updateResume("template_id", data.template_id);
+                  }}
+                  currentResume={resume}
+                />
+              )}
+
               {activeTab === "personal_info" && (
                 <PersonalInfoSection
                   data={resume.personal_info}
+                  userId={user?.id}
                   onChange={(field, value) =>
                     updateNestedField("personal_info", field, value)
                   }
@@ -603,6 +665,7 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
 // Добавляем тип SectionType
 declare module "@/types/resume" {
   export type SectionType =
+    | "main"
     | "personal_info"
     | "contacts"
     | "desired_position"

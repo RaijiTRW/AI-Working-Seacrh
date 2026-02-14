@@ -10,18 +10,18 @@ interface Subscription {
   user_id: string;
   purchase_price: number;
   expires_at: string;
-  profiles: {
-    yookassa_payment_method_id: string;
-  };
+}
+
+interface Profile {
+  yookassa_payment_method_id: string;
 }
 
 serve(async (req) => {
   try {
-    // Проверка авторизации (simple secret)
     const authHeader = req.headers.get("authorization");
     const cronSecret = Deno.env.get("CRON_SECRET") || "auto-renew-secret";
 
-    if (authHeader !== `Bearer ${cronSecret}`) {
+    if (authHeader !== "Bearer " + cronSecret) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json" },
@@ -40,156 +40,153 @@ serve(async (req) => {
       SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const today = new Date().toISOString().split("T")[0];
+    const now = new Date();
+    console.log("[Auto-renew] Starting at " + now.toISOString());
 
-    console.log(`[Auto-renew] Starting for date: ${today}`);
+    // Find expired Pro subscriptions from last 12 hours
+    const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString();
 
-    // Находим все Pro подписки, которые истекают сегодня ИЛИ истёкшие (status=expired)
-    // (no) = .or() в Supabase не поддерживается с inner join, используем два запроса
-
-    // Сначала ищем активные подписки, истекающие сегодня
-    const { data: activeExpiring, error: error1 } = await supabase
+    const { data: expiredSubs, error: subsError } = await supabase
       .from("user_subscriptions")
-      .select(`
-        user_id,
-        purchase_price,
-        expires_at,
-        profiles!inner(
-          yookassa_payment_method_id
-        )
-      `)
-      .eq("plan", "pro")
-      .eq("status", "active")
-      .gte("expires_at", `${today}T00:00:00Z`)
-      .lt("expires_at", `${today}T23:59:59Z`);
-
-    // Затем ищем истёкшие подписки сегодня (статус expired)
-    const { data: expiredToday, error: error2 } = await supabase
-      .from("user_subscriptions")
-      .select(`
-        user_id,
-        purchase_price,
-        expires_at,
-        profiles!inner(
-          yookassa_payment_method_id
-        )
-      `)
+      .select("user_id, purchase_price, expires_at")
       .eq("plan", "pro")
       .eq("status", "expired")
-      .gte("expires_at", `${today}T00:00:00Z`)
-      .lt("expires_at", `${today}T23:59:59Z`);
+      .gte("expires_at", twelveHoursAgo)
+      .order("expires_at", { ascending: true });
 
-    if (error1 || error2) {
-      console.error("[Auto-renew] Database error:", error1 || error2);
+    if (subsError) {
+      console.error("[Auto-renew] DB error:", subsError);
       return new Response(JSON.stringify({ error: "Database error" }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Объединяем результаты
-    const expiringSubscriptions = [...(activeExpiring || []), ...(expiredToday || [])];
-
-    if (error) {
-      console.error("[Auto-renew] Database error:", error);
-      return new Response(JSON.stringify({ error: "Database error" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    if (!expiringSubscriptions || expiringSubscriptions.length === 0) {
-      console.log("[Auto-renew] No expiring subscriptions found");
+    if (!expiredSubs || expiredSubs.length === 0) {
+      console.log("[Auto-renew] No expired subs found");
       return new Response(JSON.stringify({
         success: true,
         processed: 0,
-        message: "No expiring subscriptions"
+        message: "No expired subscriptions"
       }), {
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    console.log(`[Auto-renew] Found ${expiringSubscriptions.length} expiring subscriptions`);
+    console.log("[Auto-renew] Found " + expiredSubs.length + " expired subscriptions");
 
     let processed = 0;
     let succeeded = 0;
     let failed = 0;
-    const results: Array<{ user_id: string; success: boolean; error?: string }> = [];
+    let downgraded = 0;
+    const results: any[] = [];
 
-    // Обрабатываем каждую подписку
-    for (const sub of expiringSubscriptions as unknown as Subscription[]) {
+    for (const sub of expiredSubs as Subscription[]) {
       processed++;
       const userId = sub.user_id;
-      const paymentMethodId = sub.profiles?.yookassa_payment_method_id;
       const purchasePrice = sub.purchase_price || 499;
+      const expiresAt = new Date(sub.expires_at);
+      const hoursSinceExpiry = (now.getTime() - expiresAt.getTime()) / (1000 * 60 * 60);
 
-      console.log(`[Auto-renew] Processing user: ${userId}, payment_method: ${paymentMethodId}, price: ${purchasePrice}`);
+      // Get or create renewal attempt record
+      const { data: existingAttempt } = await supabase
+        .from("renewal_attempts")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
 
-      // Пропускаем если нет сохранённого платёжного метода
-      if (!paymentMethodId) {
-        console.log(`[Auto-renew] Skipping ${userId} - no saved payment method`);
-        failed++;
-        results.push({ user_id: userId, success: false, error: "No payment method" });
+      const retryCount = existingAttempt?.retry_count || 0;
+
+      console.log("[Auto-renew] User: " + userId + ", expired: " + hoursSinceExpiry.toFixed(1) + "h ago, retries: " + retryCount);
+
+      // Skip if less than 6 hours since expiry
+      if (hoursSinceExpiry < 6) {
+        console.log("[Auto-renew] Skipping " + userId + " - too soon");
         continue;
       }
 
-      // Проверяем не списывали ли уже сегодня для этого юзера
-      const { data: todayPayment } = await supabase
+      // After 2 failed attempts or 12 hours - downgrade to base
+      if (retryCount >= 2 || hoursSinceExpiry >= 12) {
+        console.log("[Auto-renew] Downgrading " + userId + " - max retries or 12h passed");
+        await downgradeToBase(supabase, userId);
+        downgraded++;
+        results.push({ user_id: userId, success: false, action: "downgraded" });
+        continue;
+      }
+
+      // Get payment method from profiles
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("yookassa_payment_method_id")
+        .eq("user_id", userId)
+        .single();
+
+      const paymentMethodId = (profile as unknown as Profile)?.yookassa_payment_method_id;
+
+      if (!paymentMethodId) {
+        console.log("[Auto-renew] Skipping " + userId + " - no payment method, will downgrade");
+        await downgradeToBase(supabase, userId);
+        downgraded++;
+        results.push({ user_id: userId, success: false, action: "downgraded", error: "No payment method" });
+        continue;
+      }
+
+      // Check if payment succeeded in last 6 hours
+      const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString();
+      const { data: recentPayment } = await supabase
         .from("payment_history")
-        .select("status")
+        .select("status, created_at")
         .eq("user_id", userId)
         .eq("type", "subscription")
-        .eq("status", "succeeded")
-        .gte("created_at", `${today}T00:00:00Z`)
-        .lte("created_at", `${today}T23:59:59Z`)
+        .gte("created_at", sixHoursAgo)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
-      if (todayPayment) {
-        console.log(`[Auto-renew] Skipping ${userId} - already charged today`);
-        failed++;
-        results.push({ user_id: userId, success: false, error: "Already charged today" });
+      if (recentPayment?.status === "succeeded") {
+        console.log("[Auto-renew] Skipping " + userId + " - recent success found");
         continue;
       }
 
       try {
-        // Создаём платёж в YooKassa с сохранённым payment_method
-        const idempotenceKey = `auto-renew-${userId}-${Date.now()}`;
-        const authHeader = "Basic " + btoa(`${YOOKASSA_SHOP_ID}:${YOOKASSA_SECRET_KEY}`);
+        const idempotenceKey = "auto-renew-" + userId + "-" + Date.now();
+        const authHeaderVal = "Basic " + btoa(YOOKASSA_SHOP_ID + ":" + YOOKASSA_SECRET_KEY);
 
         const paymentResponse = await fetch("https://api.yookassa.ru/v3/payments", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "Idempotence-Key": idempotenceKey,
-            "Authorization": authHeader,
+            "Authorization": authHeaderVal,
           },
           body: JSON.stringify({
             amount: {
-              value: `${purchasePrice}.00`,
+              value: purchasePrice + ".00",
               currency: "RUB"
             },
             capture: true,
             payment_method_id: paymentMethodId,
-            description: `Job AI Search — Автопродление Pro подписки`,
+            description: "Job AI Search - Auto-renewal Pro subscription (attempt " + (retryCount + 1) + ")",
             metadata: {
               user_id: userId,
               type: "subscription",
               auto_renewal: true,
+              retry_attempt: retryCount + 1,
             },
           }),
         });
 
         if (!paymentResponse.ok) {
           const errorText = await paymentResponse.text();
-          console.error(`[Auto-renew] YooKassa error for ${userId}:`, errorText);
+          console.error("[Auto-renew] YooKassa error for " + userId + ":", errorText);
+          await incrementRetries(supabase, userId, retryCount + 1);
           failed++;
-          results.push({ user_id: userId, success: false, error: "YooKassa error" });
+          results.push({ user_id: userId, success: false, action: "payment_failed" });
           continue;
         }
 
         const payment = await paymentResponse.json();
 
-        // Сохраняем информацию о платеже
         await supabase.from("payment_history").insert({
           user_id: userId,
           yookassa_payment_id: payment.id,
@@ -199,63 +196,58 @@ serve(async (req) => {
           type: "subscription",
           status: payment.status === "succeeded" ? "succeeded" : "pending",
           metadata: {
-            description: "Автопродление подписки",
+            description: "Auto-renewal subscription",
+            retry_attempt: retryCount + 1,
             created_at: new Date().toISOString(),
             auto_renewal: true,
           },
         });
 
         if (payment.status === "succeeded") {
-          // Продлеваем подписку
-          const expiresAt = new Date();
-          expiresAt.setMonth(expiresAt.getMonth() + 1);
+          const newExpiresAt = new Date();
+          newExpiresAt.setMonth(newExpiresAt.getMonth() + 1);
 
           await supabase
             .from("user_subscriptions")
             .update({
-              status: "active",  // Важно: меняем expired на active!
+              status: "active",
               can_search_online: true,
-              expires_at: expiresAt.toISOString(),
+              expires_at: newExpiresAt.toISOString(),
               updated_at: new Date().toISOString(),
             })
             .eq("user_id", userId);
 
-          // Также обновляем в profiles
-          await supabase
-            .from("profiles")
-            .update({
-              subscription_type: "pro",
-              subscription_expires_at: expiresAt.toISOString(),
-            })
-            .eq("user_id", userId);
+          await supabase.from("renewal_attempts").delete().eq("user_id", userId);
 
-          console.log(`[Auto-renew] SUCCESS for user: ${userId}`);
+          console.log("[Auto-renew] SUCCESS for user: " + userId);
           succeeded++;
-          results.push({ user_id: userId, success: true });
+          results.push({ user_id: userId, success: true, action: "renewed" });
         } else if (payment.status === "pending") {
-          // Ожидаем подтверждения (webhook обработает позже)
-          console.log(`[Auto-renew] PENDING for user: ${userId}`);
+          console.log("[Auto-renew] PENDING for user: " + userId);
           succeeded++;
-          results.push({ user_id: userId, success: true });
+          results.push({ user_id: userId, success: true, action: "pending" });
         } else {
-          console.error(`[Auto-renew] FAILED for user: ${userId}, status: ${payment.status}`);
+          console.error("[Auto-renew] FAILED for user: " + userId + ", status: " + payment.status);
+          await incrementRetries(supabase, userId, retryCount + 1);
           failed++;
-          results.push({ user_id: userId, success: false, error: `Payment ${payment.status}` });
+          results.push({ user_id: userId, success: false, action: "payment_failed", error: "Payment " + payment.status });
         }
       } catch (err) {
-        console.error(`[Auto-renew] Exception for user ${userId}:`, err);
+        console.error("[Auto-renew] Exception for user " + userId + ":", err);
+        await incrementRetries(supabase, userId, retryCount + 1);
         failed++;
-        results.push({ user_id: userId, success: false, error: "Exception" });
+        results.push({ user_id: userId, success: false, action: "exception", error: "Exception" });
       }
     }
 
-    console.log(`[Auto-renew] Completed: processed=${processed}, succeeded=${succeeded}, failed=${failed}`);
+    console.log("[Auto-renew] Completed: processed=" + processed + ", succeeded=" + succeeded + ", failed=" + failed + ", downgraded=" + downgraded);
 
     return new Response(JSON.stringify({
       success: true,
       processed,
       succeeded,
       failed,
+      downgraded,
       results,
     }), {
       headers: { "Content-Type": "application/json" },
@@ -268,3 +260,37 @@ serve(async (req) => {
     });
   }
 });
+
+async function downgradeToBase(supabase: any, userId: string) {
+  await supabase
+    .from("user_subscriptions")
+    .update({
+      plan: "base",
+      status: "active",
+      expires_at: "2099-12-31T00:00:00Z",
+      can_search_online: false,
+      previous_plan: "pro",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
+
+  await supabase
+    .from("user_request_limits")
+    .update({
+      daily_limit: 3,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
+
+  await supabase.from("renewal_attempts").delete().eq("user_id", userId);
+}
+
+async function incrementRetries(supabase: any, userId: string, newCount: number) {
+  await supabase.from("renewal_attempts").upsert({
+    user_id: userId,
+    retry_count: newCount,
+    last_attempt_at: new Date().toISOString(),
+  }, {
+    onConflict: "user_id",
+  });
+}
