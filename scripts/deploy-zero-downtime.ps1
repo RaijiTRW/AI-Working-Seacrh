@@ -4,7 +4,8 @@
 param(
     [string]$AppDir = "C:\AI-Working-Seacrh",
     [string]$NssmPath = "C:\nssm-2.24\win64\nssm.exe",
-    [string]$ActiveFile = "$AppDir\active-instance.txt"
+    [string]$ActiveFile = "$AppDir\active-instance.txt",
+    [string]$Domain = "jobaisearch.ru"
 )
 
 Set-Location $AppDir
@@ -36,8 +37,8 @@ if ($currentActive -eq "1") {
     $newActive = "1"
     $stopService = "jobai-frontend-2"
     $startService = "jobai-frontend-1"
-    $buildPort = "3001"
-    $activePort = "3000"
+    $buildPort = "3000"
+    $activePort = "3001"
     $activeService = "jobai-frontend-2"
 }
 
@@ -108,14 +109,14 @@ Write-Host "[4/7] Starting standby instance $newActive..." -ForegroundColor Cyan
 Get-NetTCPConnection -LocalPort $buildPort -ErrorAction SilentlyContinue | ForEach-Object {
     $proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
     if ($proc) {
-        Write-Host "  Killing process $_.OwningProcess on port $buildPort"
+        Write-Host "  Killing process $($_.OwningProcess) on port $buildPort"
         Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue
     }
 }
 Start-Sleep -Seconds 2
 
 # Start standby service
-& $NssmPath start $startService 2>&1 | Out-Null
+& $NssmPath start $startService 2>&1 | Out-Host
 Start-Sleep -Seconds 10
 
 # Check standby instance health
