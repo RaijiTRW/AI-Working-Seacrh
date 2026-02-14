@@ -34,111 +34,7 @@ export default function Pricing() {
           Начни с Pro Trial, затем выбери удобный план
         </p>
 
-        <div className="grid md:grid-cols-3 gap-6">
-          {/* Pro Trial */}
-          <div className="p-6 md:p-8 rounded-2xl bg-gradient-to-br from-purple-600 to-purple-700 text-white relative overflow-hidden">
-            {/* New user badge */}
-            <div className="absolute top-4 right-4">
-              <span className="inline-block px-3 py-1 text-xs font-medium bg-white/20 rounded-full">
-                При регистрации
-              </span>
-            </div>
-
-            <div className="mb-6">
-              <span className="inline-block px-3 py-1 text-sm font-medium bg-white/20 rounded-full mb-3">
-                Пробный
-              </span>
-              <h3 className="text-xl md:text-2xl font-bold">Pro Trial</h3>
-            </div>
-
-            <div className="flex items-baseline gap-1 mb-6">
-              <span className="text-3xl md:text-4xl font-bold">0 ₽</span>
-              <span className="text-white/70">/ 3 дня</span>
-            </div>
-
-            <ul className="space-y-3 mb-6">
-              <li className="flex items-center gap-3">
-                <svg
-                  className="w-5 h-5 text-green-300 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <span className="text-sm md:text-base">
-                  <strong>15 AI-запросов</strong> каждый день
-                </span>
-              </li>
-              <li className="flex items-center gap-3">
-                <svg
-                  className="w-5 h-5 text-green-300 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <span className="text-sm md:text-base">Поиск в ленте + в сети</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <svg
-                  className="w-5 h-5 text-green-300 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-                <span className="text-sm md:text-base">Без привязки карты</span>
-              </li>
-            </ul>
-
-            <Link
-              href="/auth"
-              className="block w-full py-3 px-4 bg-white hover:bg-gray-100 text-purple-600 font-medium rounded-xl text-center transition-colors text-sm md:text-base"
-            >
-              Начать бесплатно
-            </Link>
-
-            {/* Микрокопирайтинг снижения риска */}
-            <div className="mt-4 flex flex-col gap-1.5 text-xs text-white/80">
-              <div className="flex items-center gap-2">
-                <svg className="w-3.5 h-3.5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Без привязки карты</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <svg className="w-3.5 h-3.5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Отменить можно в любой момент</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <svg className="w-3.5 h-3.5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Регистрация за 30 секунд</span>
-              </div>
-            </div>
-          </div>
-
+        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {/* Base */}
           <div className="p-6 md:p-8 rounded-2xl bg-gray-50 border border-gray-200">
             <div className="mb-6">
@@ -207,17 +103,17 @@ export default function Pricing() {
             </ul>
 
             <div className="block w-full py-3 px-4 bg-gray-200 text-gray-500 font-medium rounded-xl text-center text-sm md:text-base">
-              Автоматически после Pro Trial
+              Базовый план
             </div>
           </div>
 
-          {/* Pro */}
+          {/* Pro + Trial */}
           <div className="p-6 md:p-8 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 text-white relative overflow-hidden">
             {/* Discount badge */}
             <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
               {hasDiscount && (
                 <span className="inline-block px-3 py-1 text-xs font-bold bg-green-500 text-white rounded-full animate-pulse">
-                  -{discount.percent}% на 1-ю покупку
+                  -{discount.percent}%
                 </span>
               )}
               <span className="inline-block px-3 py-1 text-xs font-medium bg-white/20 rounded-full">
@@ -229,9 +125,26 @@ export default function Pricing() {
               <span className="inline-block px-3 py-1 text-sm font-medium bg-white/20 rounded-full mb-3">
                 Pro
               </span>
-              <h3 className="text-xl md:text-2xl font-bold">Pro подписка</h3>
+              <h3 className="text-xl md:text-2xl font-bold">Pro</h3>
             </div>
 
+            {/* Trial option - сверху как акцент */}
+            <div className="mb-6 p-4 rounded-xl bg-white/10 border border-white/20">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 rounded-full bg-green-400/20 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <span className="font-semibold">3 дня бесплатно</span>
+                  <span className="text-white/60 text-sm ml-2">без привязки карты</span>
+                </div>
+              </div>
+              <p className="text-xs text-white/70">Попробуй все возможности Pro перед покупкой</p>
+            </div>
+
+            {/* Price */}
             <div className="mb-6">
               {hasDiscount ? (
                 <div className="space-y-1">
@@ -332,8 +245,24 @@ export default function Pricing() {
               href="/auth"
               className="block w-full py-3 px-4 bg-white hover:bg-gray-100 text-blue-600 font-medium rounded-xl text-center transition-colors text-sm md:text-base"
             >
-              {hasDiscount ? `Оформить за ${discountedPrice} ₽` : "Оформить подписку"}
+              {hasDiscount ? `Начать за ${discountedPrice} ₽` : "Начать бесплатно"}
             </Link>
+
+            {/* Trust signals */}
+            <div className="mt-4 flex flex-col gap-1.5 text-xs text-white/70">
+              <div className="flex items-center gap-2">
+                <svg className="w-3.5 h-3.5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Без привязки карты на trial</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg className="w-3.5 h-3.5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Отмена в любой момент</span>
+              </div>
+            </div>
           </div>
         </div>
 

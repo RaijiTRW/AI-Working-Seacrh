@@ -1,12 +1,58 @@
 "use client";
 
 import { Resume } from "@/types/resume";
+import { useState, useEffect, useRef } from "react";
+import { Loader2 } from "lucide-react";
+
+// Photo loading state component
 
 interface CreativeTemplateProps {
   resume: Resume;
 }
 
 export function CreativeTemplate({ resume }: CreativeTemplateProps) {
+  const [imageLoading, setImageLoading] = useState(false);
+  const lastPhotoUrl = useRef<string | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [photoTimestamp, setPhotoTimestamp] = useState(0);
+
+  // Добавляем timestamp к URL чтобы избежать кеширования
+  const photoUrlWithTimestamp = resume.personal_info.photo_url
+    ? `${resume.personal_info.photo_url}${resume.personal_info.photo_url.includes('?') ? '&' : '?'}t=${photoTimestamp}`
+    : null;
+
+  // Показываем лоадер только при изменении URL фото
+  useEffect(() => {
+    const currentUrl = resume.personal_info.photo_url;
+
+    if (currentUrl && currentUrl !== lastPhotoUrl.current) {
+      setImageLoading(true);
+      lastPhotoUrl.current = currentUrl;
+      setPhotoTimestamp(Date.now()); // Обновляем timestamp для новой фотки
+
+      // Проверяем, загружено ли уже (из кеша)
+      const checkLoaded = () => {
+        if (imgRef.current?.complete) {
+          setImageLoading(false);
+        }
+      };
+
+      // Проверяем в следующем фрейме
+      requestAnimationFrame(checkLoaded);
+      setTimeout(checkLoaded, 100);
+
+      // Fallback: скрываем лоадер через 5 секунд
+      const fallback = setTimeout(() => {
+        setImageLoading(false);
+      }, 5000);
+
+      return () => {
+        clearTimeout(fallback);
+      };
+    } else if (!currentUrl) {
+      setImageLoading(false);
+    }
+  }, [resume.personal_info.photo_url]);
   const formatDate = (date: string) => {
     if (!date) return "";
     const [year, month] = date.split("-");
@@ -24,14 +70,25 @@ export function CreativeTemplate({ resume }: CreativeTemplateProps) {
         <div className="flex gap-6">
           {/* Photo */}
           {resume.personal_info.photo_url && (
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 relative">
               <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg" style={{ border: '3px solid rgba(255,255,255,0.3)' }}>
-                <img
-                  src={resume.personal_info.photo_url}
-                  alt="Photo"
-                  className="w-full h-full object-cover"
-                />
+                {photoUrlWithTimestamp && (
+                  <img
+                    ref={imgRef}
+                    src={photoUrlWithTimestamp}
+                    alt="Photo"
+                    className="w-full h-full object-cover"
+                    onLoad={() => setImageLoading(false)}
+                    onError={() => setImageLoading(false)}
+                  />
+                )}
               </div>
+              {/* Loading overlay */}
+              {imageLoading && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-purple-600/50" style={{ width: '96px', height: '96px', marginLeft: '0' }}>
+                  <Loader2 className="w-8 h-8 text-white animate-spin" />
+                </div>
+              )}
             </div>
           )}
 

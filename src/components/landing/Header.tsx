@@ -80,6 +80,16 @@ export default function Header() {
           >
             AI-поиск
           </a>
+          <a
+            href="/contact"
+            className={`text-sm font-medium transition-colors ${
+              pathname === "/contact"
+                ? "text-orange-600"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Контакты
+          </a>
           {isAdmin ? (
             <a
               href="/employers"
@@ -194,6 +204,16 @@ export default function Header() {
               }`}
             >
               AI-поиск
+            </a>
+            <a
+              href="/contact"
+              className={`px-4 py-3 min-h-12 rounded-lg text-sm font-medium transition-colors flex items-center ${
+                pathname === "/contact"
+                  ? "bg-orange-50 text-orange-600"
+                  : "text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              Контакты
             </a>
             {isAdmin ? (
               <a

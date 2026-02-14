@@ -10,14 +10,18 @@ CREATE EXTENSION IF NOT EXISTS pg_cron;
 -- Вызывает Supabase Edge Function через HTTP
 
 -- Сначала удалим если уже существует
+SELECT cron.unschedule('auto-renew-subscriptions');
+
+-- Добавляем cron job для автоматического продления
+-- Запускается каждый день в 00:00
 SELECT cron.schedule(
   'auto-renew-subscriptions',
-  '* * * * *', -- каждую минуту (для тестирования, измени на '*/5 * * * *' для продакшена)
+  '0 0 * * *', -- каждый день в полночь
   $$
   SELECT
     net.http_post(
-      url := 'https://YOUR_PROJECT.supabase.co/functions/v1/auto-renew-subscriptions',
-      headers := '{"Content-Type": "application/json", "Authorization": "Bearer YOUR_CRON_SECRET"}'::jsonb,
+      url := 'https://pakzojxyudiiztniqayd.supabase.co/functions/v1/auto-renew-subscriptions',
+      headers := '{"Content-Type": "application/json", "Authorization": "Bearer jobseacrhsecretkey123"}'::jsonb,
       timeout_milliseconds := 30000
     );
   $$

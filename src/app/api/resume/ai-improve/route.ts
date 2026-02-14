@@ -139,13 +139,46 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Проверка доступа к AI
-    const hasAccess = await checkAIAccess(user_id);
-    if (!hasAccess) {
-      return NextResponse.json(
-        { detail: "AI функции доступны только на Pro подписке" },
-        { status: 403 }
-      );
+    // Проверка доступа к AI (с лимитом 5 для бесплатных пользователей)
+    const supabase = await createServerClient();
+
+    // Check if user has Pro subscription
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("plan, is_pro_trial, pro_trial_until")
+      .eq("id", user_id)
+      .single();
+
+    const isPro = profile?.plan === "pro";
+    const isProTrial = profile?.is_pro_trial &&
+      profile?.pro_trial_until &&
+      new Date(profile.pro_trial_until) > new Date();
+    const hasUnlimitedAccess = isPro || isProTrial;
+
+    // Only check limit for free users
+    if (!hasUnlimitedAccess) {
+      const { data: logs, error: countError } = await supabase
+        .from("ai_usage_logs")
+        .select("id")
+        .eq("user_id", user_id);
+
+      if (countError) {
+        console.error("Count error:", countError);
+        return NextResponse.json(
+          { detail: "Ошибка при проверке лимита" },
+          { status: 500 }
+        );
+      }
+
+      const usedCount = logs?.length || 0;
+      const MAX_AI_REQUESTS = 5;
+
+      if (usedCount >= MAX_AI_REQUESTS) {
+        return NextResponse.json(
+          { detail: `Исчерпан лимит AI запросов (максимум ${MAX_AI_REQUESTS}). Оформите Pro подписку для безлимитного доступа.` },
+          { status: 429 }
+        );
+      }
     }
 
     // Проверка API ключа
@@ -220,7 +253,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Логирование использования
-    const supabase = await createServerClient();
     // Логирование в фоне, без ожидания завершения
     supabase.from("ai_usage_logs").insert({
       user_id,
@@ -233,8 +265,16 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error("AI improve error:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
     return NextResponse.json(
-      { detail: "Внутренняя ошибка сервера" },
+      {
+        detail: "Внутренняя ошибка сервера",
+        error: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

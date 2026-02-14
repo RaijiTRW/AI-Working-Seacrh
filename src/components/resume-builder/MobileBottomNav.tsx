@@ -1,9 +1,9 @@
 "use client";
 
-import { User as UserIcon, FileText, Briefcase, GraduationCap, Sparkles, MoreVertical } from "lucide-react";
+import { User as UserIcon, FileText, Briefcase, GraduationCap, Sparkles, MoreVertical, Wand2 } from "lucide-react";
 import { useState } from "react";
 
-type TabType = "personal_info" | "contacts" | "desired_position" | "experience" | "education" | "skills" | "languages" | "achievements" | "about" | "templates";
+type TabType = "main" | "personal_info" | "contacts" | "desired_position" | "experience" | "education" | "skills" | "languages" | "achievements" | "about" | "templates";
 
 interface MobileBottomNavProps {
   activeTab: TabType;
@@ -11,6 +11,7 @@ interface MobileBottomNavProps {
 }
 
 const mainTabs = [
+  { id: "main" as const, label: "Главная", icon: Wand2 },
   { id: "personal_info" as const, label: "Личные", icon: UserIcon },
   { id: "contacts" as const, label: "Контакты", icon: FileText },
   { id: "desired_position" as const, label: "Позиция", icon: Briefcase },

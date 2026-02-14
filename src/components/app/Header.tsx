@@ -69,8 +69,8 @@ export default function AppHeader({ showRequestCounter = false, hideOnMobile = f
     return "text-gray-600 hover:text-gray-900";
   };
 
-  // Показываем раздел "Работодателем" только на лендинге (путь начинается с /)
-  const isLandingPage = pathname === "/" || pathname?.startsWith("/?");
+  // Показываем раздел "Работодателем" на лендинге и странице контактов
+  const isLandingPage = pathname === "/" || pathname === "/contact" || pathname?.startsWith("/?");
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100 ${hideOnMobile ? "hidden lg:block" : ""}`}>
@@ -100,26 +100,34 @@ export default function AppHeader({ showRequestCounter = false, hideOnMobile = f
             Резюме
           </Link>
           {isLandingPage && (
-            isAdmin ? (
+            <>
               <Link
-                href="/employers"
-                className={`text-sm font-medium transition-colors ${isActive("/employers") ? "text-blue-600" : "text-gray-600 hover:text-gray-900"}`}
+                href="/contact"
+                className={`text-sm font-medium transition-colors ${getActiveClass("/contact")}`}
               >
-                Работодателям
+                Контакты
               </Link>
-            ) : (
-              <div className="relative inline-block">
-                <span
-                  className="text-sm font-medium text-gray-400 cursor-not-allowed"
-                  title="Функционал работодателей скоро будет доступен"
+              {isAdmin ? (
+                <Link
+                  href="/employers"
+                  className={`text-sm font-medium transition-colors ${isActive("/employers") ? "text-blue-600" : "text-gray-600 hover:text-gray-900"}`}
                 >
                   Работодателям
-                </span>
-                <span className="absolute -top-2 -right-8 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded">
-                  Скоро
-                </span>
-              </div>
-            )
+                </Link>
+              ) : (
+                <div className="relative inline-block">
+                  <span
+                    className="text-sm font-medium text-gray-400 cursor-not-allowed"
+                    title="Функционал работодателей скоро будет доступен"
+                  >
+                    Работодателям
+                  </span>
+                  <span className="absolute -top-2 -right-8 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded">
+                    Скоро
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </nav>
 
@@ -226,27 +234,39 @@ export default function AppHeader({ showRequestCounter = false, hideOnMobile = f
               Конструктор резюме
             </Link>
             {isLandingPage && (
-              isAdmin ? (
+              <>
                 <Link
-                  href="/employers"
+                  href="/contact"
                   className={`px-4 py-3 min-h-12 rounded-lg text-sm font-medium transition-colors flex items-center ${
-                    isActive("/employers")
-                      ? "bg-blue-50 text-blue-600"
+                    isActive("/contact")
+                      ? "bg-orange-50 text-orange-600"
                       : "text-gray-600 hover:bg-gray-50"
                   }`}
                 >
-                  Работодателям
+                  Контакты
                 </Link>
-              ) : (
-                <div className="relative px-4 py-3 min-h-12 rounded-lg flex items-center">
-                  <span className="text-sm font-medium text-gray-400 cursor-not-allowed">
+                {isAdmin ? (
+                  <Link
+                    href="/employers"
+                    className={`px-4 py-3 min-h-12 rounded-lg text-sm font-medium transition-colors flex items-center ${
+                      isActive("/employers")
+                        ? "bg-blue-50 text-blue-600"
+                        : "text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
                     Работодателям
-                  </span>
-                  <span className="ml-2 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded">
-                    Скоро
-                  </span>
-                </div>
-              )
+                  </Link>
+                ) : (
+                  <div className="relative px-4 py-3 min-h-12 rounded-lg flex items-center">
+                    <span className="text-sm font-medium text-gray-400 cursor-not-allowed">
+                      Работодателям
+                    </span>
+                    <span className="ml-2 px-1.5 py-0.5 bg-orange-500 text-white text-[10px] font-bold rounded">
+                      Скоро
+                    </span>
+                  </div>
+                )}
+              </>
             )}
             {user && (
               <>
