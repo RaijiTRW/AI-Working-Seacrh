@@ -39,12 +39,15 @@ Write-Host "Pulling from origin..."
 $newVersion = & git rev-parse --short HEAD
 Write-Host "Deploying version: $newVersion"
 
-# Step 2: Kill running Node.js process
+# Step 2: Stop service
 Write-Host ""
-Write-Host "[2/6] Stopping current instance..." -ForegroundColor Cyan
+Write-Host "[2/6] Stopping service..." -ForegroundColor Cyan
 
-Get-Process -Name "node" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-Start-Sleep -Seconds 3
+$NssmPath = "C:\nssm-2.24\win64\nssm.exe"
+$ServiceName = "jobai-frontend-1"
+
+& $NssmPath stop $ServiceName 2>&1 | Out-Null
+Start-Sleep -Seconds 5
 
 # Double check and kill any process on port 3000
 Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | ForEach-Object {
@@ -97,26 +100,11 @@ if (Test-Path $buildIdPath) {
     $newBuildId = "unknown"
 }
 
-# Step 5: Start Next.js
+# Step 5: Start service
 Write-Host ""
-Write-Host "[5/6] Starting Next.js..." -ForegroundColor Cyan
+Write-Host "[5/6] Starting service..." -ForegroundColor Cyan
 
-# Create logs directory
-if (-not (Test-Path "$AppDir\logs")) {
-    New-Item -ItemType Directory -Path "$AppDir\logs" -Force | Out-Null
-}
-
-# Set environment variables
-$env:NODE_ENV = "production"
-$env:PORT = "3000"
-
-# Start Next.js in background
-$nodeExe = "C:\Program Files\nodejs\node.exe"
-$nextStart = "$AppDir\node_modules\next\bin\next start"
-
-$process = Start-Process -FilePath $nodeExe -ArgumentList $nextStart -WorkingDirectory $AppDir -WindowStyle Hidden -PassThru
-
-Write-Host "  Started with PID: $($process.Id)"
+& $NssmPath start $ServiceName 2>&1 | Out-Null
 Start-Sleep -Seconds 10
 
 # Step 6: Health check
@@ -141,7 +129,7 @@ for ($i = 1; $i -le 30; $i++) {
 
 if (-not $healthy) {
     Write-Host "ERROR: Instance failed health check!" -ForegroundColor Red
-    Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+    & $NssmPath stop $ServiceName 2>&1 | Out-Null
     exit 1
 }
 
