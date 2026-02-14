@@ -1,11 +1,10 @@
 # Zero-Downtime Deploy Script for JobAI Search
-# Swaps between two instances without downtime
+# Fixed: Restart service to ensure new .next is used
 
 param(
     [string]$AppDir = "C:\AI-Working-Seacrh",
     [string]$NssmPath = "C:\nssm-2.24\win64\nssm.exe",
-    [string]$ActiveFile = "$AppDir\active-instance.txt",
-    [string]$Domain = "jobaisearch.ru"
+    [string]$ActiveFile = "$AppDir\active-instance.txt"
 )
 
 Set-Location $AppDir
@@ -47,7 +46,7 @@ Write-Host "Deploying to:   Instance $newActive (port $buildPort)"
 Write-Host ""
 
 # Step 1: Pull latest code
-Write-Host "[1/7] Pulling latest code..." -ForegroundColor Cyan
+Write-Host "[1/8] Pulling latest code..." -ForegroundColor Cyan
 $gitToken = $env:GH_DEPLOY_TOKEN
 if (-not $gitToken) {
     Write-Host "ERROR: GH_DEPLOY_TOKEN not set!" -ForegroundColor Red
@@ -72,40 +71,35 @@ try {
 $newVersion = git rev-parse --short HEAD
 Write-Host "New version: $newVersion"
 
-# Step 2: Install dependencies
+# Step 2: Build on deploy port
 Write-Host ""
-Write-Host "[2/7] Installing dependencies..." -ForegroundColor Cyan
+Write-Host "[2/8] Building on port $buildPort..." -ForegroundColor Cyan
 
 if (Test-Path "node_modules") {
     Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
 }
 
+$env:PORT = $buildPort
 & npm ci 2>&1 | Out-Host
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: npm ci failed!" -ForegroundColor Red
     exit 1
 }
 
-# Step 3: Build
-Write-Host ""
-Write-Host "[3/7] Building..." -ForegroundColor Cyan
-
 if (Test-Path ".next") {
     Remove-Item -Recurse -Force ".next" -ErrorAction SilentlyContinue
 }
 
-$env:PORT = $buildPort
 & npm run build 2>&1 | Out-Host
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: Build failed!" -ForegroundColor Red
     exit 1
 }
 
-# Step 4: Start standby instance
+# Step 3: Kill processes on deploy port
 Write-Host ""
-Write-Host "[4/7] Starting standby instance $newActive..." -ForegroundColor Cyan
+Write-Host "[3/8] Cleaning up deploy port..." -ForegroundColor Cyan
 
-# Kill any process on build port
 Get-NetTCPConnection -LocalPort $buildPort -ErrorAction SilentlyContinue | ForEach-Object {
     $proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
     if ($proc) {
@@ -115,13 +109,16 @@ Get-NetTCPConnection -LocalPort $buildPort -ErrorAction SilentlyContinue | ForEa
 }
 Start-Sleep -Seconds 2
 
-# Start standby service
-& $NssmPath start $startService 2>&1 | Out-Host
+# Step 4: Start standby instance
+Write-Host ""
+Write-Host "[4/8] Starting standby instance $newActive..." -ForegroundColor Cyan
+
+& $NssmPath start $startService 2>&1 | Out-Null
 Start-Sleep -Seconds 10
 
 # Check standby instance health
 Write-Host ""
-Write-Host "[5/7] Checking standby instance health..." -ForegroundColor Cyan
+Write-Host "[5/8] Checking standby instance health..." -ForegroundColor Cyan
 $standbyHealthy = $false
 for ($i = 1; $i -le 15; $i++) {
     try {
@@ -143,9 +140,9 @@ if (-not $standbyHealthy) {
     exit 1
 }
 
-# Step 6: Update Caddy to point to new instance
+# Step 5: Update Caddy to point to new instance
 Write-Host ""
-Write-Host "[6/7] Updating Caddy configuration..." -ForegroundColor Cyan
+Write-Host "[6/8] Updating Caddy configuration..." -ForegroundColor Cyan
 
 $caddyConfig = @"
 # Caddyfile for JobAI Search - Instance $newActive active
@@ -162,11 +159,6 @@ $Domain {
         Strict-Transport-Security "max-age=31536000; includeSubDomains"
         X-Frame-Options "SAMEORIGIN"
         X-Content-Type-Options "nosniff"
-        X-XSS-Protection "1; mode=block"
-    }
-
-    log {
-        output file C:\caddy\access.log
     }
 }
 
@@ -180,11 +172,47 @@ Set-Content -Path "C:\caddy\Caddyfile" -Value $caddyConfig -Encoding UTF8
 # Reload Caddy
 Write-Host "  Reloading Caddy..."
 caddy reload --config C:\caddy\Caddyfile 2>&1 | Out-Host
-Start-Sleep -Seconds 5
+Start-Sleep -Seconds 3
+
+# Step 6: Restart active service to pick up new .next
+Write-Host ""
+Write-Host "[7/8] Restarting active instance to load new build..." -ForegroundColor Cyan
+
+# Stop active service
+& $NssmPath stop $activeService 2>&1 | Out-Null
+Start-Sleep -Seconds 3
+
+# Start active service
+& $NssmPath start $activeService 2>&1 | Out-Null
+Start-Sleep -Seconds 10
+
+# Check active instance health
+Write-Host ""
+Write-Host "[8/8] Checking active instance health..." -ForegroundColor Cyan
+$activeHealthy = $false
+for ($i = 1; $i -le 15; $i++) {
+    try {
+        $response = Invoke-WebRequest -Uri "http://127.0.0.1:$activePort/api/version" -UseBasicParsing -TimeoutSec 5
+        if ($response.StatusCode -eq 200) {
+            $version = $response.Content | ConvertFrom-Json
+            Write-Host "  Active instance is healthy! Version: $($version.version)" -ForegroundColor Green
+            $activeHealthy = $true
+            break
+        }
+    } catch {
+        Write-Host "  Attempt $i/15..."
+        Start-Sleep -Seconds 2
+    }
+}
+
+if (-not $activeHealthy) {
+    Write-Host "ERROR: Active instance failed health check!" -ForegroundColor Red
+    exit 1
+}
 
 # Step 7: Stop old instance
 Write-Host ""
-Write-Host "[7/7] Stopping old instance $currentActive..." -ForegroundColor Cyan
+Write-Host "[8/8] Stopping old instance $currentActive..." -ForegroundColor Cyan
 
 & $NssmPath stop $stopService 2>&1 | Out-Null
 Start-Sleep -Seconds 3
@@ -206,7 +234,7 @@ try {
 
 Write-Host ""
 Write-Host "========================================"
-Write-Host "  Deploy Complete!" -ForegroundColor Green
+Write-Host "  Deploy Complete!"
 Write-Host "========================================"
 Write-Host "Active instance: $newActive (port $buildPort)"
 Write-Host "Version: $newVersion"
