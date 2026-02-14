@@ -195,8 +195,23 @@ function Stop-PidFileProcess {
     Remove-Item $FilePath -Force -ErrorAction SilentlyContinue
 }
 
+function Remove-TaskIfExists {
+    param([string]$TaskName)
+
+    if ([string]::IsNullOrWhiteSpace($TaskName)) { return }
+
+    cmd /c "schtasks /Query /TN `"$TaskName`" >nul 2>&1"
+    if ($LASTEXITCODE -ne 0) { return }
+
+    cmd /c "schtasks /End /TN `"$TaskName`" >nul 2>&1"
+    cmd /c "schtasks /Delete /TN `"$TaskName`" /F >nul 2>&1"
+    Write-Host "  Removed scheduled task: $TaskName"
+}
+
 function Start-FallbackProcess {
     param([string]$WorkingDirectory)
+
+    $fallbackTaskName = "JobAI-Frontend-Fallback"
 
     $nodeExe = "C:\Program Files\nodejs\node.exe"
     $nextDistBin = Join-Path $WorkingDirectory "node_modules\next\dist\bin\next"
@@ -214,12 +229,48 @@ function Start-FallbackProcess {
         throw "Next.js binary not found in node_modules"
     }
 
-    $env:NODE_ENV = "production"
-    $env:PORT = "3000"
+    $scriptsDir = Join-Path $WorkingDirectory "scripts"
+    $logsDir = Join-Path $WorkingDirectory "logs"
+    New-Item -ItemType Directory -Path $scriptsDir -Force | Out-Null
+    New-Item -ItemType Directory -Path $logsDir -Force | Out-Null
 
-    $process = Start-Process -FilePath $nodeExe -ArgumentList @($nextPath, "start", "-p", "3000") -WorkingDirectory $WorkingDirectory -WindowStyle Hidden -PassThru
-    $process.Id | Out-File -FilePath (Join-Path $WorkingDirectory "node.pid") -Encoding UTF8
-    Write-Host "  Fallback process started with PID: $($process.Id)" -ForegroundColor Green
+    $launcherPath = Join-Path $scriptsDir "run-node-task.ps1"
+    $stdoutLog = Join-Path $logsDir "fallback-out.log"
+    $stderrLog = Join-Path $logsDir "fallback-err.log"
+
+    $launcherScript = @"
+`$ErrorActionPreference = "Stop"
+`$env:NODE_ENV = "production"
+`$env:PORT = "3000"
+Set-Location "$WorkingDirectory"
+& "$nodeExe" "$nextPath" start -p 3000 1>>"$stdoutLog" 2>>"$stderrLog"
+exit `$LASTEXITCODE
+"@
+
+    Set-Content -Path $launcherPath -Value $launcherScript -Encoding UTF8
+
+    Remove-TaskIfExists -TaskName "JobAI-Node-Runner"
+    Remove-TaskIfExists -TaskName $fallbackTaskName
+
+    $taskCmd = "powershell -NoProfile -ExecutionPolicy Bypass -File `"$launcherPath`""
+    $createOutput = cmd /c "schtasks /Create /TN `"$fallbackTaskName`" /TR `"$taskCmd`" /SC ONCE /ST 00:00 /F 2>&1"
+    if ($createOutput) {
+        $createOutput | Out-Host
+    }
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to create task $fallbackTaskName"
+    }
+
+    $runOutput = cmd /c "schtasks /Run /TN `"$fallbackTaskName`" 2>&1"
+    if ($runOutput) {
+        $runOutput | Out-Host
+    }
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to run task $fallbackTaskName"
+    }
+
+    Write-Host "  Fallback runtime started via task: $fallbackTaskName" -ForegroundColor Green
+    Write-Host "  Logs: $stdoutLog / $stderrLog"
 }
 
 try {
@@ -287,6 +338,8 @@ try {
     Write-Section "[2/6] Stopping previous runtime"
 
     Stop-PidFileProcess -FilePath (Join-Path $AppDir "node.pid")
+    Remove-TaskIfExists -TaskName "JobAI-Node-Runner"
+    Remove-TaskIfExists -TaskName "JobAI-Frontend-Fallback"
 
     if ($dualMode) {
         Stop-ServiceSafe -Name "jobai-frontend-1"
