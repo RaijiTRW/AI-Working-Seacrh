@@ -43,6 +43,29 @@ export interface SiteSetting {
   updated_at?: string;
 }
 
+export interface AdminPayment {
+  id: string;
+  user_id: string;
+  type: "subscription" | "extra_requests" | string;
+  amount: number | string;
+  currency?: string | null;
+  status: "pending" | "succeeded" | "failed" | "canceled" | string;
+  yookassa_payment_id?: string | null;
+  yookassa_status?: string | null;
+  payment_method_id?: string | null;
+  metadata?: Record<string, unknown> | null;
+  created_at: string;
+  email?: string | null;
+  full_name?: string | null;
+}
+
+export interface AdminPaymentList {
+  payments: AdminPayment[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
 /**
  * Получить статистику админ-панели
  */
@@ -55,6 +78,32 @@ export async function getAdminStats(token: string): Promise<AdminStats> {
 
   if (!response.ok) {
     throw new Error("Failed to fetch admin stats");
+  }
+
+  return response.json();
+}
+
+/**
+ * Получить историю платежей для админ-панели
+ */
+export async function getAdminPayments(
+  token: string,
+  page = 1,
+  limit = 20
+): Promise<AdminPaymentList> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+  });
+
+  const response = await fetch(`${NEXT_API}/api/admin/payments?${params}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch payments");
   }
 
   return response.json();

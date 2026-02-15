@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
   getAdminStats,
+  getAdminPayments,
   getAdminUsers,
   getSiteSettings,
   updateSiteSetting,
@@ -19,6 +20,7 @@ import {
   getSupportChatStatus,
   toggleSupportChat,
   AdminStats,
+  AdminPayment,
   AdminUser,
   SiteSetting,
   SupportChatStatus,
@@ -39,6 +41,10 @@ export default function AdminPage() {
 
   // Data
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [payments, setPayments] = useState<AdminPayment[]>([]);
+  const [paymentsTotal, setPaymentsTotal] = useState(0);
+  const [paymentsPage, setPaymentsPage] = useState(1);
+  const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [usersTotal, setUsersTotal] = useState(0);
   const [usersPage, setUsersPage] = useState(1);
@@ -57,6 +63,8 @@ export default function AdminPage() {
   const [showVacancyBanModal, setShowVacancyBanModal] = useState(false);
   const [vacancyBanReason, setVacancyBanReason] = useState("");
   const [vacancyBanLoading, setVacancyBanLoading] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<AdminPayment | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -90,6 +98,12 @@ export default function AdminPage() {
     }
   }, [activeTab, usersPage, token]);
 
+  useEffect(() => {
+    if (activeTab === "stats" && token) {
+      fetchPayments();
+    }
+  }, [activeTab, paymentsPage, token]);
+
   // Fetch settings when tab changes
   useEffect(() => {
     if (activeTab === "settings" && token) {
@@ -105,6 +119,20 @@ export default function AdminPage() {
       setUsersTotal(result.total);
     } catch (e) {
       console.error("Failed to fetch users:", e);
+    }
+  };
+
+  const fetchPayments = async () => {
+    if (!token) return;
+    setPaymentsLoading(true);
+    try {
+      const result = await getAdminPayments(token, paymentsPage, 20);
+      setPayments(result.payments || []);
+      setPaymentsTotal(result.total || 0);
+    } catch (e) {
+      console.error("Failed to fetch payments:", e);
+    } finally {
+      setPaymentsLoading(false);
     }
   };
 
@@ -299,6 +327,55 @@ export default function AdminPage() {
     });
   };
 
+  const formatAmount = (amount: number | string, currency?: string | null) => {
+    const numeric = typeof amount === "string" ? parseFloat(amount) : amount;
+    if (Number.isNaN(numeric)) return `${amount} ${currency || "RUB"}`;
+    return `${numeric.toLocaleString("ru-RU")} ${currency || "RUB"}`;
+  };
+
+  const getPaymentTypeLabel = (type: string) => {
+    if (type === "subscription") return "Pro подписка";
+    if (type === "extra_requests") return "Доп. запросы";
+    return type || "-";
+  };
+
+  const getPaymentStatusLabel = (status: string) => {
+    if (status === "succeeded") return "Успешно";
+    if (status === "pending") return "Ожидает";
+    if (status === "failed") return "Ошибка";
+    if (status === "canceled") return "Отменен";
+    return status || "-";
+  };
+
+  const getPaymentStatusClass = (status: string) => {
+    if (status === "succeeded") return "bg-green-100 text-green-700";
+    if (status === "pending") return "bg-yellow-100 text-yellow-700";
+    if (status === "failed" || status === "canceled") return "bg-red-100 text-red-700";
+    return "bg-gray-100 text-gray-700";
+  };
+
+  const getPaymentDescription = (payment: AdminPayment) => {
+    const descriptionFromMetadata =
+      payment.metadata && typeof payment.metadata === "object"
+        ? (payment.metadata as Record<string, unknown>).description
+        : null;
+
+    if (typeof descriptionFromMetadata === "string" && descriptionFromMetadata.trim()) {
+      return descriptionFromMetadata;
+    }
+
+    return getPaymentTypeLabel(payment.type);
+  };
+
+  const copyToClipboard = async (value?: string | null) => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch (e) {
+      console.error("Failed to copy to clipboard:", e);
+    }
+  };
+
   const settingLabels: Record<string, string> = {
     registration_enabled: "Регистрация",
     chat_enabled: "AI-чат",
@@ -419,26 +496,156 @@ export default function AdminPage() {
 
         {/* Stats Tab */}
         {activeTab === "stats" && stats && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <div className="text-3xl font-bold text-gray-900">{stats.total_users}</div>
-              <div className="text-sm text-gray-500 mt-1">Всего пользователей</div>
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="text-3xl font-bold text-gray-900">{stats.total_users}</div>
+                <div className="text-sm text-gray-500 mt-1">Всего пользователей</div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="text-3xl font-bold text-green-500">{stats.online_users}</div>
+                <div className="text-sm text-gray-500 mt-1">Онлайн сейчас</div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="text-3xl font-bold text-red-500">{stats.banned_users}</div>
+                <div className="text-sm text-gray-500 mt-1">Забанено</div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="text-3xl font-bold text-orange-500">{stats.admins_count}</div>
+                <div className="text-sm text-gray-500 mt-1">Админов</div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="text-3xl font-bold text-blue-500">{stats.platform_vacancies}</div>
+                <div className="text-sm text-gray-500 mt-1">Наших вакансий</div>
+              </div>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <div className="text-3xl font-bold text-green-500">{stats.online_users}</div>
-              <div className="text-sm text-gray-500 mt-1">Онлайн сейчас</div>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <div className="text-3xl font-bold text-red-500">{stats.banned_users}</div>
-              <div className="text-sm text-gray-500 mt-1">Забанено</div>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <div className="text-3xl font-bold text-orange-500">{stats.admins_count}</div>
-              <div className="text-sm text-gray-500 mt-1">Админов</div>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <div className="text-3xl font-bold text-blue-500">{stats.platform_vacancies}</div>
-              <div className="text-sm text-gray-500 mt-1">Наших вакансий</div>
+
+            <div className="bg-white rounded-xl border border-gray-200">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">История платежей</h3>
+                  <p className="text-sm text-gray-500">
+                    ID платежа, пользователь, покупка, сумма, статус и дата/время
+                  </p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[1100px]">
+                  <thead className="bg-gray-50 text-left">
+                    <tr>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Payment ID</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Пользователь</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Покупка</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Сумма</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Статус</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Дата и время</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Действия</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {paymentsLoading && (
+                      <tr>
+                        <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">
+                          Загрузка платежей...
+                        </td>
+                      </tr>
+                    )}
+
+                    {!paymentsLoading && payments.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">
+                          Платежей пока нет
+                        </td>
+                      </tr>
+                    )}
+
+                    {!paymentsLoading && payments.map((payment) => (
+                      <tr key={payment.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <code className="text-xs text-gray-700 max-w-[220px] truncate block">
+                              {payment.yookassa_payment_id || payment.id}
+                            </code>
+                            <button
+                              onClick={() => copyToClipboard(payment.yookassa_payment_id || payment.id)}
+                              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+                              title="Скопировать Payment ID"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 8h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                            </button>
+                          </div>
+                          {payment.yookassa_payment_id && (
+                            <div className="text-[11px] text-gray-400 mt-1">DB ID: {payment.id}</div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="text-sm font-medium text-gray-900">
+                            {payment.full_name || "Без имени"}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {payment.email || payment.user_id}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700 max-w-[280px]">
+                          <div className="truncate" title={getPaymentDescription(payment)}>
+                            {getPaymentDescription(payment)}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">{getPaymentTypeLabel(payment.type)}</div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">
+                          {formatAmount(payment.amount, payment.currency)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${getPaymentStatusClass(payment.status)}`}>
+                            {getPaymentStatusLabel(payment.status)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">
+                          {formatDate(payment.created_at)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => {
+                              setSelectedPayment(payment);
+                              setShowPaymentModal(true);
+                            }}
+                            className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg"
+                          >
+                            Подробнее
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {paymentsTotal > 20 && (
+                <div className="p-4 border-t border-gray-200 flex justify-between items-center">
+                  <div className="text-sm text-gray-500">
+                    Показано {(paymentsPage - 1) * 20 + 1}-{Math.min(paymentsPage * 20, paymentsTotal)} из {paymentsTotal}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setPaymentsPage((p) => Math.max(1, p - 1))}
+                      disabled={paymentsPage === 1}
+                      className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
+                    >
+                      Назад
+                    </button>
+                    <button
+                      onClick={() => setPaymentsPage((p) => p + 1)}
+                      disabled={paymentsPage * 20 >= paymentsTotal}
+                      className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
+                    >
+                      Вперёд
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1207,6 +1414,111 @@ export default function AdminPage() {
               >
                 Применить
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Details Modal */}
+      {showPaymentModal && selectedPayment && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Детали платежа</h3>
+                <p className="text-sm text-gray-500">Полная информация по операции</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  setSelectedPayment(null);
+                }}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                title="Закрыть"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="text-xs text-gray-500 mb-1">YooKassa Payment ID</div>
+                  <div className="flex items-center gap-2">
+                    <code className="text-xs text-gray-800 break-all">
+                      {selectedPayment.yookassa_payment_id || "-"}
+                    </code>
+                    {selectedPayment.yookassa_payment_id && (
+                      <button
+                        onClick={() => copyToClipboard(selectedPayment.yookassa_payment_id)}
+                        className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded"
+                        title="Скопировать ID"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 8h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="text-xs text-gray-500 mb-1">Внутренний ID платежа</div>
+                  <div className="flex items-center gap-2">
+                    <code className="text-xs text-gray-800 break-all">{selectedPayment.id}</code>
+                    <button
+                      onClick={() => copyToClipboard(selectedPayment.id)}
+                      className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded"
+                      title="Скопировать ID"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 8h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                  <div className="text-xs text-gray-500 mb-1">Пользователь</div>
+                  <div className="font-medium text-gray-900">{selectedPayment.full_name || "Без имени"}</div>
+                  <div className="text-gray-600">{selectedPayment.email || selectedPayment.user_id}</div>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                  <div className="text-xs text-gray-500 mb-1">Покупка</div>
+                  <div className="font-medium text-gray-900">{getPaymentDescription(selectedPayment)}</div>
+                  <div className="text-gray-600">{getPaymentTypeLabel(selectedPayment.type)}</div>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                  <div className="text-xs text-gray-500 mb-1">Сумма</div>
+                  <div className="font-medium text-gray-900">{formatAmount(selectedPayment.amount, selectedPayment.currency)}</div>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                  <div className="text-xs text-gray-500 mb-1">Статус</div>
+                  <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${getPaymentStatusClass(selectedPayment.status)}`}>
+                    {getPaymentStatusLabel(selectedPayment.status)}
+                  </span>
+                  {selectedPayment.yookassa_status && (
+                    <div className="text-xs text-gray-500 mt-2">
+                      YooKassa: {selectedPayment.yookassa_status}
+                    </div>
+                  )}
+                </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-3 md:col-span-2">
+                  <div className="text-xs text-gray-500 mb-1">Дата и время</div>
+                  <div className="font-medium text-gray-900">{formatDate(selectedPayment.created_at)}</div>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-sm font-medium text-gray-900 mb-2">Metadata</div>
+                <pre className="bg-gray-900 text-gray-100 text-xs rounded-lg p-3 overflow-x-auto">
+                  {JSON.stringify(selectedPayment.metadata || {}, null, 2)}
+                </pre>
+              </div>
             </div>
           </div>
         </div>
