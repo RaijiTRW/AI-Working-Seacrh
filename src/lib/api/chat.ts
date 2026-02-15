@@ -2,9 +2,25 @@
  * Chat API - AI поиск вакансий
  */
 
-// Всегда используем Next.js proxy routes (/api/chat/*),
-// чтобы клиентский браузер не ходил напрямую в Python backend.
-const API_URL = "";
+// На HTTPS-странице запрещаем небезопасный http:// backend URL.
+// В этом случае принудительно используем same-origin /api/* через reverse proxy.
+const RAW_API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "").trim();
+
+function getApiUrl(): string {
+  if (!RAW_API_URL) {
+    return "";
+  }
+
+  if (
+    typeof window !== "undefined" &&
+    window.location.protocol === "https:" &&
+    RAW_API_URL.startsWith("http://")
+  ) {
+    return "";
+  }
+
+  return RAW_API_URL;
+}
 
 export interface Vacancy {
   id: string;
@@ -42,7 +58,7 @@ export async function sendMessage(
   userId: string,
   chatId?: string | null
 ): Promise<ChatResponse> {
-  const response = await fetch(`${API_URL}/api/chat/message`, {
+  const response = await fetch(`${getApiUrl()}/api/chat/message`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -81,7 +97,7 @@ export async function sendMessageStream(
   excludeVacancyIds?: string[],
   signal?: AbortSignal
 ): Promise<void> {
-  const response = await fetch(`${API_URL}/api/chat/message/stream`, {
+  const response = await fetch(`${getApiUrl()}/api/chat/message/stream`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -163,7 +179,7 @@ export async function getPreferences(userId: string, chatId?: string): Promise<R
   const params = new URLSearchParams({ user_id: userId });
   if (chatId) params.append("chat_id", chatId);
 
-  const response = await fetch(`${API_URL}/api/chat/preferences/${userId}?${params}`);
+  const response = await fetch(`${getApiUrl()}/api/chat/preferences/${userId}?${params}`);
   if (!response.ok) {
     throw new Error("Failed to get preferences");
   }
