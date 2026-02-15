@@ -181,6 +181,19 @@ function Wait-Health {
     return $false
 }
 
+function Test-HealthFast {
+    param(
+        [string]$Url
+    )
+
+    try {
+        $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -TimeoutSec 3
+        return $response.StatusCode -ge 200 -and $response.StatusCode -lt 300
+    } catch {
+        return $false
+    }
+}
+
 function Stop-PidFileProcess {
     param([string]$FilePath)
     if (-not (Test-Path $FilePath)) { return }
@@ -209,9 +222,11 @@ function Remove-TaskIfExists {
 }
 
 function Start-FallbackProcess {
-    param([string]$WorkingDirectory)
-
-    $fallbackTaskName = "JobAI-Frontend-Fallback"
+    param(
+        [string]$WorkingDirectory,
+        [int]$Port = 3000,
+        [string]$TaskName = "JobAI-Frontend-Fallback"
+    )
 
     $nodeExe = "C:\Program Files\nodejs\node.exe"
     $nextDistBin = Join-Path $WorkingDirectory "node_modules\next\dist\bin\next"
@@ -234,21 +249,21 @@ function Start-FallbackProcess {
     New-Item -ItemType Directory -Path $scriptsDir -Force | Out-Null
     New-Item -ItemType Directory -Path $logsDir -Force | Out-Null
 
-    $launcherPath = Join-Path $scriptsDir "run-node-task.ps1"
-    $stdoutLog = Join-Path $logsDir "fallback-out.log"
-    $stderrLog = Join-Path $logsDir "fallback-err.log"
+    $launcherPath = Join-Path $scriptsDir "run-node-task-$Port.ps1"
+    $stdoutLog = Join-Path $logsDir "fallback-$Port-out.log"
+    $stderrLog = Join-Path $logsDir "fallback-$Port-err.log"
 
     $launcherScript = @"
 `$ErrorActionPreference = "Continue"
 `$env:NODE_ENV = "production"
-`$env:PORT = "3000"
+`$env:PORT = "$Port"
 Set-Location "$WorkingDirectory"
 
 while (`$true) {
   try {
     Add-Content -Path "$stdoutLog" -Value "`$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [launcher] starting next"
-    `$proc = Start-Process -FilePath "$nodeExe" -ArgumentList @("$nextPath", "start", "-p", "3000") -WorkingDirectory "$WorkingDirectory" -WindowStyle Hidden -PassThru
-    `$proc.Id | Out-File -FilePath "$WorkingDirectory\node.pid" -Encoding UTF8
+    `$proc = Start-Process -FilePath "$nodeExe" -ArgumentList @("$nextPath", "start", "-p", "$Port") -WorkingDirectory "$WorkingDirectory" -WindowStyle Hidden -PassThru
+    `$proc.Id | Out-File -FilePath "$WorkingDirectory\node-$Port.pid" -Encoding UTF8
     Wait-Process -Id `$proc.Id
     Add-Content -Path "$stderrLog" -Value "`$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [launcher] next exited with code `$(`$proc.ExitCode)"
   } catch {
@@ -260,27 +275,26 @@ while (`$true) {
 
     Set-Content -Path $launcherPath -Value $launcherScript -Encoding UTF8
 
-    Remove-TaskIfExists -TaskName "JobAI-Node-Runner"
-    Remove-TaskIfExists -TaskName $fallbackTaskName
+    Remove-TaskIfExists -TaskName $TaskName
 
     $taskCmd = "powershell -NoProfile -ExecutionPolicy Bypass -File `"$launcherPath`""
-    $createOutput = cmd /c "schtasks /Create /TN `"$fallbackTaskName`" /TR `"$taskCmd`" /SC ONCE /ST 00:00 /RL HIGHEST /F 2>&1"
+    $createOutput = cmd /c "schtasks /Create /TN `"$TaskName`" /TR `"$taskCmd`" /SC ONCE /ST 00:00 /RL HIGHEST /F 2>&1"
     if ($createOutput) {
         $createOutput | Out-Host
     }
     if ($LASTEXITCODE -ne 0) {
-        throw "Failed to create task $fallbackTaskName"
+        throw "Failed to create task $TaskName"
     }
 
-    $runOutput = cmd /c "schtasks /Run /TN `"$fallbackTaskName`" 2>&1"
+    $runOutput = cmd /c "schtasks /Run /TN `"$TaskName`" 2>&1"
     if ($runOutput) {
         $runOutput | Out-Host
     }
     if ($LASTEXITCODE -ne 0) {
-        throw "Failed to run task $fallbackTaskName"
+        throw "Failed to run task $TaskName"
     }
 
-    Write-Host "  Fallback runtime started via task: $fallbackTaskName" -ForegroundColor Green
+    Write-Host "  Fallback runtime started via task: $TaskName (port $Port)" -ForegroundColor Green
     Write-Host "  Logs: $stdoutLog / $stderrLog"
 }
 
@@ -349,18 +363,22 @@ try {
     Write-Section "[2/6] Stopping previous runtime"
 
     Stop-PidFileProcess -FilePath (Join-Path $AppDir "node.pid")
-    Remove-TaskIfExists -TaskName "JobAI-Node-Runner"
-    Remove-TaskIfExists -TaskName "JobAI-Frontend-Fallback"
 
     if ($dualMode) {
         Stop-ServiceSafe -Name "jobai-frontend-1"
         Stop-ServiceSafe -Name "jobai-frontend-2"
+        Clear-Port -Port 3000
+        Clear-Port -Port 3001
     } elseif ($hasSingleService) {
         Stop-ServiceSafe -Name "jobai-frontend"
+        Clear-Port -Port 3000
+    } else {
+        # Legacy one-shot task cleanup without touching active fallback tasks.
+        Remove-TaskIfExists -TaskName "JobAI-Node-Runner"
+        Stop-PidFileProcess -FilePath (Join-Path $AppDir "node-3000.pid")
+        Stop-PidFileProcess -FilePath (Join-Path $AppDir "node-3001.pid")
     }
 
-    Clear-Port -Port 3000
-    Clear-Port -Port 3001
     Start-Sleep -Seconds 2
 
     Write-Section "[3/6] Installing dependencies"
@@ -412,6 +430,7 @@ try {
     Write-Host "Build ID: $newBuildId"
 
     Write-Section "[5/6] Starting runtime"
+    $fallbackPrimaryPort = $null
 
     if ($dualMode) {
         Start-ServiceSafe -Name "jobai-frontend-1"
@@ -431,27 +450,70 @@ try {
             throw "jobai-frontend failed health check on port 3000"
         }
     } else {
-        $pidBeforeFallback = Get-PortPid -Port 3000
-        if ($pidBeforeFallback) {
-            Write-Host "  Warning: port 3000 is already occupied by PID $pidBeforeFallback before fallback start" -ForegroundColor Yellow
+        $port3000Healthy = Test-HealthFast -Url "http://127.0.0.1:3000/api/version"
+        $port3001Healthy = Test-HealthFast -Url "http://127.0.0.1:3001/api/version"
+
+        if ($port3000Healthy -and -not $port3001Healthy) {
+            $activePort = 3000
+            $standbyPort = 3001
+        } elseif ($port3001Healthy -and -not $port3000Healthy) {
+            $activePort = 3001
+            $standbyPort = 3000
+        } elseif ($port3000Healthy -and $port3001Healthy) {
+            $activeFile = Join-Path $AppDir "active-instance.txt"
+            $activeInstance = if (Test-Path $activeFile) { (Get-Content $activeFile -ErrorAction SilentlyContinue).Trim() } else { "1" }
+            if ($activeInstance -eq "2") {
+                $activePort = 3001
+                $standbyPort = 3000
+            } else {
+                $activePort = 3000
+                $standbyPort = 3001
+            }
+        } else {
+            $activePort = 3000
+            $standbyPort = 3001
         }
 
-        Start-FallbackProcess -WorkingDirectory $AppDir
-        if (-not (Wait-Health -Url "http://127.0.0.1:3000/api/version" -Attempts 40 -DelaySeconds 2)) {
-            throw "Fallback process failed health check on port 3000"
+        Write-Host "  Fallback blue/green: active=$activePort standby=$standbyPort" -ForegroundColor Cyan
+
+        $standbyTask = "JobAI-Frontend-$standbyPort"
+        Clear-Port -Port $standbyPort
+        Start-FallbackProcess -WorkingDirectory $AppDir -Port $standbyPort -TaskName $standbyTask
+        if (-not (Wait-Health -Url "http://127.0.0.1:$standbyPort/api/version" -Attempts 40 -DelaySeconds 2)) {
+            throw "Fallback standby failed health check on port $standbyPort"
         }
 
-        $pidAfterFallback = Get-PortPid -Port 3000
-        if ($pidBeforeFallback -and $pidAfterFallback -eq $pidBeforeFallback) {
-            throw "Port 3000 is still owned by old PID $pidAfterFallback after fallback start. New code is not active."
+        $fallbackPrimaryPort = $standbyPort
+        Set-Content -Path (Join-Path $AppDir "active-instance.txt") -Value ($(if ($fallbackPrimaryPort -eq 3000) { "1" } else { "2" })) -Encoding UTF8
+
+        if ($port3000Healthy -or $port3001Healthy) {
+            $activeTask = "JobAI-Frontend-$activePort"
+            try {
+                Remove-TaskIfExists -TaskName $activeTask
+                Clear-Port -Port $activePort
+            } catch {
+                Write-Host ("  Warning: could not stop old active port ${activePort}: {0}" -f $_) -ForegroundColor Yellow
+            }
+        }
+
+        try {
+            $activeTask = "JobAI-Frontend-$activePort"
+            Start-FallbackProcess -WorkingDirectory $AppDir -Port $activePort -TaskName $activeTask
+            if (Wait-Health -Url "http://127.0.0.1:$activePort/api/version" -Attempts 30 -DelaySeconds 2) {
+                Write-Host "  Active port $activePort updated with new build" -ForegroundColor Green
+            } else {
+                Write-Host "  Warning: active port $activePort did not return healthy after update; keeping standby as primary" -ForegroundColor Yellow
+            }
+        } catch {
+            Write-Host ("  Warning: could not refresh active port ${activePort}: {0}" -f $_) -ForegroundColor Yellow
         }
 
         Write-Host "  Checking fallback stability (30s)..." -ForegroundColor Cyan
         Start-Sleep -Seconds 30
-        if (-not (Wait-Health -Url "http://127.0.0.1:3000/api/version" -Attempts 5 -DelaySeconds 2)) {
-            $fallbackErrLog = Join-Path $AppDir "logs\fallback-err.log"
+        if (-not (Wait-Health -Url "http://127.0.0.1:$fallbackPrimaryPort/api/version" -Attempts 5 -DelaySeconds 2)) {
+            $fallbackErrLog = Join-Path $AppDir "logs\fallback-$fallbackPrimaryPort-err.log"
             if (Test-Path $fallbackErrLog) {
-                Write-Host "  Last lines from fallback-err.log:" -ForegroundColor Yellow
+                Write-Host "  Last lines from fallback-$fallbackPrimaryPort-err.log:" -ForegroundColor Yellow
                 Get-Content -Path $fallbackErrLog -Tail 40 | Out-Host
             }
             throw "Fallback runtime is not stable after startup"
@@ -460,21 +522,53 @@ try {
 
     Write-Section "[6/6] Final checks"
 
-    try {
-        $localVersion = Invoke-WebRequest -Uri "http://127.0.0.1:3000/api/version" -UseBasicParsing -TimeoutSec 10
-        Write-Host "Local health: OK (3000)" -ForegroundColor Green
-        Write-Host $localVersion.Content
-    } catch {
-        throw "Final local check failed on port 3000: $_"
-    }
-
     if ($dualMode) {
+        try {
+            $localVersion = Invoke-WebRequest -Uri "http://127.0.0.1:3000/api/version" -UseBasicParsing -TimeoutSec 10
+            Write-Host "Local health: OK (3000)" -ForegroundColor Green
+            Write-Host $localVersion.Content
+        } catch {
+            throw "Final local check failed on port 3000: $_"
+        }
         try {
             $localVersion3001 = Invoke-WebRequest -Uri "http://127.0.0.1:3001/api/version" -UseBasicParsing -TimeoutSec 10
             Write-Host "Local health: OK (3001)" -ForegroundColor Green
             Write-Host $localVersion3001.Content
         } catch {
             throw "Final local check failed on port 3001: $_"
+        }
+    } elseif ($hasSingleService) {
+        try {
+            $localVersion = Invoke-WebRequest -Uri "http://127.0.0.1:3000/api/version" -UseBasicParsing -TimeoutSec 10
+            Write-Host "Local health: OK (3000)" -ForegroundColor Green
+            Write-Host $localVersion.Content
+        } catch {
+            throw "Final local check failed on port 3000: $_"
+        }
+    } else {
+        $fallback3000Ok = $false
+        $fallback3001Ok = $false
+
+        try {
+            $local3000 = Invoke-WebRequest -Uri "http://127.0.0.1:3000/api/version" -UseBasicParsing -TimeoutSec 10
+            Write-Host "Local health: OK (3000)" -ForegroundColor Green
+            Write-Host $local3000.Content
+            $fallback3000Ok = $true
+        } catch {
+            Write-Host "Local health: FAIL (3000)" -ForegroundColor Yellow
+        }
+
+        try {
+            $local3001 = Invoke-WebRequest -Uri "http://127.0.0.1:3001/api/version" -UseBasicParsing -TimeoutSec 10
+            Write-Host "Local health: OK (3001)" -ForegroundColor Green
+            Write-Host $local3001.Content
+            $fallback3001Ok = $true
+        } catch {
+            Write-Host "Local health: FAIL (3001)" -ForegroundColor Yellow
+        }
+
+        if (-not $fallback3000Ok -and -not $fallback3001Ok) {
+            throw "Final local check failed: both fallback ports are unhealthy"
         }
     }
 
