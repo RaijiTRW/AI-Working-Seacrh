@@ -2,10 +2,9 @@
  * Chat API - AI поиск вакансий
  */
 
-// Python backend - только AI поиск вакансий и scheduler
-// В production используем относительный путь (через Caddy прокси)
-// В dev используем localhost:8000
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+// Всегда используем Next.js proxy routes (/api/chat/*),
+// чтобы клиентский браузер не ходил напрямую в Python backend.
+const API_URL = "";
 
 export interface Vacancy {
   id: string;
