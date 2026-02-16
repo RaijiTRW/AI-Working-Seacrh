@@ -159,6 +159,88 @@ function Clear-Port {
     }
 }
 
+function Stop-AppNodeProcesses {
+    param([string]$WorkingDirectory)
+
+    if ([string]::IsNullOrWhiteSpace($WorkingDirectory)) { return }
+
+    $needle = $WorkingDirectory.ToLowerInvariant()
+    $killed = 0
+
+    try {
+        $nodeProcesses = Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue
+        foreach ($proc in $nodeProcesses) {
+            $commandLine = if ($proc.CommandLine) { $proc.CommandLine.ToLowerInvariant() } else { "" }
+            if ($commandLine.Contains($needle)) {
+                Write-Host "  Killing app node process PID $($proc.ProcessId)"
+                Stop-Process -Id $proc.ProcessId -Force -ErrorAction SilentlyContinue
+                $killed++
+            }
+        }
+    } catch {
+        Write-Host ("  Warning: could not inspect node.exe processes: {0}" -f $_) -ForegroundColor Yellow
+    }
+
+    if ($killed -gt 0) {
+        Start-Sleep -Seconds 1
+    }
+}
+
+function Remove-DirectoryWithRetries {
+    param(
+        [string]$TargetPath,
+        [int]$MaxAttempts = 4,
+        [int]$DelaySeconds = 2
+    )
+
+    if ([string]::IsNullOrWhiteSpace($TargetPath) -or -not (Test-Path $TargetPath)) {
+        return $true
+    }
+
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        try {
+            Remove-Item -Recurse -Force $TargetPath -ErrorAction Stop
+            if (-not (Test-Path $TargetPath)) {
+                return $true
+            }
+        } catch {}
+
+        cmd /c "rmdir /s /q `"$TargetPath`"" 2>&1 | Out-Null
+        if (-not (Test-Path $TargetPath)) {
+            return $true
+        }
+
+        Write-Host "  Attempt $attempt/$MaxAttempts to remove $TargetPath failed" -ForegroundColor Yellow
+        Start-Sleep -Seconds $DelaySeconds
+    }
+
+    return -not (Test-Path $TargetPath)
+}
+
+function Test-DependenciesChanged {
+    param(
+        [string]$OldRef,
+        [string]$NewRef
+    )
+
+    if ([string]::IsNullOrWhiteSpace($OldRef) -or [string]::IsNullOrWhiteSpace($NewRef)) {
+        return $true
+    }
+
+    $changedFiles = (& git diff --name-only $OldRef $NewRef -- package.json package-lock.json 2>$null)
+    if ($LASTEXITCODE -ne 0) {
+        return $true
+    }
+
+    foreach ($file in $changedFiles) {
+        if (-not [string]::IsNullOrWhiteSpace("$file")) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
 function Wait-Health {
     param(
         [string]$Url,
@@ -347,6 +429,10 @@ try {
         throw "GH_DEPLOY_TOKEN is not set"
     }
 
+    $previousRef = (& git rev-parse HEAD 2>$null)
+    $previousRef = if ($LASTEXITCODE -eq 0 -and $previousRef) { $previousRef.Trim() } else { "" }
+    $previousVersion = if ($previousRef) { (& git rev-parse --short $previousRef 2>$null).Trim() } else { "unknown" }
+
     & git config --local --unset credential.helper 2>&1 | Out-Null
     & git config --local credential.helper "" 2>&1 | Out-Null
 
@@ -357,7 +443,9 @@ try {
     Invoke-GitCommand -Command "git reset --hard origin/main" -StepName "git reset"
     Invoke-GitCommand -Command "git clean -fd" -StepName "git clean"
 
+    $newRef = (& git rev-parse HEAD).Trim()
     $newVersion = (& git rev-parse --short HEAD).Trim()
+    $depsChanged = Test-DependenciesChanged -OldRef $previousRef -NewRef $newRef
     Write-Host "Deploying commit: $newVersion"
 
     Write-Section "[2/6] Stopping previous runtime"
@@ -373,38 +461,84 @@ try {
         Stop-ServiceSafe -Name "jobai-frontend"
         Clear-Port -Port 3000
     } else {
-        # Legacy one-shot task cleanup without touching active fallback tasks.
+        # Cleanup legacy and current fallback tasks.
         Remove-TaskIfExists -TaskName "JobAI-Node-Runner"
+        Remove-TaskIfExists -TaskName "JobAI-Frontend-3000"
+        Remove-TaskIfExists -TaskName "JobAI-Frontend-3001"
+        Remove-TaskIfExists -TaskName "JobAI-Frontend-Fallback"
         Stop-PidFileProcess -FilePath (Join-Path $AppDir "node-3000.pid")
         Stop-PidFileProcess -FilePath (Join-Path $AppDir "node-3001.pid")
+        Clear-Port -Port 3000
+        Clear-Port -Port 3001
     }
 
+    Stop-AppNodeProcesses -WorkingDirectory $AppDir
     Start-Sleep -Seconds 2
 
     Write-Section "[3/6] Installing dependencies"
 
-    if (Test-Path "node_modules") {
-        try {
-            Remove-Item -Recurse -Force "node_modules" -ErrorAction Stop
-        } catch {
-            Write-Host "  Warning: could not fully remove node_modules, continuing with fallback installs" -ForegroundColor Yellow
+    $nodeModulesPath = Join-Path $AppDir "node_modules"
+    $nextPackagePath = Join-Path $AppDir "node_modules\next\package.json"
+    $shouldInstallDeps = $false
+
+    if (-not (Test-Path $nodeModulesPath)) {
+        Write-Host "  node_modules is missing -> install required" -ForegroundColor Yellow
+        $shouldInstallDeps = $true
+    } elseif (-not (Test-Path $nextPackagePath)) {
+        Write-Host "  next package missing in node_modules -> install required" -ForegroundColor Yellow
+        $shouldInstallDeps = $true
+    } elseif ($depsChanged) {
+        Write-Host "  package manifests changed ($previousVersion -> $newVersion) -> reinstall required" -ForegroundColor Yellow
+        $shouldInstallDeps = $true
+    } else {
+        Write-Host "  package manifests unchanged -> reusing existing node_modules" -ForegroundColor Green
+    }
+
+    if ($shouldInstallDeps) {
+        Stop-AppNodeProcesses -WorkingDirectory $AppDir
+
+        if (-not (Remove-DirectoryWithRetries -TargetPath $nodeModulesPath -MaxAttempts 5 -DelaySeconds 2)) {
+            throw "node_modules is locked and could not be removed"
+        }
+
+        if ([string]::IsNullOrWhiteSpace($env:NODE_OPTIONS)) {
+            $env:NODE_OPTIONS = "--max-old-space-size=4096"
+        } elseif ($env:NODE_OPTIONS -notmatch "max-old-space-size") {
+            $env:NODE_OPTIONS = "$($env:NODE_OPTIONS) --max-old-space-size=4096"
+        }
+
+        $env:npm_config_jobs = "1"
+        $env:npm_config_audit = "false"
+        $env:npm_config_fund = "false"
+        $env:npm_config_progress = "false"
+
+        Write-Host "  Installing dependencies with reduced memory pressure..." -ForegroundColor Cyan
+
+        $depsOk = $false
+        if (Invoke-NpmCommand -Command "npm ci --no-audit --no-fund" -StepName "npm ci") {
+            $depsOk = $true
+        } else {
+            Write-Host "  npm ci failed, doing cleanup and fallback install..." -ForegroundColor Yellow
+            Stop-AppNodeProcesses -WorkingDirectory $AppDir
+            Remove-DirectoryWithRetries -TargetPath $nodeModulesPath -MaxAttempts 3 -DelaySeconds 2 | Out-Null
+
+            if (Invoke-NpmCommand -Command "npm install --no-audit --no-fund --prefer-offline" -StepName "npm install") {
+                $depsOk = $true
+            }
+        }
+
+        if (-not $depsOk) {
+            throw "Dependency installation failed after retries"
         }
     }
 
-    $depsOk = $false
-    if (Invoke-NpmCommand -Command "npm ci" -StepName "npm ci") {
-        $depsOk = $true
-    } elseif (Invoke-NpmCommand -Command "npm install --no-audit --no-fund" -StepName "npm install") {
-        $depsOk = $true
-    } elseif (Invoke-NpmCommand -Command "npm install --force" -StepName "npm install --force") {
-        $depsOk = $true
-    }
-
-    if (-not $depsOk) {
-        throw "Dependency installation failed after all retries"
-    }
-
     Write-Section "[4/6] Building"
+
+    if ([string]::IsNullOrWhiteSpace($env:NODE_OPTIONS)) {
+        $env:NODE_OPTIONS = "--max-old-space-size=4096"
+    } elseif ($env:NODE_OPTIONS -notmatch "max-old-space-size") {
+        $env:NODE_OPTIONS = "$($env:NODE_OPTIONS) --max-old-space-size=4096"
+    }
 
     if (Test-Path ".next") {
         try {
