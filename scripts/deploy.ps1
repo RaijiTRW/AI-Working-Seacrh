@@ -241,6 +241,63 @@ function Test-DependenciesChanged {
     return $false
 }
 
+function Set-NodeMemoryTuning {
+    param(
+        [string]$Phase = "build"
+    )
+
+    $forcedHeapMb = 0
+    if ($env:DEPLOY_NODE_HEAP_MB) {
+        [void][int]::TryParse($env:DEPLOY_NODE_HEAP_MB, [ref]$forcedHeapMb)
+    }
+
+    $targetHeapMb = $forcedHeapMb
+    if ($targetHeapMb -le 0) {
+        $totalRamBytes = 0
+        try {
+            $computerSystem = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue
+            $totalRamBytes = [int64]($computerSystem.TotalPhysicalMemory)
+        } catch {}
+
+        $totalRamGb = if ($totalRamBytes -gt 0) { [math]::Floor($totalRamBytes / 1GB) } else { 0 }
+
+        if ($totalRamGb -le 4 -and $totalRamGb -gt 0) {
+            $targetHeapMb = 768
+        } elseif ($totalRamGb -le 8 -and $totalRamGb -gt 0) {
+            $targetHeapMb = 1024
+        } elseif ($totalRamGb -le 12 -and $totalRamGb -gt 0) {
+            $targetHeapMb = 1536
+        } elseif ($totalRamGb -gt 12) {
+            $targetHeapMb = 2048
+        } else {
+            $targetHeapMb = 1024
+        }
+    }
+
+    if ($targetHeapMb -lt 768) {
+        $targetHeapMb = 768
+    }
+
+    $existingNodeOptions = if ($env:NODE_OPTIONS) { $env:NODE_OPTIONS } else { "" }
+    $cleanNodeOptions = $existingNodeOptions `
+        -replace '--max-old-space-size=\d+\s*', '' `
+        -replace '--max-semi-space-size=\d+\s*', ''
+    $cleanNodeOptions = $cleanNodeOptions.Trim()
+
+    $memoryOptions = "--max-old-space-size=$targetHeapMb --max-semi-space-size=64"
+    if ([string]::IsNullOrWhiteSpace($cleanNodeOptions)) {
+        $env:NODE_OPTIONS = $memoryOptions
+    } else {
+        $env:NODE_OPTIONS = "$cleanNodeOptions $memoryOptions"
+    }
+
+    # Reduce Next.js build parallelism on low-memory VPS/Windows hosts
+    $env:NEXT_PRIVATE_BUILD_WORKER = "1"
+    $env:NEXT_TELEMETRY_DISABLED = "1"
+
+    Write-Host "  Node memory tuning ($Phase): NODE_OPTIONS=$($env:NODE_OPTIONS)" -ForegroundColor DarkGray
+}
+
 function Wait-Health {
     param(
         [string]$Url,
@@ -501,13 +558,8 @@ try {
             throw "node_modules is locked and could not be removed"
         }
 
-        if ([string]::IsNullOrWhiteSpace($env:NODE_OPTIONS)) {
-            $env:NODE_OPTIONS = "--max-old-space-size=4096"
-        } elseif ($env:NODE_OPTIONS -notmatch "max-old-space-size") {
-            $env:NODE_OPTIONS = "$($env:NODE_OPTIONS) --max-old-space-size=4096"
-        }
+        Set-NodeMemoryTuning -Phase "deps"
 
-        $env:npm_config_jobs = "1"
         $env:npm_config_audit = "false"
         $env:npm_config_fund = "false"
         $env:npm_config_progress = "false"
@@ -534,11 +586,7 @@ try {
 
     Write-Section "[4/6] Building"
 
-    if ([string]::IsNullOrWhiteSpace($env:NODE_OPTIONS)) {
-        $env:NODE_OPTIONS = "--max-old-space-size=4096"
-    } elseif ($env:NODE_OPTIONS -notmatch "max-old-space-size") {
-        $env:NODE_OPTIONS = "$($env:NODE_OPTIONS) --max-old-space-size=4096"
-    }
+    Set-NodeMemoryTuning -Phase "build"
 
     if (Test-Path ".next") {
         try {
@@ -549,8 +597,15 @@ try {
         }
     }
 
-    if (-not (Invoke-NpmCommand -Command "npm run build" -StepName "npm run build")) {
-        throw "npm run build failed"
+    $nextCliPath = Join-Path $AppDir "node_modules\next\dist\bin\next"
+    if (Test-Path $nextCliPath) {
+        if (-not (Invoke-NpmCommand -Command "node `"$nextCliPath`" build" -StepName "next build")) {
+            throw "next build failed"
+        }
+    } else {
+        if (-not (Invoke-NpmCommand -Command "npm run build" -StepName "npm run build")) {
+            throw "npm run build failed"
+        }
     }
 
     $buildIdPath = Join-Path $AppDir ".next\BUILD_ID"
