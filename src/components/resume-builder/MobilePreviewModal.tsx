@@ -1,12 +1,16 @@
 "use client";
 
 import { X, Download, ZoomIn, ZoomOut, Loader2 } from "lucide-react";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Resume } from "@/types/resume";
 import { ModernTemplate } from "./templates/ModernTemplate";
 import { ClassicTemplate } from "./templates/ClassicTemplate";
 import { ATSTemplate } from "./templates/ATSTemplate";
 import { CreativeTemplate } from "./templates/CreativeTemplate";
+import PaginatedResumePages, {
+  MAX_RESUME_PAGES,
+  type ResumePaginationInfo,
+} from "./PaginatedResumePages";
 
 interface MobilePreviewModalProps {
   resume: Resume;
@@ -24,7 +28,11 @@ export default function MobilePreviewModal({
   onClose,
 }: MobilePreviewModalProps) {
   const [zoom, setZoom] = useState(42);
-  const previewRef = useRef<HTMLDivElement>(null);
+  const [paginationInfo, setPaginationInfo] = useState<ResumePaginationInfo>({
+    requiredPages: 1,
+    renderedPages: 1,
+    isOverflowing: false,
+  });
   const MIN_ZOOM = 30;
   const MAX_ZOOM = 150;
 
@@ -44,7 +52,7 @@ export default function MobilePreviewModal({
     setZoom((prev) => Math.max(prev - 10, MIN_ZOOM));
   }, [MIN_ZOOM]);
 
-  const renderTemplate = () => {
+  const renderTemplate = useCallback(() => {
     switch (currentTemplate) {
       case "modern":
         return <ModernTemplate resume={resume} />;
@@ -57,7 +65,7 @@ export default function MobilePreviewModal({
       default:
         return <ModernTemplate resume={resume} />;
     }
-  };
+  }, [currentTemplate, resume]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black">
@@ -114,29 +122,26 @@ export default function MobilePreviewModal({
 
       {/* Preview area */}
       <div className="h-full overflow-auto p-4 pt-20 bg-gray-900">
-        <div className="w-max mx-auto">
-          <div
-            ref={previewRef}
-            id="resume-preview-wrapper-mobile"
-            className="bg-white shadow-2xl transition-transform origin-top"
-            style={{
-              width: "794px",
-              minHeight: "1123px",
-              transform: `scale(${zoom / 100})`,
-            }}
-          >
-            {/* Inner element for PDF export - no transform applied */}
-            <div id="resume-preview-mobile" style={{ width: "794px", minHeight: "1123px" }}>
-              {renderTemplate()}
-            </div>
-          </div>
-        </div>
+        <PaginatedResumePages
+          renderTemplate={renderTemplate}
+          zoom={zoom}
+          previewWrapperId="resume-preview-wrapper-mobile"
+          previewId="resume-preview-mobile"
+          maxPages={MAX_RESUME_PAGES}
+          onPaginationChange={setPaginationInfo}
+        />
       </div>
 
       {/* Page info */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-gray-200 px-4 py-2 text-center text-xs text-gray-500">
-        Формат A4 (210 × 297 мм) • Масштаб: {zoom}%
+        Формат A4 (210 × 297 мм) • Масштаб: {zoom}% • Страницы: {paginationInfo.renderedPages}
+        {paginationInfo.isOverflowing ? ` из ${paginationInfo.requiredPages}` : ""}
       </div>
+      {paginationInfo.isOverflowing && (
+        <div className="fixed bottom-9 left-0 right-0 bg-amber-50 border-t border-amber-200 px-4 py-2 text-center text-[10px] text-amber-700">
+          Показаны первые {MAX_RESUME_PAGES} страницы из {paginationInfo.requiredPages}.
+        </div>
+      )}
     </div>
   );
 }

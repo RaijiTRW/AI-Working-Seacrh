@@ -99,6 +99,15 @@ export const metadata: Metadata = {
     yandex: process.env.YANDEX_VERIFICATION,
     google: process.env.GOOGLE_VERIFICATION,
   },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", type: "image/x-icon", sizes: "any" },
+      { url: "/favicon-32x32.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-16x16.png", type: "image/png", sizes: "16x16" },
+    ],
+    shortcut: [{ url: "/favicon.ico", type: "image/x-icon" }],
+    apple: [{ url: "/apple-touch-icon-180x180.png", sizes: "180x180" }],
+  },
 };
 
 export default function RootLayout({
@@ -153,7 +162,12 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
         <link rel="apple-touch-icon" href="/favicon-master-512.png?v=2" />
+        <link rel="manifest" href="/site.webmanifest" />
         {/* RSS/Atom Feed Auto-discovery */}
         <link
           rel="alternate"

@@ -24,29 +24,6 @@ interface UseSubscriptionReturn {
   manualRenewal: () => Promise<boolean>;
 }
 
-// Дефолтные значения когда API недоступен
-const DEFAULT_SUBSCRIPTION: SubscriptionInfo = {
-  subscription: null,
-  limits: {
-    daily_limit: 3,
-    daily_used: 0,
-    bonus_requests: 0,
-    remaining: 3,
-    can_use: true,
-  },
-  is_pro_trial: false,
-  is_base: true,  // По умолчанию считаем Base
-  is_pro: false,
-  is_pro_trial_expired: false,
-  is_pro_expired: false,
-  prices: {
-    subscription: 499,
-    extra_requests: 99,
-    extra_requests_count: 10,
-  },
-  has_saved_payment_method: false,
-};
-
 export function useSubscription(): UseSubscriptionReturn {
   const { user, loading: authLoading } = useAuth();
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
@@ -58,12 +35,6 @@ export function useSubscription(): UseSubscriptionReturn {
   const fetchSubscription = useCallback(async () => {
     if (!user) {
       setSubscription(null);
-      setLoading(false);
-      return;
-    }
-
-    // Если API недоступен и уже пробовали — не спамим
-    if (!apiAvailable.current && retryCount.current > 2) {
       setLoading(false);
       return;
     }
@@ -85,13 +56,13 @@ export function useSubscription(): UseSubscriptionReturn {
 
       // Логируем только один раз
       if (retryCount.current === 1) {
-        console.warn("[useSubscription] API недоступен, используем дефолтные значения");
+        console.warn("[useSubscription] API недоступен, оставляем последнее корректное состояние");
       }
 
-      // Сразу используем дефолтные значения если API недоступен
+      // Не подменяем подписку на Base при сетевой/серверной ошибке,
+      // чтобы не показывать пользователю неверный план.
       apiAvailable.current = false;
-      setSubscription(DEFAULT_SUBSCRIPTION);
-      setError(null); // Не показываем ошибку пользователю
+      setError(err instanceof Error ? err.message : "Ошибка обновления подписки");
     } finally {
       setLoading(false);
     }

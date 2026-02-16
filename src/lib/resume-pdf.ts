@@ -8,6 +8,7 @@ const A4_WIDTH_PX = 794;
 const A4_HEIGHT_PX = 1123;
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
+const MAX_PDF_PAGES = 4;
 const PDF_EXPORT_ATTR = "data-pdf-export-root";
 
 type ProgressCallback = (progress: number) => void;
@@ -427,12 +428,57 @@ function canvasToPngDataUrl(canvas: HTMLCanvasElement): string {
   return imgData;
 }
 
-function saveCanvasAsA4PDF(canvas: HTMLCanvasElement, filename: string): void {
-  const imgData = canvasToPngDataUrl(canvas);
+function getExportPages(element: HTMLElement): HTMLElement[] {
+  if (element.dataset.resumePage === "true") {
+    return [element];
+  }
+
+  const pageNodes = Array.from(
+    element.querySelectorAll<HTMLElement>("[data-resume-page='true']")
+  );
+  if (pageNodes.length > 0) {
+    return pageNodes.slice(0, MAX_PDF_PAGES);
+  }
+
+  return [element];
+}
+
+async function renderResumeCanvases(
+  element: HTMLElement,
+  onProgress?: ProgressCallback
+): Promise<HTMLCanvasElement[]> {
+  const pages = getExportPages(element);
+  const canvases: HTMLCanvasElement[] = [];
+
+  for (let index = 0; index < pages.length; index += 1) {
+    // 10..85 прогресс на рендеринг страниц
+    const startProgress = 10 + Math.round((index / pages.length) * 75);
+    onProgress?.(startProgress);
+
+    const canvas = await renderResumeCanvas(pages[index]);
+    canvases.push(canvas);
+
+    const endProgress = 10 + Math.round(((index + 1) / pages.length) * 75);
+    onProgress?.(endProgress);
+  }
+
+  return canvases;
+}
+
+function saveCanvasesAsA4PDF(canvases: HTMLCanvasElement[], filename: string): void {
+  if (canvases.length === 0) {
+    throw new Error("No pages to export");
+  }
+
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-  // Рендерим строго в одну A4 страницу без дополнительного разбиения.
-  pdf.addImage(imgData, "PNG", 0, 0, A4_WIDTH_MM, A4_HEIGHT_MM, undefined, "FAST");
+  canvases.forEach((canvas, index) => {
+    if (index > 0) {
+      pdf.addPage("a4", "portrait");
+    }
+    const imgData = canvasToPngDataUrl(canvas);
+    pdf.addImage(imgData, "PNG", 0, 0, A4_WIDTH_MM, A4_HEIGHT_MM, undefined, "FAST");
+  });
 
   const fileName = `${filename}_${new Date().toISOString().split("T")[0]}.pdf`;
   pdf.save(fileName);
@@ -450,8 +496,8 @@ export async function exportResumeToPDF(
   filename: string = "resume"
 ): Promise<void> {
   try {
-    const canvas = await renderResumeCanvas(element);
-    saveCanvasAsA4PDF(canvas, filename);
+    const canvases = await renderResumeCanvases(element);
+    saveCanvasesAsA4PDF(canvases, filename);
   } catch (error) {
     console.error("PDF export error:", error);
     throw new Error("Failed to export PDF");
@@ -467,7 +513,8 @@ export async function exportResumeToPDF(
 export async function generateResumePreview(
   element: HTMLElement
 ): Promise<string> {
-  const canvas = await renderResumeCanvas(element);
+  const pages = getExportPages(element);
+  const canvas = await renderResumeCanvas(pages[0]);
   return canvasToPngDataUrl(canvas);
 }
 
@@ -552,10 +599,10 @@ export async function exportResumeToPDFWithProgress(
   onProgress?.(10);
 
   try {
-    const canvas = await renderResumeCanvas(element, onProgress);
+    const canvases = await renderResumeCanvases(element, onProgress);
     onProgress?.(85);
 
-    saveCanvasAsA4PDF(canvas, filename);
+    saveCanvasesAsA4PDF(canvases, filename);
     onProgress?.(100);
 
     setTimeout(() => {

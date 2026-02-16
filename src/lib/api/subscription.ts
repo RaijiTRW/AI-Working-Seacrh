@@ -64,6 +64,7 @@ export interface PaymentStatus {
  */
 export async function getSubscription(token: string): Promise<SubscriptionInfo> {
   const response = await fetch(`${NEXT_API}/api/subscription`, {
+    cache: "no-store",
     headers: {
       Authorization: `Bearer ${token}`,
     },
