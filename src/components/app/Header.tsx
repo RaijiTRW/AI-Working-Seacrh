@@ -41,7 +41,6 @@ export default function AppHeader({ showRequestCounter = false, hideOnMobile = f
           setUnreadCount(data.count || 0);
         }
       } catch (err) {
-        console.error("Failed to fetch unread count:", err);
       }
     };
 

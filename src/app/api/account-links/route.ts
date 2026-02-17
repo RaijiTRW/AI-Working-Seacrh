@@ -42,7 +42,6 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("[AccountLinks][GET] Error:", error);
       return NextResponse.json({ linkedAccounts: [] }, { status: 200 });
     }
 
@@ -54,7 +53,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ linkedAccounts }, { status: 200 });
   } catch (e) {
-    console.error("[AccountLinks][GET] Exception:", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -106,13 +104,11 @@ export async function POST(request: NextRequest) {
     );
 
     if (error) {
-      console.error("[AccountLinks][POST] Error:", error);
       return NextResponse.json({ error: "Failed to save link" }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (e) {
-    console.error("[AccountLinks][POST] Exception:", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
@@ -145,7 +141,6 @@ export async function DELETE(request: NextRequest) {
       .maybeSingle();
 
     if (selectError) {
-      console.error("[AccountLinks][DELETE] Select error:", selectError);
       return NextResponse.json({ error: "Failed to remove link" }, { status: 500 });
     }
 
@@ -163,13 +158,11 @@ export async function DELETE(request: NextRequest) {
       );
 
     if (deleteError) {
-      console.error("[AccountLinks][DELETE] Delete error:", deleteError);
       return NextResponse.json({ error: "Failed to remove link" }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true }, { status: 200 });
   } catch (e) {
-    console.error("[AccountLinks][DELETE] Exception:", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

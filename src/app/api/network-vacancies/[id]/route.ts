@@ -102,7 +102,6 @@ export async function GET(
 
     return NextResponse.json(transformedVacancy);
   } catch (error) {
-    console.error("[NetworkVacancy] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

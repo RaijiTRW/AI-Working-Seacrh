@@ -22,7 +22,6 @@ export async function POST(request: NextRequest) {
       .lt("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString()); // 1 час назад
 
     if (error) {
-      console.error("[CancelExpiredPayments] Error fetching payments:", error);
       return NextResponse.json({ error: "Failed to fetch payments" }, { status: 500 });
     }
 
@@ -48,7 +47,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`[CancelExpiredPayments] Cancelled ${cancelledCount} expired payments`);
 
     return NextResponse.json({
       success: true,
@@ -56,7 +54,6 @@ export async function POST(request: NextRequest) {
       message: `Cancelled ${cancelledCount} expired pending payments`
     });
   } catch (e) {
-    console.error("[CancelExpiredPayments] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

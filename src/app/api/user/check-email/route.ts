@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.admin.listUsers();
 
     if (error) {
-      console.error("[CheckEmail] Error:", error);
       return NextResponse.json(
         { available: false, message: "Failed to check email" },
         { status: 500 }
@@ -42,7 +41,6 @@ export async function GET(request: NextRequest) {
       message: emailTaken ? "Этот email уже занят" : "Email доступен"
     });
   } catch (e) {
-    console.error("[CheckEmail] Exception:", e);
     return NextResponse.json(
       { available: false, message: "Internal server error" },
       { status: 500 }

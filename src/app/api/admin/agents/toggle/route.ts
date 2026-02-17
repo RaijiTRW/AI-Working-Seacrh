@@ -22,7 +22,6 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[Agents Toggle] Backend error:", response.status, errorText);
       return NextResponse.json(
         { error: "Failed to toggle agent" },
         { status: response.status }
@@ -37,7 +36,6 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[Agents Toggle] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

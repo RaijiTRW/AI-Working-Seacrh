@@ -17,13 +17,11 @@ export async function POST(request: NextRequest) {
       .eq("user_id", userId);
 
     if (error) {
-      console.error("[Ping] Error updating last_seen_at:", error);
       return NextResponse.json({ error: "Failed to update" }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error("[Ping] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

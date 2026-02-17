@@ -80,7 +80,6 @@ export async function GET(
       messages: messages || [],
     });
   } catch (e) {
-    console.error("[Admin Chat] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

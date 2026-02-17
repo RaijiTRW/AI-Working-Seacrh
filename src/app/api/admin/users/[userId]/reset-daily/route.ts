@@ -53,7 +53,6 @@ export async function POST(
 
     // If record doesn't exist, create it first
     if (checkError && checkError.code === 'PGRST116') {
-      console.log("[Reset Daily] Record doesn't exist, creating...");
       const { error: insertError } = await supabase
         .from("user_request_limits")
         .insert({
@@ -65,7 +64,6 @@ export async function POST(
         });
 
       if (insertError) {
-        console.error("[Reset Daily] Error creating record:", insertError);
         return NextResponse.json(
           { error: "Failed to create user request limits" },
           { status: 500 }
@@ -79,14 +77,12 @@ export async function POST(
     }
 
     if (checkError) {
-      console.error("[Reset Daily] Error checking record:", checkError);
       return NextResponse.json(
         { error: "Database error" },
         { status: 500 }
       );
     }
 
-    console.log("[Reset Daily] Existing record:", existingRecord);
 
     // Reset daily_used to 0 - update the actual table, not the view
     const { data: updateData, error: updateError, count } = await supabase
@@ -95,10 +91,8 @@ export async function POST(
       .eq("user_id", userId)
       .select();
 
-    console.log("[Reset Daily] Update result:", { data: updateData, error: updateError, count });
 
     if (updateError) {
-      console.error("[Reset Daily] Error resetting daily_used:", updateError);
       return NextResponse.json(
         { error: updateError.message || "Failed to reset daily usage" },
         { status: 500 }
@@ -119,7 +113,6 @@ export async function POST(
       previous_used: existingRecord?.daily_used,
     });
   } catch (error) {
-    console.error("Error in reset daily:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

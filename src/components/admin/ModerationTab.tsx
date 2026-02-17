@@ -42,7 +42,6 @@ export default function ModerationTab({ token }: ModerationTabProps) {
       setVacancies(result.vacancies);
       setTotal(result.total);
     } catch (e) {
-      console.error("Failed to fetch vacancies:", e);
     } finally {
       setLoading(false);
     }
@@ -56,7 +55,6 @@ export default function ModerationTab({ token }: ModerationTabProps) {
       alert("Вакансия одобрена и опубликована!");
       fetchVacancies();
     } catch (e) {
-      console.error("Failed to approve:", e);
       alert("Ошибка при одобрении");
     }
   };
@@ -75,7 +73,6 @@ export default function ModerationTab({ token }: ModerationTabProps) {
       setRejectReason("");
       fetchVacancies();
     } catch (e) {
-      console.error("Failed to reject:", e);
       alert("Ошибка при отклонении");
     }
   };
@@ -95,7 +92,6 @@ export default function ModerationTab({ token }: ModerationTabProps) {
       setBanReason("");
       fetchVacancies();
     } catch (e) {
-      console.error("Failed to ban user:", e);
       alert("Ошибка при запрете");
     } finally {
       setBanLoading(false);

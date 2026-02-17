@@ -163,7 +163,6 @@ export async function POST(req: NextRequest) {
         .eq("user_id", user_id);
 
       if (countError) {
-        console.error("Count error:", countError);
         return NextResponse.json(
           { detail: "Ошибка при проверке лимита" },
           { status: 500 }
@@ -222,7 +221,6 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error("AI API error:", errorData);
       return NextResponse.json(
         { detail: "Ошибка AI сервиса. Попробуйте позже." },
         { status: 500 }
@@ -259,17 +257,11 @@ export async function POST(req: NextRequest) {
       field,
       text_length: text.length,
       improved_length: aiResponse.improved_text.length,
-    }).then(() => {}, (err) => console.error("Failed to log AI usage:", err));
+    }).then(() => {}, (err) => {});
 
     return NextResponse.json(aiResponse);
 
   } catch (error) {
-    console.error("AI improve error:", error);
-    console.error("Error details:", {
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      name: error instanceof Error ? error.name : undefined,
-    });
     return NextResponse.json(
       {
         detail: "Внутренняя ошибка сервера",

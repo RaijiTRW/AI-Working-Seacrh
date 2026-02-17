@@ -42,7 +42,6 @@ export default function AgentsTab({ token }: AgentsTabProps) {
 
       if (schedulerData.status === 'fulfilled' && jobStatesData.status === 'fulfilled') {
         const jobStates = jobStatesData.value || {};
-        console.log('[AgentsTab] Job states from DB:', jobStates);
 
         // Объединяем scheduler status с job states из БД
         const jobs = (schedulerData.value.jobs || []).map(job => ({
@@ -50,7 +49,6 @@ export default function AgentsTab({ token }: AgentsTabProps) {
           is_paused: jobStates[job.job_id]?.is_paused || false
         }));
 
-        console.log('[AgentsTab] Merged jobs:', jobs);
         setSchedulerStatus(jobs);
       } else if (schedulerData.status === 'fulfilled') {
         // Если не удалось получить job states, просто используем scheduler data
@@ -62,7 +60,6 @@ export default function AgentsTab({ token }: AgentsTabProps) {
         setError("Не удалось загрузить данные. Проверьте подключение к серверу.");
       }
     } catch (err) {
-      console.error("Error fetching data:", err);
       setError("Не удалось загрузить данные");
     } finally {
       setLoading(false);
@@ -82,7 +79,6 @@ export default function AgentsTab({ token }: AgentsTabProps) {
       await toggleAgent(token, agentId, enabled);
       await fetchData();
     } catch (err) {
-      console.error("Error toggling agent:", err);
       setError("Не удалось изменить статус агента");
     } finally {
       setActionLoading(null);
@@ -96,7 +92,6 @@ export default function AgentsTab({ token }: AgentsTabProps) {
       // Refresh data from DB to get actual state
       await fetchData();
     } catch (err) {
-      console.error("Error pausing job:", err);
       setError("Не удалось остановить задачу");
     } finally {
       setActionLoading(null);
@@ -110,7 +105,6 @@ export default function AgentsTab({ token }: AgentsTabProps) {
       // Refresh data from DB to get actual state
       await fetchData();
     } catch (err) {
-      console.error("Error resuming job:", err);
       setError("Не удалось возобновить задачу");
     } finally {
       setActionLoading(null);
@@ -123,7 +117,6 @@ export default function AgentsTab({ token }: AgentsTabProps) {
       // Refresh data from DB to get actual state
       await fetchData();
     } catch (err) {
-      console.error("Error triggering job:", err);
       setError("Не удалось запустить задачу");
     }
   };
@@ -135,7 +128,6 @@ export default function AgentsTab({ token }: AgentsTabProps) {
       // Refresh data from DB to get actual state
       await fetchData();
     } catch (err) {
-      console.error("Error stopping job:", err);
       setError("Не удалось остановить задачу");
     } finally {
       setActionLoading(null);

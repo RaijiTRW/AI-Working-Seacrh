@@ -43,17 +43,20 @@ export async function GET(request: NextRequest) {
 
   const supabase = getSupabaseAdmin();
 
-  // Get total count
+  // Get total count - show all non-closed vacancies
+  // Closed vacancies are those with status='closed' (deleted by user)
   const { count } = await supabase
     .from("employer_vacancies")
     .select("*", { count: "exact", head: true })
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .neq("status", "closed");
 
-  // Get vacancies
+  // Get vacancies - show all non-closed vacancies
   const { data, error } = await supabase
     .from("employer_vacancies")
     .select("*")
     .eq("user_id", userId)
+    .neq("status", "closed")
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -153,7 +156,7 @@ export async function POST(request: NextRequest) {
     contact_email: body.contact_email || null,
     contact_phone: body.contact_phone || null,
     status: "draft",
-    is_active: false,
+    is_active: true,
     views_count: 0,
     responses_count: 0,
   };

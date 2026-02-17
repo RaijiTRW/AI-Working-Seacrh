@@ -12,13 +12,11 @@ export async function GET() {
       .order("sort_order", { ascending: true });
 
     if (error) {
-      console.error("[Quick Questions] Error:", error);
       return NextResponse.json({ questions: [] });
     }
 
     return NextResponse.json({ questions: data || [] });
   } catch (e) {
-    console.error("[Quick Questions] Exception:", e);
     return NextResponse.json({ questions: [] });
   }
 }

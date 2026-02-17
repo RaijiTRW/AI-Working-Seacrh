@@ -68,7 +68,6 @@ export async function POST(
     if (cancelResponse.ok) {
       const canceledPayment = await cancelResponse.json();
       yookassaStatus = canceledPayment.status;
-      console.log("[Cancel] Successfully canceled in YooKassa:", paymentId, yookassaStatus);
     } else {
       // Проверяем текущий статус в YooKassa
       const checkResponse = await fetch(
@@ -83,7 +82,6 @@ export async function POST(
       if (checkResponse.ok) {
         const currentPayment = await checkResponse.json();
         yookassaStatus = currentPayment.status;
-        console.log("[Cancel] Current YooKassa status:", paymentId, yookassaStatus);
       }
     }
 
@@ -106,7 +104,6 @@ export async function POST(
       message: "Payment canceled successfully",
     });
   } catch (e) {
-    console.error("[Cancel] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

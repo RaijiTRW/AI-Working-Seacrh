@@ -17,7 +17,6 @@ async function getPlatformVacancies(): Promise<MetadataRoute.Sitemap> {
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    console.warn("[Sitemap] Supabase env vars not set");
     return [];
   }
 
@@ -35,7 +34,6 @@ async function getPlatformVacancies(): Promise<MetadataRoute.Sitemap> {
     .limit(MAX_PLATFORM_VACANCIES);
 
   if (error) {
-    console.error("[Sitemap] Failed to fetch platform vacancies:", error);
     return [];
   }
 
@@ -53,7 +51,6 @@ async function getNetworkVacancies(): Promise<MetadataRoute.Sitemap> {
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    console.warn("[Sitemap] Supabase env vars not set");
     return [];
   }
 
@@ -71,7 +68,6 @@ async function getNetworkVacancies(): Promise<MetadataRoute.Sitemap> {
     .limit(MAX_NETWORK_VACANCIES);
 
   if (error) {
-    console.error("[Sitemap] Failed to fetch network vacancies:", error);
     return [];
   }
 

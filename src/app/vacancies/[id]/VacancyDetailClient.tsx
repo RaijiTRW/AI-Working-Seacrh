@@ -261,7 +261,6 @@ export default function VacancyDetailClient({ vacancyId, initialVacancy, isNetwo
                           }
                         } catch (err) {
                           if ((err as Error).name !== "AbortError") {
-                            console.error("Share failed:", err);
                           }
                         }
                       }}
@@ -381,7 +380,6 @@ export default function VacancyDetailClient({ vacancyId, initialVacancy, isNetwo
                     } catch (err) {
                       // User cancelled or error
                       if ((err as Error).name !== "AbortError") {
-                        console.error("Share failed:", err);
                       }
                     }
                   }}

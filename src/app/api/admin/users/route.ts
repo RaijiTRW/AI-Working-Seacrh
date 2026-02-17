@@ -52,7 +52,6 @@ export async function GET(request: NextRequest) {
     const { data: users, count, error } = await query;
 
     if (error) {
-      console.error("[Admin Users] Error:", error);
       return NextResponse.json({ users: [], total: 0, page, pages: 0 });
     }
 
@@ -75,7 +74,6 @@ export async function GET(request: NextRequest) {
       pages,
     });
   } catch (e) {
-    console.error("[Admin Users] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -100,7 +100,6 @@ export default function ChatPage() {
       if (error) throw error;
       setChats(data || []);
     } catch (err) {
-      console.error("Error loading chats:", err);
     } finally {
       setLoadingChats(false);
     }
@@ -126,7 +125,6 @@ export default function ChatPage() {
         }))
       );
     } catch (err) {
-      console.error("Error loading messages:", err);
     }
   }, []);
 
@@ -181,7 +179,6 @@ export default function ChatPage() {
       if (error) throw error;
       return data.id;
     } catch (err) {
-      console.error("Error creating chat:", err);
       return null;
     }
   };
@@ -201,7 +198,6 @@ export default function ChatPage() {
         vacancies: vacancies && vacancies.length > 0 ? vacancies : null,
       });
     } catch (err) {
-      console.error("Error saving message:", err);
     }
   };
 
@@ -422,10 +418,9 @@ export default function ChatPage() {
       }
       // Игнорируем ошибку если запрос был отменен
       if (error instanceof Error && error.name === 'AbortError') {
-        
+
         return;
       }
-      console.error("Error sending message:", error);
 
       const errorMessage: Message = {
         id: `assistant-${Date.now()}`,
@@ -605,10 +600,9 @@ export default function ChatPage() {
       }
       // Игнорируем ошибку если запрос был отменен
       if (error instanceof Error && error.name === 'AbortError') {
-        
+
         return;
       }
-      console.error("Error sending message:", error);
 
       const errorMessage: Message = {
         id: `assistant-${Date.now()}`,
@@ -671,7 +665,6 @@ export default function ChatPage() {
       // Обновляем список чатов
       loadChats();
     } catch (err) {
-      console.error("Error deleting chat:", err);
     } finally {
       setDeleteModalOpen(false);
       setChatToDelete(null);

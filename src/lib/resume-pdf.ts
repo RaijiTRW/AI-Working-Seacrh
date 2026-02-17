@@ -499,7 +499,6 @@ export async function exportResumeToPDF(
     const canvases = await renderResumeCanvases(element);
     saveCanvasesAsA4PDF(canvases, filename);
   } catch (error) {
-    console.error("PDF export error:", error);
     throw new Error("Failed to export PDF");
   }
 }
@@ -609,7 +608,6 @@ export async function exportResumeToPDFWithProgress(
       showPDFExportNotification();
     }, 500);
   } catch (error) {
-    console.error("PDF export error:", error);
     throw new Error("Failed to export PDF");
   }
 }

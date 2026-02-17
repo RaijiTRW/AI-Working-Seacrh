@@ -25,14 +25,12 @@ export async function GET(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[Get History] Backend error:", response.status, errorText);
       return NextResponse.json({ error: "Failed to get history" }, { status: response.status });
     }
 
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("[Get History] Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

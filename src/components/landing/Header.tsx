@@ -35,7 +35,6 @@ export default function Header() {
           setUnreadCount(data.count || 0);
         }
       } catch (err) {
-        console.error("Failed to fetch unread count:", err);
       }
     };
 

@@ -66,7 +66,6 @@ export async function PUT(
       .eq("id", settingId);
 
     if (error) {
-      console.error("[Update Setting] Error:", error);
       return NextResponse.json(
         { error: "Failed to update setting" },
         { status: 500 }
@@ -75,7 +74,6 @@ export async function PUT(
 
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error("[Update Setting] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

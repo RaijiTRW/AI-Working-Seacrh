@@ -25,7 +25,6 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[Support Chat Toggle] Backend error:", response.status, errorText);
       return NextResponse.json(
         { error: "Failed to toggle support chat" },
         { status: response.status }
@@ -39,7 +38,6 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[Support Chat Toggle] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

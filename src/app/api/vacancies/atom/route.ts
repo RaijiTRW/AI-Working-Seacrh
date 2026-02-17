@@ -102,7 +102,6 @@ async function getPlatformVacancies(
     .limit(MAX_ITEMS);
 
   if (error) {
-    console.error("[Atom Feed] Platform vacancies error:", error);
     return [];
   }
 
@@ -177,7 +176,6 @@ async function getNetworkVacancies(
     .limit(MAX_ITEMS);
 
   if (error) {
-    console.error("[Atom Feed] Network vacancies error:", error);
     return [];
   }
 
@@ -341,7 +339,6 @@ ${entries}
       },
     });
   } catch (error) {
-    console.error("[Atom Feed] Error:", error);
 
     // Return error Atom
     const errorAtom = `<?xml version="1.0" encoding="UTF-8"?>

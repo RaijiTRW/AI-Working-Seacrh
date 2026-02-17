@@ -34,7 +34,6 @@ export async function GET(req: NextRequest) {
       .eq("field", "resume_generate");
 
     if (countError) {
-      console.error("Count error:", countError);
       return NextResponse.json(
         { detail: "Ошибка при проверке лимита" },
         { status: 500 }
@@ -51,7 +50,6 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Limit check error:", error);
     return NextResponse.json(
       { detail: "Внутренняя ошибка сервера" },
       { status: 500 }

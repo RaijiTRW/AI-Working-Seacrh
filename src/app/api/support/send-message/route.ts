@@ -59,7 +59,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      console.error("[Send Message] Error:", error);
       return NextResponse.json(
         { error: "Failed to send message" },
         { status: 500 }
@@ -68,7 +67,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ message: newMessage });
   } catch (e) {
-    console.error("[Send Message] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

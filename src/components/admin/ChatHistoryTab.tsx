@@ -32,7 +32,6 @@ export default function ChatHistoryTab({ token }: Props) {
       setTotal(result.total);
       setPages(result.pages);
     } catch (e) {
-      console.error("Failed to fetch chats:", e);
     } finally {
       setLoading(false);
     }
@@ -46,7 +45,6 @@ export default function ChatHistoryTab({ token }: Props) {
       const result = await getAdminChatMessages(token, chat.id);
       setMessages(result.messages);
     } catch (e) {
-      console.error("Failed to fetch messages:", e);
       setMessages([]);
     } finally {
       setMessagesLoading(false);

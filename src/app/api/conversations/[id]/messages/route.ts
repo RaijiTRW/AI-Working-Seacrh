@@ -54,7 +54,6 @@ export async function GET(
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error("Get messages error:", error);
       return NextResponse.json(
         { detail: error.message },
         { status: 400 }
@@ -71,7 +70,6 @@ export async function GET(
       pages,
     });
   } catch (err) {
-    console.error("GET messages error:", err);
     return NextResponse.json(
       { detail: "Internal server error" },
       { status: 500 }
@@ -140,7 +138,6 @@ export async function POST(
       .single();
 
     if (messageError) {
-      console.error("Send message error:", messageError);
       return NextResponse.json(
         { detail: messageError.message },
         { status: 400 }
@@ -164,7 +161,6 @@ export async function POST(
 
     return NextResponse.json(message);
   } catch (err) {
-    console.error("POST message error:", err);
     return NextResponse.json(
       { detail: "Internal server error" },
       { status: 500 }

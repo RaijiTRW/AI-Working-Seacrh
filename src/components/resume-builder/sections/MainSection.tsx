@@ -53,7 +53,6 @@ export default function MainSection({
         setRemainingGenerations(data.remaining);
       }
     } catch (err) {
-      console.error("Failed to fetch limit:", err);
     } finally {
       setCheckingLimit(false);
     }

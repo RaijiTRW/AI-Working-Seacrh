@@ -28,7 +28,6 @@ export async function getAgentsStatus(token: string): Promise<AgentsStatus> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("[getAgentsStatus] Error:", response.status, errorText);
     throw new Error("Failed to fetch agents status");
   }
 
@@ -51,7 +50,6 @@ export async function toggleAgent(
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("[toggleAgent] Error:", response.status, errorText);
     throw new Error("Failed to toggle agent");
   }
 }
@@ -93,7 +91,6 @@ export async function toggleSupportChat(token: string, enabled: boolean): Promis
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("[toggleSupportChat] Error:", response.status, errorText);
     throw new Error("Failed to toggle support chat");
   }
 }

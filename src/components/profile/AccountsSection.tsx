@@ -74,7 +74,6 @@ function getUserLinkedAccounts(userEmail: string): LinkedAccount[] {
     const accounts = allAccounts[normalizedEmail] || [];
     return accounts;
   } catch (e) {
-    console.error("[Accounts] Error reading localStorage:", e);
     return [];
   }
 }
@@ -113,7 +112,6 @@ function setUserLinkedAccounts(userEmail: string, accounts: LinkedAccount[]) {
       localStorage.removeItem(LINKED_ACCOUNTS_KEY);
     }
   } catch (e) {
-    console.error("[Accounts] Error saving to localStorage:", e);
   }
 }
 
@@ -177,7 +175,6 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
             }
           }
         } catch (e) {
-          console.error("[Accounts] Error processing pending link:", e);
         }
         localStorage.removeItem(PENDING_GOOGLE_LINK_KEY);
         return;
@@ -331,7 +328,6 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
       // Redirect to chat
       router.push("/chat");
     } catch (err) {
-      console.error("[Accounts] Error:", err);
       setMessage({ type: "error", text: "Ошибка входа. Проверьте данные." });
       setLoading(false);
     }
@@ -357,7 +353,6 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
 
       if (error) {
         // Token expired, need to re-login
-        console.error("Session refresh failed:", error);
         setMessage({
           type: "error",
           text: "Сессия истекла. Удалите аккаунт и добавьте заново."
@@ -369,7 +364,6 @@ export default function AccountsSection({ currentEmail, onLogout }: AccountsSect
       // Redirect to chat
       router.push("/chat");
     } catch (err) {
-      console.error("Switch error:", err);
       setMessage({ type: "error", text: "Ошибка переключения" });
       setSwitchingTo(null);
     }

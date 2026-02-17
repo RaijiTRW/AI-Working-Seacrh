@@ -51,7 +51,6 @@ function EmailChangeConfirmationContent() {
 
         setLoading(false);
       } catch (err: any) {
-        console.error("Email change confirmation error:", err);
         setError(err?.message || "Ошибка подтверждения смены email");
         setLoading(false);
       }

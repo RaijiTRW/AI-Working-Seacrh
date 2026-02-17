@@ -21,7 +21,6 @@ export async function GET(req: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[Support Chat Status] Backend error:", response.status, errorText);
       return NextResponse.json(
         { error: "Failed to fetch support chat status" },
         { status: response.status }
@@ -43,7 +42,6 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[Support Chat Status] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

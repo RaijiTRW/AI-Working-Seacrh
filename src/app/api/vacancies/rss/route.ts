@@ -102,7 +102,6 @@ async function getPlatformVacancies(
     .limit(MAX_ITEMS);
 
   if (error) {
-    console.error("[RSS Feed] Platform vacancies error:", error);
     return [];
   }
 
@@ -176,7 +175,6 @@ async function getNetworkVacancies(
     .limit(MAX_ITEMS);
 
   if (error) {
-    console.error("[RSS Feed] Network vacancies error:", error);
     return [];
   }
 
@@ -322,7 +320,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[RSS Feed] Error:", error);
 
     // Return error RSS
     const errorRss = `<?xml version="1.0" encoding="UTF-8"?>

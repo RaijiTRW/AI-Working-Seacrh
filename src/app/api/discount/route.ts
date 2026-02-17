@@ -44,7 +44,6 @@ export async function GET() {
       discounted_price: discountedPrice,
     });
   } catch (e) {
-    console.error("[Discount API] Error:", e);
     return NextResponse.json({
       enabled: false,
       percent: 0,

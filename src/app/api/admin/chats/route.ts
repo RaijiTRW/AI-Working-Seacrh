@@ -48,7 +48,6 @@ export async function GET(request: NextRequest) {
     const { data: chats, count, error } = await query;
 
     if (error) {
-      console.error("[Admin Chats] Error:", error);
       return NextResponse.json({ chats: [], total: 0, page, pages: 0 });
     }
 
@@ -79,7 +78,6 @@ export async function GET(request: NextRequest) {
       pages,
     });
   } catch (e) {
-    console.error("[Admin Chats] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

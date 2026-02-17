@@ -104,13 +104,11 @@ async function callAI(message: string, needsAdmin: boolean): Promise<string> {
       const data = await response.json();
       return data.choices[0].message.content;
     } else {
-      console.error("[AI Chat] Error:", response.status, await response.text());
       return needsAdmin
         ? "Подключаю вас к администратору..."
         : "Извините, произошла ошибка. Попробуйте позже.";
     }
   } catch (e) {
-    console.error("[AI Chat] Exception:", e);
     return needsAdmin
       ? "Подключаю вас к администратору..."
       : "Извините, произошла ошибка. Попробуйте позже.";
@@ -139,7 +137,6 @@ export async function POST(request: NextRequest) {
       connect_to_admin: connectToAdmin
     });
   } catch (e) {
-    console.error("[AI Chat] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

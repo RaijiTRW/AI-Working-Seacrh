@@ -45,7 +45,6 @@ export function UpdateProvider({ children, checkInterval = 120000 }: UpdateProvi
         return await response.json();
       }
     } catch (error) {
-      console.warn("[UpdateProvider] Failed to fetch version:", error);
     }
     return null;
   };

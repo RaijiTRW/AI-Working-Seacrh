@@ -88,7 +88,6 @@ export async function getJobStates(token: string): Promise<Record<string, { is_p
 
   if (!response.ok) {
     // Если ошибка, возвращаем пустой объект (по умолчанию все активны)
-    console.error("Failed to fetch job states, using defaults");
     return {};
   }
 

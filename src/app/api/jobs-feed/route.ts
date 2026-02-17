@@ -26,7 +26,6 @@ export async function GET() {
       .limit(5000); // Limit for performance
 
     if (error) {
-      console.error("[GoogleJobsFeed] Error fetching vacancies:", error);
       return new NextResponse(generateErrorXml(), {
         status: 500,
         headers: {
@@ -45,7 +44,6 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error("[GoogleJobsFeed] Unexpected error:", error);
     return new NextResponse(generateErrorXml(), {
       status: 500,
       headers: {

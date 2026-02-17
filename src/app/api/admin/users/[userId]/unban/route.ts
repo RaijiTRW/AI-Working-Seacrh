@@ -34,7 +34,6 @@ export async function POST(
       .eq("user_id", userId);
 
     if (error) {
-      console.error("[Unban User] Error:", error);
       return NextResponse.json(
         { error: "Failed to unban user" },
         { status: 500 }
@@ -43,7 +42,6 @@ export async function POST(
 
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error("[Unban User] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -21,14 +21,12 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[Chat Message] Backend error:", response.status, errorText);
       return NextResponse.json({ error: "Failed to send message" }, { status: response.status });
     }
 
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("[Chat Message] Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

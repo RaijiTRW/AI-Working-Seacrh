@@ -353,7 +353,6 @@ export async function GET(
       }
     );
   } catch (error) {
-    console.error("[OG Image] Error:", error);
 
     // Return fallback image
     return new ImageResponse(

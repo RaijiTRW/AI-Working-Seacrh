@@ -86,7 +86,6 @@ export async function GET(request: NextRequest) {
       headers: buildProxyHeaders(contentType),
     });
   } catch (error) {
-    console.error("[ImageProxy] error:", error);
     return NextResponse.json({ error: "Image proxy failed" }, { status: 500 });
   }
 }

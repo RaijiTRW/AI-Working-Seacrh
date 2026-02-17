@@ -86,7 +86,6 @@ export async function GET(
 
     return NextResponse.json(receiptData);
   } catch (e) {
-    console.error("[Receipt] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -20,7 +20,6 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     if (error) {
-      console.error("[ResumeAPI] GET error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -52,7 +51,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ resume });
   } catch (error) {
-    console.error("[ResumeAPI] GET exception:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -110,7 +108,6 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) {
-        console.error("[ResumeAPI] UPDATE error:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
@@ -133,7 +130,6 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (error) {
-          console.error("[ResumeAPI] UPDATE error:", error);
           return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
@@ -147,7 +143,6 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (error) {
-          console.error("[ResumeAPI] INSERT error:", error);
           return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
@@ -176,9 +171,40 @@ export async function POST(request: NextRequest) {
       updated_at: result.updated_at,
     };
 
+    // Синхронизируем личные данные с таблицей profiles
+    try {
+      const profileData: any = {
+        user_id: userId,
+        updated_at: now,
+      };
+
+      // Извлекаем данные из резюме для синхронизации с профилем
+      if (resume_data.personal_info) {
+        if (resume_data.personal_info.first_name) profileData.first_name = resume_data.personal_info.first_name;
+        if (resume_data.personal_info.last_name) profileData.last_name = resume_data.personal_info.last_name;
+        if (resume_data.personal_info.middle_name) profileData.patronymic = resume_data.personal_info.middle_name;
+        if (resume_data.personal_info.birth_date) profileData.birth_date = resume_data.personal_info.birth_date;
+      }
+
+      if (resume_data.contacts) {
+        if (resume_data.contacts.phone) profileData.phone = resume_data.contacts.phone;
+        if (resume_data.contacts.city) profileData.city = resume_data.contacts.city;
+      }
+
+      // Upsert в таблицу profiles
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .upsert(profileData, { onConflict: "user_id" });
+
+      if (profileError) {
+        // Не прерываем операцию
+      }
+    } catch (syncError) {
+      // Не прерываем операцию
+    }
+
     return NextResponse.json({ resume, resume_id: result.id });
   } catch (error) {
-    console.error("[ResumeAPI] POST exception:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -211,13 +237,11 @@ export async function DELETE(request: NextRequest) {
       .eq("user_id", userId);
 
     if (error) {
-      console.error("[ResumeAPI] DELETE error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[ResumeAPI] DELETE exception:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

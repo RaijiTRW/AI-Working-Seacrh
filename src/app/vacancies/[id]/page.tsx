@@ -190,7 +190,6 @@ export default async function VacancyDetailPage({ params }: PageProps) {
     isNetwork = isNetworkVacancyId(vacancyId);
     vacancy = await getVacancy(vacancyId);
   } catch (error) {
-    console.error("Failed to fetch vacancy:", error);
     notFound();
   }
 
@@ -212,7 +211,6 @@ export default async function VacancyDetailPage({ params }: PageProps) {
   try {
     jsonLd = generateVacancyJSONLD(vacancy);
   } catch (error) {
-    console.error("Failed to generate JSON-LD:", error);
   }
 
   return (

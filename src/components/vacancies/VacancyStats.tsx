@@ -22,7 +22,6 @@ export default function VacancyStats({ total, activeSource, onSourceFilter }: Va
         const data = await getVacancyStats();
         setStats(data);
       } catch (error) {
-        console.error("Failed to fetch stats:", error);
       } finally {
         setLoading(false);
       }

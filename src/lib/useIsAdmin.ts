@@ -18,7 +18,6 @@ export function useIsAdmin() {
       }
 
       try {
-        console.log("🔍 Checking admin status for user:", user.id);
         const { data, error } = await supabase
           .from("profiles")
           .select("role")
@@ -26,16 +25,11 @@ export function useIsAdmin() {
           .maybeSingle();
 
         if (error) {
-          console.warn("❌ Could not check admin status:", error.message);
           setIsAdmin(false);
         } else {
-          console.log("✅ Profile data:", data);
-          console.log("👤 Role:", data?.role);
-          console.log("🔑 Is admin:", data?.role === "admin");
           setIsAdmin(data?.role === "admin");
         }
       } catch (err) {
-        console.warn("❌ Could not check admin status:", err);
         setIsAdmin(false);
       } finally {
         setLoading(false);

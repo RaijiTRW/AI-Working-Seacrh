@@ -13,7 +13,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (!YOOKASSA_SHOP_ID || !YOOKASSA_SECRET_KEY) {
-      console.error("[Extra] YooKassa not configured");
       return NextResponse.json(
         { error: "Payment system not configured" },
         { status: 500 }
@@ -102,7 +101,6 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error("[Extra] YooKassa error:", error);
       return NextResponse.json(
         { error: "Failed to create payment" },
         { status: 500 }
@@ -131,7 +129,6 @@ export async function POST(request: NextRequest) {
       payment_url: payment.confirmation.confirmation_url,
     });
   } catch (e) {
-    console.error("[Extra] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

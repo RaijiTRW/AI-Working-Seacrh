@@ -32,7 +32,6 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("[Admin Chats] Error:", error);
       return NextResponse.json({ chats: [] });
     }
 
@@ -97,7 +96,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ chats: sortedChats });
   } catch (e) {
-    console.error("[Admin Chats] Exception:", e);
     return NextResponse.json({ chats: [] });
   }
 }

@@ -35,7 +35,6 @@ export default function AutoUpdateProvider({
       try {
         localStorage.setItem(STORAGE_KEY, version);
       } catch (error) {
-        console.error("Failed to save client version:", error);
       }
     };
 
@@ -74,7 +73,6 @@ export default function AutoUpdateProvider({
           }
         }
       } catch (error) {
-        console.error("Failed to check for updates:", error);
       }
     };
 
@@ -102,7 +100,6 @@ export default function AutoUpdateProvider({
       try {
         localStorage.setItem(STORAGE_KEY, serverVersion);
       } catch (error) {
-        console.error("Failed to save client version:", error);
       }
     }
     // Перезагружаем страницу
@@ -115,7 +112,6 @@ export default function AutoUpdateProvider({
       try {
         localStorage.setItem(STORAGE_KEY, serverVersion);
       } catch (error) {
-        console.error("Failed to save client version:", error);
       }
     }
     setShowUpdate(false);

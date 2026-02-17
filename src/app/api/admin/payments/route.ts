@@ -72,7 +72,6 @@ export async function GET(request: NextRequest) {
     const { data, error, count } = await query;
 
     if (error) {
-      console.error("[Admin Payments] Error:", error);
       return NextResponse.json({ error: "Failed to fetch payments" }, { status: 500 });
     }
 
@@ -90,7 +89,7 @@ export async function GET(request: NextRequest) {
         .in("user_id", uniqueUserIds);
 
       if (profilesError) {
-        console.error("[Admin Payments] Profiles fetch error:", profilesError);
+        // Silently fail
       } else {
         profilesMap = new Map((profiles || []).map((profile) => [profile.user_id, profile as ProfileRow]));
       }
@@ -112,7 +111,6 @@ export async function GET(request: NextRequest) {
       pages,
     });
   } catch (e) {
-    console.error("[Admin Payments] Exception:", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

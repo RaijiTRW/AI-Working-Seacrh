@@ -73,7 +73,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (chatError || !newChat) {
-      console.error("[Contact Admin] Chat creation error:", chatError);
       return NextResponse.json(
         { error: "Failed to create support chat" },
         { status: 500 }
@@ -105,7 +104,6 @@ export async function POST(request: NextRequest) {
       is_existing: false,
     });
   } catch (e) {
-    console.error("[Contact Admin] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

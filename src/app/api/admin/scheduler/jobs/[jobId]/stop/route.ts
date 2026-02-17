@@ -24,7 +24,6 @@ export async function POST(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[Scheduler Stop] Backend error:", response.status, errorText);
       return NextResponse.json(
         { error: "Failed to stop job" },
         { status: response.status }
@@ -39,7 +38,6 @@ export async function POST(
       },
     });
   } catch (error) {
-    console.error("[Scheduler Stop] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

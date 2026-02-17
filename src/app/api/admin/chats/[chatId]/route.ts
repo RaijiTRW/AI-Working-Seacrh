@@ -50,7 +50,6 @@ export async function GET(
       .order("created_at", { ascending: true });
 
     if (messagesError) {
-      console.error("[Admin Chat Messages] Error:", messagesError);
       return NextResponse.json({ error: "Failed to fetch messages" }, { status: 500 });
     }
 
@@ -64,7 +63,6 @@ export async function GET(
       messages: messages || [],
     });
   } catch (e) {
-    console.error("[Admin Chat Messages] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

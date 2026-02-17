@@ -118,7 +118,6 @@ export default function AdminPage() {
       setUsers(result.users);
       setUsersTotal(result.total);
     } catch (e) {
-      console.error("Failed to fetch users:", e);
     }
   };
 
@@ -130,7 +129,6 @@ export default function AdminPage() {
       setPayments(result.payments || []);
       setPaymentsTotal(result.total || 0);
     } catch (e) {
-      console.error("Failed to fetch payments:", e);
     } finally {
       setPaymentsLoading(false);
     }
@@ -146,7 +144,6 @@ export default function AdminPage() {
       const supportChat = await getSupportChatStatus(token);
       setSupportChatStatus(supportChat);
     } catch (e) {
-      console.error("Failed to fetch settings:", e);
     }
   };
 
@@ -163,7 +160,6 @@ export default function AdminPage() {
       setBanReason("");
       fetchUsers();
     } catch (e) {
-      console.error("Failed to ban user:", e);
     }
   };
 
@@ -173,7 +169,6 @@ export default function AdminPage() {
       await unbanUser(token, userId);
       fetchUsers();
     } catch (e) {
-      console.error("Failed to unban user:", e);
     }
   };
 
@@ -191,7 +186,6 @@ export default function AdminPage() {
         await toggleUserVacancies(token, user.user_id);
         fetchUsers();
       } catch (e) {
-        console.error("Failed to unban vacancies:", e);
       }
     }
   };
@@ -208,7 +202,6 @@ export default function AdminPage() {
       setVacancyBanReason("");
       fetchUsers();
     } catch (e) {
-      console.error("Failed to ban vacancies:", e);
       alert("Ошибка при запрете вакансий");
     } finally {
       setVacancyBanLoading(false);
@@ -223,7 +216,6 @@ export default function AdminPage() {
       setSubscriptionType("base");
       fetchUsers();
     } catch (e) {
-      console.error("Failed to set subscription:", e);
     }
   };
 
@@ -251,7 +243,6 @@ export default function AdminPage() {
       const action = amount > 0 ? "Добавлено" : "Убавлено";
       alert(`${action} ${Math.abs(amount)} запросов для ${selectedUser.email}`);
     } catch (e) {
-      console.error("Failed to add requests:", e);
       alert("Ошибка при изменении запросов");
     }
   };
@@ -275,7 +266,6 @@ export default function AdminPage() {
       fetchUsers(); // Обновить список пользователей
       alert(`Использованные запросы сброшены для ${selectedUser.email}`);
     } catch (e) {
-      console.error("Failed to reset daily usage:", e);
       alert("Ошибка при сбросе использованных запросов");
     }
   };
@@ -287,7 +277,6 @@ export default function AdminPage() {
       await setUserRole(token, user.user_id, newRole);
       fetchUsers();
     } catch (e) {
-      console.error("Failed to set role:", e);
     }
   };
 
@@ -300,7 +289,6 @@ export default function AdminPage() {
         await fetchSettings();
       }
     } catch (e) {
-      console.error("Failed to update setting:", e);
       alert("Ошибка при обновлении настройки");
     }
   };
@@ -311,7 +299,6 @@ export default function AdminPage() {
       await toggleSupportChat(token, !supportChatStatus.enabled);
       await fetchSettings();
     } catch (e) {
-      console.error("Failed to toggle support chat:", e);
       alert("Ошибка при обновлении чата поддержки");
     }
   };
@@ -372,7 +359,6 @@ export default function AdminPage() {
     try {
       await navigator.clipboard.writeText(value);
     } catch (e) {
-      console.error("Failed to copy to clipboard:", e);
     }
   };
 
@@ -414,7 +400,6 @@ export default function AdminPage() {
       });
       fetchSettings();
     } catch (e) {
-      console.error("Failed to update price:", e);
     }
   };
 
@@ -433,7 +418,6 @@ export default function AdminPage() {
       });
       fetchSettings();
     } catch (e) {
-      console.error("Failed to update extra requests count:", e);
     }
   };
 
@@ -445,7 +429,6 @@ export default function AdminPage() {
       await updateDiscountSetting(token, setting.id, enabled, discountPercent);
       await fetchSettings();
     } catch (e) {
-      console.error("Failed to update discount:", e);
       alert("Ошибка при обновлении скидки");
     }
   };

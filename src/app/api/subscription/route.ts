@@ -274,7 +274,6 @@ export async function GET(request: NextRequest) {
       has_saved_payment_method: hasSavedPaymentMethod,
     });
   } catch (e) {
-    console.error("[Subscription] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

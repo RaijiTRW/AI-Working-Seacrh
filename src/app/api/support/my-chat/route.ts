@@ -57,7 +57,6 @@ export async function GET(request: NextRequest) {
       messages: messages || [],
     });
   } catch (e) {
-    console.error("[My Chat GET] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -102,7 +101,6 @@ export async function POST(request: NextRequest) {
       messages: messages || [],
     });
   } catch (e) {
-    console.error("[My Chat POST] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

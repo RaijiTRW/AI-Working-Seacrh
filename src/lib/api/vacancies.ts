@@ -199,7 +199,8 @@ export async function createVacancy(
     throw new Error(error.detail || "Failed to create vacancy");
   }
 
-  return response.json();
+  const data = await response.json();
+  return data;
 }
 
 /**
@@ -246,7 +247,8 @@ export async function publishVacancy(
   );
 
   if (!response.ok) {
-    throw new Error("Failed to publish vacancy");
+    const errorText = await response.text().catch(() => "Unknown error");
+    throw new Error(`Failed to publish vacancy: ${errorText}`);
   }
 
   return response.json();
@@ -270,7 +272,8 @@ export async function deleteVacancy(
   );
 
   if (!response.ok) {
-    throw new Error("Failed to delete vacancy");
+    const errorText = await response.text().catch(() => "Unknown error");
+    throw new Error(`Failed to delete vacancy: ${errorText}`);
   }
 }
 

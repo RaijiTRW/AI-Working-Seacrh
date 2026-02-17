@@ -144,28 +144,23 @@ export async function sendMessageStream(
               onText(data.content as string);
               break;
             case "vacancies":
-              console.log("Received vacancies:", data.content);
               onVacancies(data.content as Vacancy[]);
               break;
             case "vacancies_chunk":
               // Добавляем вакансии по частям (progressive loading)
-              console.log("Received vacancies chunk:", data.content);
               onVacancies(data.content as Vacancy[]);
               break;
             case "rejected_vacancies":
-              console.log("Received rejected vacancies:", data.content);
               onRejectedVacancies?.(data.content as Vacancy[]);
               break;
             case "progress":
-              // Сообщения о прогрессе загрузки (можно игнорировать или логировать)
-              console.log("Progress:", data.message);
+              // Сообщения о прогрессе загрузки (можно игнорировать)
               break;
             case "done":
               onDone(data.chat_id || "");
               break;
           }
         } catch (e) {
-          console.error("JSON parse error:", e, line);
         }
       }
     }

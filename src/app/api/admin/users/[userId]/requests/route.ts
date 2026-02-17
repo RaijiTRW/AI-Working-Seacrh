@@ -63,7 +63,6 @@ export async function POST(
 
     // If record doesn't exist, create it first
     if (checkError && checkError.code === 'PGRST116') {
-      console.log("[Add Requests] Record doesn't exist, creating...");
       const newBonus = amount > 0 ? amount : 0; // Can't have negative bonus if creating new
 
       const { error: insertError } = await supabase
@@ -77,7 +76,6 @@ export async function POST(
         });
 
       if (insertError) {
-        console.error("[Add Requests] Error creating record:", insertError);
         return NextResponse.json(
           { error: "Failed to create user request limits" },
           { status: 500 }
@@ -91,14 +89,12 @@ export async function POST(
     }
 
     if (checkError) {
-      console.error("[Add Requests] Error checking record:", checkError);
       return NextResponse.json(
         { error: "Database error" },
         { status: 500 }
       );
     }
 
-    console.log("[Add Requests] Current bonus_requests:", targetLimits?.bonus_requests);
 
     const currentBonus = targetLimits?.bonus_requests || 0;
     const newBonus = currentBonus + amount;
@@ -118,10 +114,8 @@ export async function POST(
       .eq("user_id", userId)
       .select();
 
-    console.log("[Add Requests] Update result:", { data: updateData, error: updateError, count });
 
     if (updateError) {
-      console.error("[Add Requests] Error updating bonus requests:", updateError);
       return NextResponse.json(
         { error: updateError.message || "Failed to add requests" },
         { status: 500 }
@@ -141,7 +135,6 @@ export async function POST(
       new_bonus: newBonus,
     });
   } catch (error) {
-    console.error("Error in add requests:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

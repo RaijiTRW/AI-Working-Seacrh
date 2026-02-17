@@ -24,7 +24,6 @@ export async function GET(req: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[Scheduler Volume] Backend error:", response.status, errorText);
       return NextResponse.json(
         { error: "Failed to fetch volume stats" },
         { status: response.status }
@@ -34,7 +33,6 @@ export async function GET(req: NextRequest) {
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("[Scheduler Volume] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -46,15 +46,7 @@ class Logger {
   }
 
   private logToConsole(level: LogLevel, message: string, meta?: any): void {
-    const color = colors[level];
-    const timestamp = new Date().toLocaleTimeString("ru-RU");
-    const prefix = `${color}[${timestamp}] [${level.toUpperCase()}]${colors.reset}`;
-
-    if (meta) {
-      console.log(prefix, message, meta);
-    } else {
-      console.log(prefix, message);
-    }
+    // Console logging disabled for security
   }
 
   info(message: string, meta?: any): void {

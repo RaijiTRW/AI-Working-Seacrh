@@ -14,7 +14,6 @@ export default function UpdateNotification() {
         setCurrentVersion(data.version);
       })
       .catch(() => {
-        console.warn("[UpdateNotification] Failed to fetch initial version");
       });
 
     // Проверяем обновления каждые 30 секунд
@@ -29,7 +28,6 @@ export default function UpdateNotification() {
           clearInterval(interval); // Останавливаем проверку
         }
       } catch (err) {
-        console.warn("[UpdateNotification] Failed to check version");
       }
     }, 30000); // 30 секунд
 

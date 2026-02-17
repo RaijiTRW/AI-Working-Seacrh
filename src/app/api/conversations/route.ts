@@ -32,7 +32,6 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error("Get conversations error:", error);
       return NextResponse.json(
         { detail: error.message },
         { status: 400 }
@@ -96,7 +95,6 @@ export async function GET(request: NextRequest) {
       pages,
     });
   } catch (err) {
-    console.error("GET /api/conversations error:", err);
     return NextResponse.json(
       { detail: "Internal server error" },
       { status: 500 }
@@ -192,7 +190,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (createError) {
-      console.error("Create conversation error:", createError);
       return NextResponse.json(
         { detail: createError.message },
         { status: 400 }
@@ -213,7 +210,6 @@ export async function POST(request: NextRequest) {
       created_at: newConv.created_at,
     });
   } catch (err) {
-    console.error("POST /api/conversations error:", err);
     return NextResponse.json(
       { detail: "Internal server error" },
       { status: 500 }

@@ -88,7 +88,6 @@ export async function POST(
 
     return NextResponse.json({ success: true, subscription_type });
   } catch (e) {
-    console.error("[Admin Subscription] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

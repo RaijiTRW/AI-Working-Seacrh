@@ -48,7 +48,6 @@ export default function ProfileSection({ userId, email }: ProfileSectionProps) {
         .single();
 
       if (error) {
-        console.error("Profile load error:", error);
         // PGRST116 = no rows returned, that's ok for new users
         if (error.code !== "PGRST116") {
           setMessage({ type: "error", text: `Ошибка загрузки: ${error.message}` });
@@ -67,7 +66,6 @@ export default function ProfileSection({ userId, email }: ProfileSectionProps) {
         });
       }
     } catch (err) {
-      console.error("Profile load exception:", err);
     } finally {
       setLoading(false);
     }
@@ -82,7 +80,6 @@ export default function ProfileSection({ userId, email }: ProfileSectionProps) {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError || !session) {
-        console.error("Session error:", sessionError);
         setMessage({ type: "error", text: "Сессия истекла. Пожалуйста, войдите заново." });
         setSaving(false);
         return;
@@ -90,7 +87,6 @@ export default function ProfileSection({ userId, email }: ProfileSectionProps) {
 
       // Проверяем что userId совпадает с текущим пользователем
       if (session.user.id !== userId) {
-        console.error("User ID mismatch:", { sessionUserId: session.user.id, propUserId: userId });
         setMessage({ type: "error", text: "Ошибка авторизации. Перезагрузите страницу." });
         setSaving(false);
         return;
@@ -114,18 +110,58 @@ export default function ProfileSection({ userId, email }: ProfileSectionProps) {
         .upsert(profileData, { onConflict: "user_id" });
 
       if (error) {
-        console.error("Upsert error:", {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint,
-        });
         throw new Error(error.message || error.code || "Ошибка сохранения");
+      }
+
+      // Синхронизируем данные с резюме
+      try {
+        // Получаем текущее резюме пользователя
+        const { data: existingResume } = await supabase
+          .from("resumes")
+          .select("id, personal_info, contacts")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (existingResume) {
+          // Подготавливаем данные для обновления резюме
+          const resumeUpdates: any = {
+            updated_at: new Date().toISOString(),
+          };
+
+          // Обновляем personal_info
+          const personalInfo = existingResume.personal_info || {};
+          resumeUpdates.personal_info = {
+            ...personalInfo,
+            first_name: profile.first_name || personalInfo.first_name || "",
+            last_name: profile.last_name || personalInfo.last_name || "",
+            middle_name: profile.patronymic || personalInfo.middle_name || "",
+            birth_date: profile.birth_date || personalInfo.birth_date || "",
+          };
+
+          // Обновляем contacts
+          const contacts = existingResume.contacts || {};
+          resumeUpdates.contacts = {
+            ...contacts,
+            phone: profile.phone || contacts.phone || "",
+            city: profile.city || contacts.city || "",
+          };
+
+          // Обновляем резюме
+          const { error: resumeError } = await supabase
+            .from("resumes")
+            .update(resumeUpdates)
+            .eq("id", existingResume.id);
+
+          if (resumeError) {
+            // Не прерываем операцию
+          }
+        }
+      } catch (syncError) {
+        // Не прерываем операцию
       }
 
       setMessage({ type: "success", text: "Профиль сохранён" });
     } catch (err: unknown) {
-      console.error("Save error:", err);
       let errorMessage = "Неизвестная ошибка";
 
       if (err instanceof Error) {

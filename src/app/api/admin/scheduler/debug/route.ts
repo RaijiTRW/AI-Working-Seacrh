@@ -119,7 +119,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(checks);
   } catch (error: any) {
-    console.error("[Scheduler Debug] Error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
       { status: 500 }
@@ -231,7 +230,6 @@ export async function POST(req: NextRequest) {
       message: "Sample data created. Refresh the page to see it.",
     });
   } catch (error: any) {
-    console.error("[Scheduler Debug POST] Error:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
       { status: 500 }

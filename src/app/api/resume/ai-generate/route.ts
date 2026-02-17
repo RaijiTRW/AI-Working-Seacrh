@@ -183,7 +183,6 @@ export async function POST(req: NextRequest) {
         .eq("field", "resume_generate");
 
       if (countError) {
-        console.error("Count error:", countError);
         return NextResponse.json(
           { detail: "Ошибка при проверке лимита" },
           { status: 500 }
@@ -237,7 +236,6 @@ export async function POST(req: NextRequest) {
     });
 
     if (!response.ok) {
-      console.error("AI API error:", await response.text());
       return NextResponse.json(
         { detail: "Ошибка AI сервиса. Попробуйте позже." },
         { status: 500 }
@@ -265,8 +263,6 @@ export async function POST(req: NextRequest) {
       }
       resumeData = JSON.parse(jsonContent);
     } catch (e) {
-      console.error("JSON parse error:", e);
-      console.error("Content:", content);
       return NextResponse.json(
         { detail: "Не удалось распарсить ответ AI. Попробуйте снова." },
         { status: 500 }
@@ -279,7 +275,7 @@ export async function POST(req: NextRequest) {
       field: "resume_generate",
       text_length: prompt.length,
       improved_length: JSON.stringify(resumeData).length,
-    }).then(() => {}, (err) => console.error("Failed to log AI usage:", err));
+    }).then(() => {}, (err) => {});
 
     const responseData: GenerateResponse = {
       resume: resumeData,
@@ -289,7 +285,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(responseData);
 
   } catch (error) {
-    console.error("AI generate error:", error);
     return NextResponse.json(
       { detail: "Внутренняя ошибка сервера" },
       { status: 500 }

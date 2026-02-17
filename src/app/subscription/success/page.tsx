@@ -67,7 +67,6 @@ function SuccessContent() {
       setStatus("canceled");
       setMessage("Платёж отменён");
     } catch (err) {
-      console.error("Cancel error:", err);
       // Всё равно показываем как отменённый
       setStatus("canceled");
       setMessage("Платёж отменён");
@@ -157,7 +156,6 @@ function SuccessContent() {
           setMessage("Платёж не удался. Попробуйте ещё раз.");
         }
       } catch (err) {
-        console.error("Payment check error:", err);
         if (isMounted) {
           setStatus("error");
           setMessage("Ошибка проверки платежа");
@@ -180,7 +178,6 @@ function SuccessContent() {
           }
         }
       } catch (err) {
-        console.error("Receipt load error:", err);
       } finally {
         if (isMounted) {
           setLoadingReceipt(false);

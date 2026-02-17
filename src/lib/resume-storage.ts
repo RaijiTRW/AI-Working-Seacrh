@@ -33,14 +33,12 @@ export function saveGuestResume(resume: Resume): void {
   try {
     localStorage.setItem(key, JSON.stringify(resume));
   } catch (error) {
-    console.error("[ResumeStorage] Failed to save resume:", error);
     // Если переполнение localStorage, пробуем очистить старые данные
     if (error instanceof DOMException && error.name === "QuotaExceededError") {
       clearOldGuestResumes();
       try {
         localStorage.setItem(key, JSON.stringify(resume));
       } catch (retryError) {
-        console.error("[ResumeStorage] Still failed after cleanup:", retryError);
       }
     }
   }
@@ -62,7 +60,6 @@ export function getGuestResume(guestId?: string): Resume | null {
     const resume = JSON.parse(data) as Resume;
     return resume;
   } catch (error) {
-    console.error("[ResumeStorage] Failed to load resume:", error);
     return null;
   }
 }
@@ -178,7 +175,6 @@ export function importResumeFromJSON(json: string): Resume | null {
     }
     return resume;
   } catch (error) {
-    console.error("[ResumeStorage] Failed to import resume:", error);
     return null;
   }
 }

@@ -38,7 +38,6 @@ export async function GET() {
       }
     );
   } catch (error) {
-    console.error("[Version] Error:", error);
     return NextResponse.json(
       { version: "unknown", timestamp: new Date().toISOString() },
       { status: 500 }

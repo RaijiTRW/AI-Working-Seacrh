@@ -123,10 +123,8 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
         .maybeSingle();
 
       if (error) {
-        console.error("Resume load error:", error);
         if (error.code !== "PGRST116") {
           // PGRST116 = no rows, that's ok
-          console.error("Error loading resume:", error.message);
         }
       }
 
@@ -172,10 +170,40 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
         });
         setLastSaved(new Date(data.updated_at));
       } else {
-        setResume(createEmptyResume());
+        // Резюме не существует - создаем новое с данными из профиля
+        const newResume = createEmptyResume();
+
+        // Загружаем данные из профиля пользователя
+        try {
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("first_name, last_name, patronymic, phone, city, birth_date")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          if (profileData) {
+            // Заполняем резюме данными из профиля
+            newResume.personal_info = {
+              first_name: profileData.first_name || "",
+              last_name: profileData.last_name || "",
+              middle_name: profileData.patronymic || "",
+              birth_date: profileData.birth_date || "",
+            };
+            newResume.contacts = {
+              email: "",
+              phone: profileData.phone || "",
+              city: profileData.city || "",
+              ready_to_relocate: false,
+              employment_type: [],
+            };
+          }
+        } catch (profileError) {
+          // Продолжаем с пустым резюме
+        }
+
+        setResume(newResume);
       }
     } catch (err) {
-      console.error("Resume load exception:", err);
     } finally {
       setLoading(false);
     }
@@ -220,13 +248,44 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
           .single();
 
         if (error) {
-          console.error("Supabase upsert error:", error);
           throw error;
         }
 
         // Обновляем id если это было новое резюме
         if (data?.id && !resume.id) {
           setResume((prev) => ({ ...prev, id: data.id }));
+        }
+
+        // Синхронизируем личные данные с таблицей profiles
+        try {
+          const profileData: any = {
+            user_id: user.id,
+            updated_at: now,
+          };
+
+          // Извлекаем данные из резюме для синхронизации с профилем
+          if (resume.personal_info) {
+            if (resume.personal_info.first_name) profileData.first_name = resume.personal_info.first_name;
+            if (resume.personal_info.last_name) profileData.last_name = resume.personal_info.last_name;
+            if (resume.personal_info.middle_name) profileData.patronymic = resume.personal_info.middle_name;
+            if (resume.personal_info.birth_date) profileData.birth_date = resume.personal_info.birth_date;
+          }
+
+          if (resume.contacts) {
+            if (resume.contacts.phone) profileData.phone = resume.contacts.phone;
+            if (resume.contacts.city) profileData.city = resume.contacts.city;
+          }
+
+          // Upsert в таблицу profiles
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .upsert(profileData, { onConflict: "user_id" });
+
+          if (profileError) {
+            // Не прерываем операцию
+          }
+        } catch (syncError) {
+          // Не прерываем операцию
         }
       } else {
         // Сохраняем в localStorage
@@ -236,7 +295,6 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
       setLastSaved(new Date());
       setResume(resumeToSave);
     } catch (err) {
-      console.error("Resume save error:", err);
     }
   }, [resume, user]);
 
@@ -289,7 +347,6 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
       document.getElementById("resume-preview") ||
       document.getElementById("resume-preview-mobile");
     if (!previewElement) {
-      console.error("Preview element not found");
       alert("Не удалось найти элемент для экспорта. Попробуйте перезагрузить страницу.");
       return;
     }
@@ -305,7 +362,6 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
 
       await exportResumeToPDF(previewElement as HTMLElement, fileName);
     } catch (error) {
-      console.error("PDF export failed:", error);
       alert("Не удалось экспортировать PDF. Пожалуйста, попробуйте еще раз.");
     } finally {
       setExportingPDF(false);

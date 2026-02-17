@@ -53,7 +53,6 @@ export default function SchedulerTab({ token }: SchedulerTabProps) {
       setHistory(historyData);
       setVolumeData(volumeDataResult);
     } catch (err) {
-      console.error("Error fetching scheduler data:", err);
       setError("Не удалось загрузить данные планировщика");
     } finally {
       setIsLoading(false);
@@ -74,7 +73,6 @@ export default function SchedulerTab({ token }: SchedulerTabProps) {
       await pauseJob(token, jobId);
       await fetchData();
     } catch (err) {
-      console.error("Error pausing job:", err);
       setError("Не удалось остановить задачу");
     } finally {
       setActionLoading(null);
@@ -87,7 +85,6 @@ export default function SchedulerTab({ token }: SchedulerTabProps) {
       await resumeJob(token, jobId);
       await fetchData();
     } catch (err) {
-      console.error("Error resuming job:", err);
       setError("Не удалось возобновить задачу");
     } finally {
       setActionLoading(null);
@@ -101,7 +98,6 @@ export default function SchedulerTab({ token }: SchedulerTabProps) {
       // Wait a bit for the job to start
       setTimeout(fetchData, 2000);
     } catch (err) {
-      console.error("Error triggering job:", err);
       setError("Не удалось запустить задачу");
     } finally {
       setActionLoading(null);
@@ -118,7 +114,6 @@ export default function SchedulerTab({ token }: SchedulerTabProps) {
       if (!response.ok) throw new Error("Failed to stop job");
       await fetchData();
     } catch (err) {
-      console.error("Error stopping job:", err);
       setError("Не удалось остановить задачу");
     } finally {
       setActionLoading(null);
@@ -136,7 +131,6 @@ export default function SchedulerTab({ token }: SchedulerTabProps) {
         setShowDebug(true);
       }
     } catch (err) {
-      console.error("Debug error:", err);
     }
   };
 
@@ -152,7 +146,6 @@ export default function SchedulerTab({ token }: SchedulerTabProps) {
         setShowDebug(false);
       }
     } catch (err) {
-      console.error("Create test data error:", err);
     } finally {
       setIsCreatingTestData(false);
     }

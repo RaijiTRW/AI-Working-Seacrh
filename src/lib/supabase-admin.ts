@@ -10,10 +10,6 @@ export function getSupabaseAdmin(): SupabaseClient {
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    console.error("Missing Supabase env vars:", {
-      hasUrl: !!supabaseUrl,
-      hasServiceKey: !!supabaseServiceKey,
-    });
     throw new Error("Supabase environment variables not configured");
   }
 
@@ -40,13 +36,11 @@ export async function getUserFromToken(request: NextRequest): Promise<string | n
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
-      console.error("Auth error:", error?.message);
       return null;
     }
 
     return user.id;
   } catch (err) {
-    console.error("getUserFromToken error:", err);
     return null;
   }
 }

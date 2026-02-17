@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
       .or(`applicant_id.eq.${userId},employer_id.eq.${userId}`);
 
     if (error) {
-      console.error("Get unread count error:", error);
       return NextResponse.json({ count: 0 });
     }
 
@@ -35,7 +34,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ count: totalUnread });
   } catch (err) {
-    console.error("GET unread error:", err);
     return NextResponse.json({ count: 0 });
   }
 }

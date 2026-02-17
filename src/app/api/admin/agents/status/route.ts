@@ -24,7 +24,6 @@ export async function GET(req: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[Agents Status] Backend error:", response.status, errorText);
       return NextResponse.json(
         { error: "Failed to fetch agents status" },
         { status: response.status }
@@ -41,7 +40,6 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[Agents Status] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -272,7 +272,6 @@ export async function addUserRequests(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: "Unknown error" }));
-    console.error("addUserRequests error:", error);
     throw new Error(error.error || "Failed to add requests");
   }
 }
@@ -293,7 +292,6 @@ export async function resetDailyUsage(
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: "Unknown error" }));
-    console.error("resetDailyUsage error:", error);
     throw new Error(error.error || "Failed to reset daily usage");
   }
 }
@@ -366,20 +364,13 @@ export async function updateDiscountSetting(
  */
 export async function checkIsAdmin(token: string): Promise<boolean> {
   try {
-    console.log("checkIsAdmin: calling", `${NEXT_API}/api/admin/stats`);
     const response = await fetch(`${NEXT_API}/api/admin/stats`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-    console.log("checkIsAdmin: response status", response.status);
-    if (!response.ok) {
-      const text = await response.text();
-      console.log("checkIsAdmin: error response", text);
-    }
     return response.ok;
   } catch (err) {
-    console.error("checkIsAdmin: exception", err);
     return false;
   }
 }

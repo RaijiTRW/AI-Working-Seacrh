@@ -95,6 +95,7 @@ export async function POST(
         requirements: vacancy.requirements,
         conditions: vacancy.conditions,
       }),
+      signal: AbortSignal.timeout(5000), // 5 second timeout
     });
 
     if (moderationResponse.ok) {
@@ -103,13 +104,13 @@ export async function POST(
       aiReason = moderationResult.reason || null;
     }
   } catch (moderationError) {
-    console.error("AI moderation error:", moderationError);
+    // Continue without AI moderation if it fails
   }
 
   // Ставим на модерацию админу
   const updateData: Record<string, unknown> = {
     status: "pending_review",
-    is_active: false,
+    is_active: true, // Keep active so it's visible in "My Vacancies"
     moderation_checked_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };

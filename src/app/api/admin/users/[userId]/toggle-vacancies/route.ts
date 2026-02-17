@@ -66,7 +66,6 @@ export async function POST(
       .eq("user_id", userId);
 
     if (profileError) {
-      console.error("[Toggle Vacancies] Profile update error:", profileError);
       return NextResponse.json(
         { error: "Failed to toggle vacancies" },
         { status: 500 }
@@ -86,9 +85,7 @@ export async function POST(
         .select("id");
 
       if (vacError) {
-        console.error("[Toggle Vacancies] Deactivate vacancies error:", vacError);
       } else {
-        console.log(`[Toggle Vacancies] Deactivated ${deactivated?.length || 0} vacancies for user ${userId}`);
       }
     }
 
@@ -98,7 +95,6 @@ export async function POST(
       reason: !newValue ? (reason || "Нарушение правил публикации вакансий") : null,
     });
   } catch (e) {
-    console.error("[Toggle Vacancies] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

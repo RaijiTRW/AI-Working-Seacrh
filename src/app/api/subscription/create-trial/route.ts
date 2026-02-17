@@ -36,7 +36,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (subError) {
-      console.error("[Create Trial] Sub error:", subError);
       return NextResponse.json(
         { error: "Failed to create trial" },
         { status: 500 }
@@ -55,12 +54,10 @@ export async function POST(request: NextRequest) {
       });
 
     if (limitsError) {
-      console.error("[Create Trial] Limits error:", limitsError);
     }
 
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error("[Create Trial] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -73,7 +73,6 @@ export default function VacanciesPageClient() {
       setPage(result.page);
       setHasNext(result.has_next);
     } catch (error) {
-      console.error("Failed to fetch vacancies:", error);
     } finally {
       setLoading(false);
     }

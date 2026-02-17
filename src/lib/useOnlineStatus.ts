@@ -24,7 +24,6 @@ export function useOnlineStatus() {
         }
       } catch (e) {
         // Silently fail - offline status is not critical
-        console.debug("[useOnlineStatus] Failed to update:", e);
       }
     };
 

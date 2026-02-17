@@ -24,14 +24,12 @@ export async function GET(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[Get Preferences] Backend error:", response.status, errorText);
       return NextResponse.json({ error: "Failed to get preferences" }, { status: response.status });
     }
 
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("[Get Preferences] Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

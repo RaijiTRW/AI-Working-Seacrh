@@ -76,14 +76,12 @@ export default function PersonalInfoSection({ data, onChange, userId }: Personal
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: "Unknown error" }));
-        console.error("Upload failed:", response.status, errorData);
         throw new Error(errorData.detail || "Не удалось загрузить фото");
       }
 
       const result = await response.json();
       onChange("photo_url", result.url);
     } catch (error) {
-      console.error("Upload error:", error);
       alert(error instanceof Error ? error.message : "Не удалось загрузить фото. Попробуйте еще раз.");
       setPreviewUrl(data.photo_url || null);
     } finally {

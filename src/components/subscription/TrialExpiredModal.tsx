@@ -121,7 +121,6 @@ export function TrialExpiredModal({
         alert("Не удалось продлить. Попробуйте оплатить заново.");
       }
     } catch (error) {
-      console.error("Manual renewal error:", error);
       alert("Произошла ошибка. Попробуйте позже.");
     } finally {
       setIsManualRenewing(false);

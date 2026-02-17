@@ -21,7 +21,6 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[Chat Message Stream] Backend error:", response.status, errorText);
       return new Response(JSON.stringify({ error: "Failed to send message" }), {
         status: response.status,
         headers: { "Content-Type": "application/json" },
@@ -36,7 +35,6 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[Chat Message Stream] Error:", error);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

@@ -32,7 +32,6 @@ export async function GET(req: NextRequest) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[Job State] Supabase error:", response.status, errorText);
       return NextResponse.json(
         { error: "Failed to fetch job state" },
         { status: response.status }
@@ -56,7 +55,6 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[Job State] Error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

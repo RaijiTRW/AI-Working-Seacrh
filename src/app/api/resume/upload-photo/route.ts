@@ -13,7 +13,6 @@ async function ensureBucketExists() {
   const bucketExists = buckets?.some(b => b.name === BUCKET_NAME);
 
   if (!bucketExists) {
-    console.log(`Creating bucket: ${BUCKET_NAME}`);
     const { error } = await supabase.storage.createBucket(BUCKET_NAME, {
       public: true,
       fileSizeLimit: 5 * 1024 * 1024, // 5MB
@@ -21,7 +20,6 @@ async function ensureBucketExists() {
     });
 
     if (error) {
-      console.error("Error creating bucket:", error);
       // Не бросаем ошибку, возможно bucket уже создан вручную
     } else {
       // Делаем bucket публичным
@@ -46,7 +44,6 @@ export async function POST(req: NextRequest) {
     const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      console.log("Upload photo - No auth header");
       return NextResponse.json(
         { detail: "Не авторизован" },
         { status: 401 }
@@ -59,10 +56,7 @@ export async function POST(req: NextRequest) {
     const supabase = await createServerClient();
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
-    console.log("Upload photo - Auth check:", { error, user: user?.id });
-
     if (error || !user) {
-      console.log("Upload photo - Auth failed:", error);
       return NextResponse.json(
         { detail: "Не авторизован" },
         { status: 401 }
@@ -118,7 +112,6 @@ export async function POST(req: NextRequest) {
       });
 
     if (uploadError) {
-      console.error("Upload error:", uploadError);
       return NextResponse.json(
         { detail: "Не удалось загрузить файл" },
         { status: 500 }
@@ -138,7 +131,6 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Upload photo error:", error);
     return NextResponse.json(
       { detail: "Внутренняя ошибка сервера" },
       { status: 500 }

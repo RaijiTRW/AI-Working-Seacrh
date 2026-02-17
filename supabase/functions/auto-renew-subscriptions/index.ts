@@ -41,7 +41,6 @@ serve(async (req) => {
     );
 
     const now = new Date();
-    console.log("[Auto-renew] Starting at " + now.toISOString());
 
     // Find expired Pro subscriptions from last 12 hours
     const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString();
@@ -55,7 +54,6 @@ serve(async (req) => {
       .order("expires_at", { ascending: true });
 
     if (subsError) {
-      console.error("[Auto-renew] DB error:", subsError);
       return new Response(JSON.stringify({ error: "Database error" }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
@@ -63,7 +61,6 @@ serve(async (req) => {
     }
 
     if (!expiredSubs || expiredSubs.length === 0) {
-      console.log("[Auto-renew] No expired subs found");
       return new Response(JSON.stringify({
         success: true,
         processed: 0,
@@ -72,8 +69,6 @@ serve(async (req) => {
         headers: { "Content-Type": "application/json" },
       });
     }
-
-    console.log("[Auto-renew] Found " + expiredSubs.length + " expired subscriptions");
 
     let processed = 0;
     let succeeded = 0;
@@ -97,17 +92,13 @@ serve(async (req) => {
 
       const retryCount = existingAttempt?.retry_count || 0;
 
-      console.log("[Auto-renew] User: " + userId + ", expired: " + hoursSinceExpiry.toFixed(1) + "h ago, retries: " + retryCount);
-
       // Skip if less than 6 hours since expiry
       if (hoursSinceExpiry < 6) {
-        console.log("[Auto-renew] Skipping " + userId + " - too soon");
         continue;
       }
 
       // After 2 failed attempts or 12 hours - downgrade to base
       if (retryCount >= 2 || hoursSinceExpiry >= 12) {
-        console.log("[Auto-renew] Downgrading " + userId + " - max retries or 12h passed");
         await downgradeToBase(supabase, userId);
         downgraded++;
         results.push({ user_id: userId, success: false, action: "downgraded" });
@@ -124,7 +115,6 @@ serve(async (req) => {
       const paymentMethodId = (profile as unknown as Profile)?.yookassa_payment_method_id;
 
       if (!paymentMethodId) {
-        console.log("[Auto-renew] Skipping " + userId + " - no payment method, will downgrade");
         await downgradeToBase(supabase, userId);
         downgraded++;
         results.push({ user_id: userId, success: false, action: "downgraded", error: "No payment method" });
@@ -144,7 +134,6 @@ serve(async (req) => {
         .maybeSingle();
 
       if (recentPayment?.status === "succeeded") {
-        console.log("[Auto-renew] Skipping " + userId + " - recent success found");
         continue;
       }
 
@@ -178,7 +167,6 @@ serve(async (req) => {
 
         if (!paymentResponse.ok) {
           const errorText = await paymentResponse.text();
-          console.error("[Auto-renew] YooKassa error for " + userId + ":", errorText);
           await incrementRetries(supabase, userId, retryCount + 1);
           failed++;
           results.push({ user_id: userId, success: false, action: "payment_failed" });
@@ -219,28 +207,22 @@ serve(async (req) => {
 
           await supabase.from("renewal_attempts").delete().eq("user_id", userId);
 
-          console.log("[Auto-renew] SUCCESS for user: " + userId);
           succeeded++;
           results.push({ user_id: userId, success: true, action: "renewed" });
         } else if (payment.status === "pending") {
-          console.log("[Auto-renew] PENDING for user: " + userId);
           succeeded++;
           results.push({ user_id: userId, success: true, action: "pending" });
         } else {
-          console.error("[Auto-renew] FAILED for user: " + userId + ", status: " + payment.status);
           await incrementRetries(supabase, userId, retryCount + 1);
           failed++;
           results.push({ user_id: userId, success: false, action: "payment_failed", error: "Payment " + payment.status });
-        }
-      } catch (err) {
-        console.error("[Auto-renew] Exception for user " + userId + ":", err);
+      }
+    } catch (err) {
         await incrementRetries(supabase, userId, retryCount + 1);
         failed++;
         results.push({ user_id: userId, success: false, action: "exception", error: "Exception" });
       }
     }
-
-    console.log("[Auto-renew] Completed: processed=" + processed + ", succeeded=" + succeeded + ", failed=" + failed + ", downgraded=" + downgraded);
 
     return new Response(JSON.stringify({
       success: true,
@@ -253,7 +235,6 @@ serve(async (req) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("[Auto-renew] Exception:", e);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

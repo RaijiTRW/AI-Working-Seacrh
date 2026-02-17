@@ -12,7 +12,6 @@ export default function Error({
 }) {
   useEffect(() => {
     // Логируем ошибку для отладки
-    console.error("[Error Page]", error);
   }, [error]);
 
   return (

@@ -29,13 +29,11 @@ export async function GET(request: NextRequest) {
       .select("*");
 
     if (error) {
-      console.error("[Admin Settings] Error:", error);
       return NextResponse.json({ settings: [] });
     }
 
     return NextResponse.json({ settings: settings || [] });
   } catch (e) {
-    console.error("[Admin Settings] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

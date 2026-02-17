@@ -50,7 +50,6 @@ export async function POST(
       .eq("id", conversationId);
 
     if (updateError) {
-      console.error("Mark as read error:", updateError);
       return NextResponse.json(
         { detail: updateError.message },
         { status: 400 }
@@ -65,12 +64,10 @@ export async function POST(
       .neq("sender_id", userId);
 
     if (messagesError) {
-      console.error("Mark messages as read error:", messagesError);
     }
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("POST read error:", err);
     return NextResponse.json(
       { detail: "Internal server error" },
       { status: 500 }

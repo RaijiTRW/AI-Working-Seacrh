@@ -56,7 +56,7 @@ export function useSubscription(): UseSubscriptionReturn {
 
       // Логируем только один раз
       if (retryCount.current === 1) {
-        console.warn("[useSubscription] API недоступен, оставляем последнее корректное состояние");
+        // Silently fail
       }
 
       // Не подменяем подписку на Base при сетевой/серверной ошибке,
@@ -95,7 +95,6 @@ export function useSubscription(): UseSubscriptionReturn {
       await fetchSubscription();
       return true;
     } catch (err) {
-      console.error("[useSubscription] manual renewal error:", err);
       setError(err instanceof Error ? err.message : "Ошибка продления");
       return false;
     }
@@ -131,7 +130,6 @@ export function useSubscription(): UseSubscriptionReturn {
       const result = await createSubscriptionCheckout(session.access_token);
       return result.payment_url;
     } catch (err) {
-      console.error("[useSubscription] checkout error:", err);
       setError(err instanceof Error ? err.message : "Ошибка создания платежа");
       return null;
     }
@@ -149,7 +147,6 @@ export function useSubscription(): UseSubscriptionReturn {
       const result = await buyExtraRequests(session.access_token);
       return result.payment_url;
     } catch (err) {
-      console.error("[useSubscription] buyExtra error:", err);
       setError(err instanceof Error ? err.message : "Ошибка создания платежа");
       return null;
     }
@@ -168,7 +165,6 @@ export function useSubscription(): UseSubscriptionReturn {
       await fetchSubscription();
       return true;
     } catch (err) {
-      console.error("[useSubscription] initTrial error:", err);
       setError(err instanceof Error ? err.message : "Ошибка создания триала");
       return false;
     }
@@ -187,7 +183,6 @@ export function useSubscription(): UseSubscriptionReturn {
       await fetchSubscription();
       return true;
     } catch (err) {
-      console.error("[useSubscription] cancelAutoRenewal error:", err);
       setError(err instanceof Error ? err.message : "Ошибка отмены автопродления");
       return false;
     }

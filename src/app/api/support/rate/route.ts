@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
       .eq("id", chat_id);
 
     if (error) {
-      console.error("[Rate Chat] Error:", error);
       return NextResponse.json(
         { error: "Failed to rate chat" },
         { status: 500 }
@@ -62,7 +61,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error("[Rate Chat] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

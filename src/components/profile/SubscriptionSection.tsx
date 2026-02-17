@@ -86,9 +86,6 @@ export default function SubscriptionSection() {
 
       if (!response.ok) {
         alert(data.error || "Не удалось включить автопродление");
-        if (data.details) {
-          console.error("Payment error details:", data.details);
-        }
         return;
       }
 
@@ -97,7 +94,6 @@ export default function SubscriptionSection() {
         window.location.href = data.payment_url;
       }
     } catch (error) {
-      console.error("Enable auto-renewal error:", error);
       alert("Произошла ошибка. Попробуйте позже.");
     } finally {
       setEnablingAutoRenew(false);

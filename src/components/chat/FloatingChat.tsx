@@ -227,7 +227,6 @@ export default function FloatingChat() {
           setSupportChatEnabled(data.enabled);
         }
       } catch (e) {
-        console.error("Failed to fetch support chat status:", e);
       }
     };
 
@@ -274,7 +273,6 @@ export default function FloatingChat() {
         setQuickQuestions(data.questions.filter((q: QuickQuestion) => q.prompt !== "ADMIN_CONTACT"));
       }
     } catch (e) {
-      console.error("Failed to fetch quick questions:", e);
     }
   };
 
@@ -316,7 +314,6 @@ export default function FloatingChat() {
 
       setChatSessions(sessions);
     } catch (e) {
-      console.error("Failed to fetch chat history:", e);
     }
   };
 
@@ -374,7 +371,6 @@ export default function FloatingChat() {
         }
       }
     } catch (e) {
-      console.error("Failed to fetch support messages:", e);
     }
   };
 
@@ -438,7 +434,6 @@ export default function FloatingChat() {
         await fetchSupportMessages();
       }
     } catch (e) {
-      console.error("Failed to contact admin:", e);
     } finally {
       setIsLoading(false);
     }
@@ -494,7 +489,6 @@ export default function FloatingChat() {
 
       await fetchSupportMessages();
     } catch (e) {
-      console.error("Failed to send support message:", e);
     } finally {
       setIsLoading(false);
     }
@@ -555,7 +549,6 @@ export default function FloatingChat() {
         }
       }
     } catch (e) {
-      console.error("Failed to send to AI:", e);
       const errorMsg: Message = {
         id: Date.now().toString() + "-err",
         role: "assistant",
@@ -590,7 +583,6 @@ export default function FloatingChat() {
       // После оценки переключаемся обратно на AI режим
       switchToAIMode();
     } catch (e) {
-      console.error("Failed to submit rating:", e);
     }
   };
 

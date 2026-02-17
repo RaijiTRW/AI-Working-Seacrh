@@ -38,7 +38,6 @@ export async function POST(request: NextRequest) {
       .select();
 
     if (error) {
-      console.error("[Restore Payment] Error:", error);
       return NextResponse.json({ error: "Failed to restore payment" }, { status: 500 });
     }
 
@@ -54,7 +53,6 @@ export async function POST(request: NextRequest) {
       message: "Payment restored successfully"
     });
   } catch (e) {
-    console.error("[Restore Payment] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -87,7 +85,6 @@ export async function GET(request: NextRequest) {
       .limit(100);
 
     if (error) {
-      console.error("[Get Cancelled Payments] Error:", error);
       return NextResponse.json({ error: "Failed to fetch payments" }, { status: 500 });
     }
 
@@ -96,7 +93,6 @@ export async function GET(request: NextRequest) {
       count: data?.length || 0
     });
   } catch (e) {
-    console.error("[Get Cancelled Payments] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

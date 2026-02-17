@@ -107,7 +107,6 @@ export default function SupportChatTab({ token }: Props) {
         }
       }
     } catch (e) {
-      console.error("Failed to fetch chats:", e);
     }
   };
 
@@ -125,7 +124,6 @@ export default function SupportChatTab({ token }: Props) {
         }
       }
     } catch (e) {
-      console.error("Failed to fetch chat messages:", e);
     }
   };
 
@@ -155,7 +153,6 @@ export default function SupportChatTab({ token }: Props) {
         await fetchChatMessages(selectedChat.id);
       }
     } catch (e) {
-      console.error("Failed to send message:", e);
     } finally {
       setIsLoading(false);
     }
@@ -179,7 +176,6 @@ export default function SupportChatTab({ token }: Props) {
         await fetchChats();
       }
     } catch (e) {
-      console.error("Failed to close chat:", e);
     } finally {
       setIsLoading(false);
     }

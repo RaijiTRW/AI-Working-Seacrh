@@ -12,7 +12,6 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     // Логируем критическую ошибку
-    console.error("[Global Error]", error);
   }, [error]);
 
   return (

@@ -22,13 +22,11 @@ export async function DELETE(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[Delete Chat] Backend error:", response.status, errorText);
       return NextResponse.json({ error: "Failed to delete chat" }, { status: response.status });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("[Delete Chat] Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

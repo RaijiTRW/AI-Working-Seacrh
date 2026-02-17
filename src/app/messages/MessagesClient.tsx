@@ -105,7 +105,6 @@ export default function MessagesPage() {
           return hasChanges ? newMessages : prev;
         });
       } catch (error) {
-        console.error("Failed to poll messages:", error);
       }
     };
 
@@ -120,7 +119,6 @@ export default function MessagesPage() {
       const result = await getConversations(token);
       setConversations(result.conversations);
     } catch (error) {
-      console.error("Failed to load conversations:", error);
     } finally {
       setLoading(false);
     }
@@ -137,7 +135,6 @@ export default function MessagesPage() {
       // Remove vacancy param from URL
       router.replace("/messages");
     } catch (error) {
-      console.error("Failed to create conversation:", error);
       alert("Не удалось создать чат");
     }
   };
@@ -151,7 +148,6 @@ export default function MessagesPage() {
       // Mark messages as read
       markAsRead(conversationId);
     } catch (error) {
-      console.error("Failed to load messages:", error);
     }
   };
 
@@ -176,7 +172,6 @@ export default function MessagesPage() {
         })
       );
     } catch (error) {
-      console.error("Failed to mark as read:", error);
     }
   };
 
@@ -195,7 +190,6 @@ export default function MessagesPage() {
       setNewMessage("");
       loadConversations(); // Update last message in list
     } catch (error) {
-      console.error("Failed to send message:", error);
       alert("Не удалось отправить сообщение");
     } finally {
       setSending(false);

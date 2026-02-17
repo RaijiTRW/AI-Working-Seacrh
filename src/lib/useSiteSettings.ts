@@ -31,7 +31,6 @@ export function useSiteSettings() {
           .select("id, value");
 
         if (error) {
-          console.error("Failed to fetch site settings:", error);
           setSettings(defaultSettings);
           return;
         }
@@ -50,7 +49,6 @@ export function useSiteSettings() {
           });
         }
       } catch (err) {
-        console.error("Error fetching site settings:", err);
         setSettings(defaultSettings);
       } finally {
         setLoading(false);

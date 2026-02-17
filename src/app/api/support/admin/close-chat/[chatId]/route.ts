@@ -62,7 +62,6 @@ export async function POST(
       .eq("id", chatId);
 
     if (error) {
-      console.error("[Admin Close Chat] Error:", error);
       return NextResponse.json(
         { error: "Failed to close chat" },
         { status: 500 }
@@ -71,7 +70,6 @@ export async function POST(
 
     return NextResponse.json({ success: true });
   } catch (e) {
-    console.error("[Admin Close Chat] Exception:", e);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

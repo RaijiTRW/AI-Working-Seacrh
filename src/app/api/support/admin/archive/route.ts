@@ -33,7 +33,6 @@ export async function GET(request: NextRequest) {
       .limit(50);
 
     if (error) {
-      console.error("[Admin Archive] Error:", error);
       return NextResponse.json({ chats: [] });
     }
 
@@ -66,7 +65,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ chats: enrichedChats });
   } catch (e) {
-    console.error("[Admin Archive] Exception:", e);
     return NextResponse.json({ chats: [] });
   }
 }
