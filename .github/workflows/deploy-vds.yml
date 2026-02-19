@@ -10,7 +10,20 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to VDS
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VDS via rsync
+        uses: burnett01/rsync-deployments@6.0.0
+        with:
+          switches: -avzr --delete --exclude='.env*' --exclude='node_modules/' --exclude='.next/' --exclude='logs/'
+          path: /
+          remote_path: /var/www/jobaisearch
+          remote_host: ${{ secrets.VDS_HOST }}
+          remote_user: ${{ secrets.VDS_USERNAME }}
+          remote_key: ${{ secrets.VDS_SSH_KEY }}
+
+      - name: Install dependencies and build on VDS
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VDS_HOST }}
@@ -21,10 +34,6 @@ jobs:
           script_stop: true
           script: |
             cd /var/www/jobaisearch
-            echo "Pulling latest changes..."
-            git fetch origin main
-            git reset --hard origin/main
-            git clean -fd
 
             echo "Installing dependencies..."
             npm ci
@@ -33,7 +42,7 @@ jobs:
             npm run build
 
             echo "Restarting PM2..."
-            pm2 restart jobaisearch
+            pm2 restart jobaisearch || pm2 start npm --name "jobaisearch" -- start
 
             echo "Deployment complete!"
             pm2 status
