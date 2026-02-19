@@ -1,0 +1,39 @@
+name: Deploy to VDS (jobaisearch.ru)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VDS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VDS_HOST }}
+          username: ${{ secrets.VDS_USERNAME }}
+          key: ${{ secrets.VDS_SSH_KEY }}
+          port: 22
+          command_timeout: 30m
+          script_stop: true
+          script: |
+            cd /var/www/jobaisearch
+            echo "Pulling latest changes..."
+            git fetch origin main
+            git reset --hard origin/main
+            git clean -fd
+
+            echo "Installing dependencies..."
+            npm ci
+
+            echo "Building project..."
+            npm run build
+
+            echo "Restarting PM2..."
+            pm2 restart jobaisearch
+
+            echo "Deployment complete!"
+            pm2 status
