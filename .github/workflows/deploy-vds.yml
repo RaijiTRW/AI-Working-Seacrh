@@ -40,39 +40,10 @@ jobs:
             # Ensure logs directory exists
             mkdir -p logs
 
-            # Create ecosystem config for VDS
-            cat > ecosystem.vds.config.js << 'EOF'
-            module.exports = {
-              apps: [{
-                name: 'jobaisearch',
-                script: 'node_modules/next/dist/bin/next',
-                args: 'start',
-                cwd: '/var/www/jobaisearch',
-                instances: 2,
-                exec_mode: 'cluster',
-                env: {
-                  NODE_ENV: 'production',
-                  PORT: 3000,
-                },
-                kill_timeout: 10000,
-                wait_ready: true,
-                listen_timeout: 15000,
-                autorestart: true,
-                max_restarts: 10,
-                min_uptime: '10s',
-                error_file: '/var/www/jobaisearch/logs/error.log',
-                out_file: '/var/www/jobaisearch/logs/out.log',
-                log_date_format: 'YYYY-MM-DD HH:mm:ss',
-                merge_logs: true,
-              }],
-            };
-            EOF
-
             echo "📦 Installing dependencies..."
             npm ci --prefer-offline --no-audit --no-fund
 
-            echo "🔨 Building project (background process)..."
-            # Build in background while app continues serving
+            echo "🔨 Building project..."
             NODE_ENV=production npm run build
 
             echo "🔄 Starting or updating PM2 cluster..."
