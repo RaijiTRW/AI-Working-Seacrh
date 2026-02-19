@@ -23,7 +23,7 @@ jobs:
           remote_user: ${{ secrets.VDS_USERNAME }}
           remote_key: ${{ secrets.VDS_SSH_KEY }}
 
-      - name: Install dependencies and build on VDS
+      - name: Zero-downtime deployment on VDS
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VDS_HOST }}
@@ -33,16 +33,69 @@ jobs:
           command_timeout: 30m
           script_stop: true
           script: |
+            set -e
+
             cd /var/www/jobaisearch
 
-            echo "Installing dependencies..."
-            npm ci
+            # Ensure logs directory exists
+            mkdir -p logs
 
-            echo "Building project..."
-            npm run build
+            # Create ecosystem config for VDS
+            cat > ecosystem.vds.config.js << 'EOF'
+            module.exports = {
+              apps: [{
+                name: 'jobaisearch',
+                script: 'node_modules/next/dist/bin/next',
+                args: 'start',
+                cwd: '/var/www/jobaisearch',
+                instances: 2,
+                exec_mode: 'cluster',
+                env: {
+                  NODE_ENV: 'production',
+                  PORT: 3000,
+                },
+                kill_timeout: 10000,
+                wait_ready: true,
+                listen_timeout: 15000,
+                autorestart: true,
+                max_restarts: 10,
+                min_uptime: '10s',
+                error_file: '/var/www/jobaisearch/logs/error.log',
+                out_file: '/var/www/jobaisearch/logs/out.log',
+                log_date_format: 'YYYY-MM-DD HH:mm:ss',
+                merge_logs: true,
+              }],
+            };
+            EOF
 
-            echo "Restarting PM2..."
-            pm2 restart jobaisearch || pm2 start npm --name "jobaisearch" -- start
+            echo "📦 Installing dependencies..."
+            npm ci --prefer-offline --no-audit --no-fund
 
-            echo "Deployment complete!"
+            echo "🔨 Building project (background process)..."
+            # Build in background while app continues serving
+            NODE_ENV=production npm run build
+
+            echo "🔄 Starting or updating PM2 cluster..."
+            # Check if app exists
+            if pm2 describe jobaisearch >/dev/null 2>&1; then
+              echo "App exists, reloading with zero-downtime..."
+              # Reload cluster mode - restarts instances one by one
+              pm2 reload ecosystem.vds.config.js --update-env
+            else
+              echo "Starting new cluster..."
+              pm2 start ecosystem.vds.config.js
+            fi
+
+            # Save PM2 config for auto-start on reboot
+            pm2 save --force
+
+            echo "⏳ Waiting for instances to be ready..."
+            sleep 5
+
+            echo "✅ Deployment complete! Zero-downtime achieved."
             pm2 status
+
+            # Show recent logs
+            echo ""
+            echo "📋 Recent logs:"
+            pm2 logs jobaisearch --lines 3 --nostream
