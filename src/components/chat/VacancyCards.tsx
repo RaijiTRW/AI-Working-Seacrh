@@ -14,6 +14,11 @@ export interface Vacancy {
   description: string;
   url: string;
   source: string;
+  fit_status?: "fit" | "partial" | "reject" | "unknown";
+  fit_score?: number;
+  fit_confidence?: number;
+  matched_reasons?: string[];
+  mismatch_reasons?: string[];
 }
 
 interface VacancyCardsProps {
@@ -52,7 +57,41 @@ function getSourceColor(source: string): string {
   return colors[source] || "bg-gray-100 text-gray-600";
 }
 
+function getFitBadge(vacancy: Vacancy): { label: string; className: string } | null {
+  if (!vacancy.fit_status) return null;
+
+  const scoreText = typeof vacancy.fit_score === "number" ? ` ${vacancy.fit_score}%` : "";
+  switch (vacancy.fit_status) {
+    case "fit":
+      return {
+        label: `Подходит${scoreText}`,
+        className: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+      };
+    case "partial":
+      return {
+        label: `Частично${scoreText}`,
+        className: "bg-amber-100 text-amber-700 border border-amber-200",
+      };
+    case "reject":
+      return {
+        label: "Не подходит",
+        className: "bg-red-100 text-red-700 border border-red-200",
+      };
+    case "unknown":
+      return {
+        label: "Неясно",
+        className: "bg-gray-100 text-gray-600 border border-gray-200",
+      };
+    default:
+      return null;
+  }
+}
+
 function VacancyCard({ vacancy }: { vacancy: Vacancy }) {
+  const fitBadge = getFitBadge(vacancy);
+  const matchedReasons = (vacancy.matched_reasons || []).slice(0, 2);
+  const mismatchReasons = (vacancy.mismatch_reasons || []).slice(0, 2);
+
   return (
     <a
       href={vacancy.url}
@@ -61,10 +100,17 @@ function VacancyCard({ vacancy }: { vacancy: Vacancy }) {
       className="flex-shrink-0 w-72 bg-white rounded-2xl border border-gray-200 p-4 hover:shadow-lg hover:border-orange-200 transition-all duration-200 group/vacancy"
     >
       {/* Source badge */}
-      <div className="flex items-center justify-between mb-3">
-        <span className={`text-xs font-medium px-2 py-1 rounded-full ${getSourceColor(vacancy.source)}`}>
-          {getSourceLabel(vacancy.source)}
-        </span>
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className={`text-xs font-medium px-2 py-1 rounded-full ${getSourceColor(vacancy.source)}`}>
+            {getSourceLabel(vacancy.source)}
+          </span>
+          {fitBadge && (
+            <span className={`text-xs font-medium px-2 py-1 rounded-full ${fitBadge.className}`}>
+              {fitBadge.label}
+            </span>
+          )}
+        </div>
         {vacancy.employment_type === "remote" && (
           <span className="text-xs text-gray-500">Удалённо</span>
         )}
@@ -99,6 +145,21 @@ function VacancyCard({ vacancy }: { vacancy: Vacancy }) {
         <p className="mt-3 text-xs text-gray-500 line-clamp-2">
           {vacancy.description}
         </p>
+      )}
+
+      {(matchedReasons.length > 0 || mismatchReasons.length > 0) && (
+        <div className="mt-3 space-y-1">
+          {matchedReasons.map((reason) => (
+            <p key={`m-${reason}`} className="text-[11px] leading-4 text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1 line-clamp-2">
+              {reason}
+            </p>
+          ))}
+          {mismatchReasons.map((reason) => (
+            <p key={`x-${reason}`} className="text-[11px] leading-4 text-red-700 bg-red-50 border border-red-100 rounded-lg px-2 py-1 line-clamp-2">
+              {reason}
+            </p>
+          ))}
+        </div>
       )}
 
       {/* Arrow */}

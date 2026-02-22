@@ -35,11 +35,17 @@ export interface Vacancy {
   url: string;
   source: string;
   user_id?: string; // ID владельца (для platform вакансий)
+  fit_status?: "fit" | "partial" | "reject" | "unknown";
+  fit_score?: number;
+  fit_confidence?: number;
+  matched_reasons?: string[];
+  mismatch_reasons?: string[];
 }
 
 export interface ChatResponse {
   message: string;
   vacancies: Vacancy[];
+  rejected_vacancies?: Vacancy[];
   chat_id: string;
 }
 
@@ -82,6 +88,14 @@ export interface SearchMode {
   searchOnline: boolean;
 }
 
+export interface LifestylePreferences {
+  full_remote_only: boolean;
+  no_mandatory_calls: boolean;
+  async_first: boolean;
+  flexible_hours: boolean;
+  strict_mode: boolean;
+}
+
 /**
  * Отправка сообщения со стримингом
  */
@@ -95,7 +109,9 @@ export async function sendMessageStream(
   onDone: (chatId: string) => void,
   onRejectedVacancies?: (vacancies: Vacancy[]) => void,
   excludeVacancyIds?: string[],
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  lifestylePreferences?: LifestylePreferences,
+  onProgress?: (message: string) => void
 ): Promise<void> {
   const response = await fetch(`${getApiUrl()}/api/chat/message/stream`, {
     method: "POST",
@@ -109,6 +125,7 @@ export async function sendMessageStream(
       search_in_feed: searchMode.searchInFeed,
       search_online: searchMode.searchOnline,
       exclude_vacancy_ids: excludeVacancyIds || [],
+      lifestyle_preferences: lifestylePreferences,
     }),
     signal,
     keepalive: true,
@@ -154,13 +171,13 @@ export async function sendMessageStream(
               onRejectedVacancies?.(data.content as Vacancy[]);
               break;
             case "progress":
-              // Сообщения о прогрессе загрузки (можно игнорировать)
+              onProgress?.(data.message || (typeof data.content === "string" ? data.content : ""));
               break;
             case "done":
               onDone(data.chat_id || "");
               break;
           }
-        } catch (e) {
+        } catch {
         }
       }
     }

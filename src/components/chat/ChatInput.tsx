@@ -8,8 +8,16 @@ export interface SearchMode {
   searchOnline: boolean;  // Поиск в сети (live)
 }
 
+export interface LifestylePreferences {
+  full_remote_only: boolean;
+  no_mandatory_calls: boolean;
+  async_first: boolean;
+  flexible_hours: boolean;
+  strict_mode: boolean;
+}
+
 interface ChatInputProps {
-  onSend: (message: string, searchMode: SearchMode) => void;
+  onSend: (message: string, searchMode: SearchMode, lifestylePreferences: LifestylePreferences) => void;
   onStop?: () => void;
   disabled?: boolean;
   isTyping?: boolean;
@@ -42,7 +50,18 @@ export default function ChatInput({
   const [searchInFeed, setSearchInFeed] = useState(true);
   const [searchOnline, setSearchOnline] = useState(canSearchOnline);
   const [showSearchHelp, setShowSearchHelp] = useState(false);
+  const [showLifestyleFilters, setShowLifestyleFilters] = useState(false);
+  const [lifestylePanelPlacement, setLifestylePanelPlacement] = useState<"top" | "bottom">("top");
+  const [lifestylePreferences, setLifestylePreferences] = useState<LifestylePreferences>({
+    full_remote_only: false,
+    no_mandatory_calls: false,
+    async_first: false,
+    flexible_hours: false,
+    strict_mode: false,
+  });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lifestylePanelRef = useRef<HTMLDivElement>(null);
+  const lifestyleButtonRef = useRef<HTMLButtonElement>(null);
 
   // Сбрасываем searchOnline если canSearchOnline изменился
   useEffect(() => {
@@ -58,9 +77,56 @@ export default function ChatInput({
     }
   }, [message]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!lifestylePanelRef.current) return;
+      if (!lifestylePanelRef.current.contains(event.target as Node)) {
+        setShowLifestyleFilters(false);
+      }
+    };
+
+    if (showLifestyleFilters) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showLifestyleFilters]);
+
+  useEffect(() => {
+    if (!showLifestyleFilters) return;
+
+    const updateLifestylePanelPlacement = () => {
+      const button = lifestyleButtonRef.current;
+      if (!button) return;
+
+      const rect = button.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const spaceAbove = rect.top - 12;
+      const spaceBelow = viewportHeight - rect.bottom - 12;
+      const estimatedPanelHeight = 420;
+
+      if (spaceBelow < estimatedPanelHeight && spaceAbove > spaceBelow) {
+        setLifestylePanelPlacement("top");
+      } else {
+        setLifestylePanelPlacement("bottom");
+      }
+    };
+
+    updateLifestylePanelPlacement();
+    window.addEventListener("resize", updateLifestylePanelPlacement);
+    window.addEventListener("scroll", updateLifestylePanelPlacement, true);
+
+    return () => {
+      window.removeEventListener("resize", updateLifestylePanelPlacement);
+      window.removeEventListener("scroll", updateLifestylePanelPlacement, true);
+    };
+  }, [showLifestyleFilters]);
+
   const handleSubmit = () => {
     if (!message.trim() || disabled) return;
-    onSend(message.trim(), { searchInFeed, searchOnline });
+    onSend(message.trim(), { searchInFeed, searchOnline }, lifestylePreferences);
     setMessage("");
   };
 
@@ -72,6 +138,19 @@ export default function ChatInput({
   };
 
   const hasChats = chats.length > 0 || currentChatId;
+  const activeLifestyleCount = Object.entries(lifestylePreferences).filter(
+    ([key, value]) => key !== "strict_mode" && value
+  ).length;
+  const hasAnyLifestyleFilters = activeLifestyleCount > 0;
+  const lifestyleSummary = [
+    lifestylePreferences.full_remote_only && "Удалёнка",
+    lifestylePreferences.no_mandatory_calls && "Без созвонов",
+    lifestylePreferences.async_first && "Асинхрон",
+    lifestylePreferences.flexible_hours && "Гибкий график",
+  ].filter(Boolean) as string[];
+  const toggleLifestylePreference = (key: keyof LifestylePreferences) => {
+    setLifestylePreferences((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   return (
     <div
@@ -232,6 +311,115 @@ export default function ChatInput({
               onDeleteChat={onDeleteChat || (() => { })}
               loading={loadingChats}
             />
+          </div>
+
+          {/* Lifestyle filters button */}
+          <div className="relative" ref={lifestylePanelRef}>
+            <button
+              type="button"
+              ref={lifestyleButtonRef}
+              onClick={() => setShowLifestyleFilters((prev) => !prev)}
+              className={`relative flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                hasAnyLifestyleFilters || showLifestyleFilters
+                  ? "bg-orange-100 text-orange-600 border border-orange-200"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+              title="Фильтр по стилю жизни"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M7 12h10M10 18h4" />
+              </svg>
+              {activeLifestyleCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-orange-500 text-white text-[10px] leading-4 font-semibold">
+                  {activeLifestyleCount}
+                </span>
+              )}
+            </button>
+
+            {showLifestyleFilters && (
+              <div
+                className={`absolute z-50 w-72 bg-white rounded-2xl shadow-xl border border-gray-200 p-3 max-h-[min(75vh,34rem)] overflow-y-auto ${
+                  lifestylePanelPlacement === "bottom" ? "top-12 left-0" : "bottom-full mb-2 left-0"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Стиль жизни</p>
+                    <p className="text-xs text-gray-500">ИИ отсечёт неподходящие вакансии по описанию</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setLifestylePreferences({
+                        full_remote_only: false,
+                        no_mandatory_calls: false,
+                        async_first: false,
+                        flexible_hours: false,
+                        strict_mode: false,
+                      })
+                    }
+                    className="text-xs text-gray-400 hover:text-gray-600"
+                  >
+                    Сброс
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {[
+                    { key: "full_remote_only" as const, label: "Только полная удалёнка", hint: "Исключать офис и гибрид" },
+                    { key: "no_mandatory_calls" as const, label: "Без обязательных созвонов", hint: "Отсеивать daily/митинги" },
+                    { key: "async_first" as const, label: "Асинхронный формат", hint: "Искать async-first сигналы" },
+                    { key: "flexible_hours" as const, label: "Гибкий график", hint: "Исключать жёсткий 5/2" },
+                  ].map((item) => (
+                    <label
+                      key={item.key}
+                      className="flex items-start gap-3 p-2 rounded-xl hover:bg-gray-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={lifestylePreferences[item.key]}
+                        onChange={() => toggleLifestylePreference(item.key)}
+                        className="mt-0.5 w-4 h-4 text-orange-500 rounded border-gray-300 focus:ring-orange-500"
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-sm text-gray-800">{item.label}</span>
+                        <span className="block text-xs text-gray-500">{item.hint}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <label className="flex items-start gap-3 p-2 rounded-xl hover:bg-gray-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={lifestylePreferences.strict_mode}
+                      onChange={() => toggleLifestylePreference("strict_mode")}
+                      className="mt-0.5 w-4 h-4 text-orange-500 rounded border-gray-300 focus:ring-orange-500"
+                    />
+                    <span>
+                      <span className="block text-sm font-medium text-gray-800">Жёсткий режим</span>
+                      <span className="block text-xs text-gray-500">Показывать только явно подходящие вакансии</span>
+                    </span>
+                  </label>
+                </div>
+
+                {lifestyleSummary.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {lifestyleSummary.map((label) => (
+                      <span key={label} className="text-[11px] px-2 py-1 rounded-full bg-orange-50 text-orange-600 border border-orange-100">
+                        {label}
+                      </span>
+                    ))}
+                    {lifestylePreferences.strict_mode && (
+                      <span className="text-[11px] px-2 py-1 rounded-full bg-red-50 text-red-600 border border-red-100">
+                        Жёстко
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Textarea */}

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import ChatInput, { SearchMode } from "@/components/chat/ChatInput";
+import ChatInput, { SearchMode, LifestylePreferences } from "@/components/chat/ChatInput";
 import ChatMessages, { Message, SearchPhase } from "@/components/chat/ChatMessages";
 import { Chat } from "@/components/chat/ChatListModal";
 import { sendMessageStream, Vacancy } from "@/lib/api";
@@ -13,6 +13,14 @@ import VacancyFeedDrawer from "@/components/chat/VacancyFeedDrawer";
 import { useSubscriptionContext } from "@/components/subscription";
 import { useSiteSettings } from "@/lib/useSiteSettings";
 import AppHeader from "@/components/app/Header";
+
+const DEFAULT_LIFESTYLE_PREFERENCES: LifestylePreferences = {
+  full_remote_only: false,
+  no_mandatory_calls: false,
+  async_first: false,
+  flexible_hours: false,
+  strict_mode: false,
+};
 
 export default function ChatPage() {
   const router = useRouter();
@@ -26,6 +34,9 @@ export default function ChatPage() {
   const [streamingText, setStreamingText] = useState("");
   const [streamingVacancies, setStreamingVacancies] = useState<Vacancy[]>([]);
   const [streamingRejectedVacancies, setStreamingRejectedVacancies] = useState<Vacancy[]>([]);
+  const [lastLifestylePreferences, setLastLifestylePreferences] = useState<LifestylePreferences>(
+    DEFAULT_LIFESTYLE_PREFERENCES
+  );
 
   // Search phase state for new UX flow
   const [searchPhase, setSearchPhase] = useState<SearchPhase>('idle');
@@ -99,7 +110,7 @@ export default function ChatPage() {
 
       if (error) throw error;
       setChats(data || []);
-    } catch (err) {
+    } catch {
     } finally {
       setLoadingChats(false);
     }
@@ -108,23 +119,45 @@ export default function ChatPage() {
   // Load messages for a chat
   const loadMessages = useCallback(async (chatId: string) => {
     try {
-      const { data, error } = await supabase
+      type StoredMessageRow = {
+        id: string;
+        role: "user" | "assistant";
+        content: string;
+        vacancies?: Vacancy[] | null;
+        rejected_vacancies?: Vacancy[] | null;
+      };
+
+      const mapMessages = (rows: StoredMessageRow[]) => (
+        (rows || []).map((m) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          vacancies: m.vacancies || undefined,
+          rejectedVacancies: m.rejected_vacancies || undefined,
+        }))
+      );
+
+      // New schema path (with rejected_vacancies)
+      let { data, error } = await supabase
         .from("messages")
-        .select("id, role, content, vacancies, created_at")
+        .select("id, role, content, vacancies, rejected_vacancies, created_at")
         .eq("chat_id", chatId)
         .order("created_at", { ascending: true });
 
-      if (error) throw error;
+      // Fallback for instances where migration is not yet applied
+      if (error) {
+        const fallback = await supabase
+          .from("messages")
+          .select("id, role, content, vacancies, created_at")
+          .eq("chat_id", chatId)
+          .order("created_at", { ascending: true });
+        data = fallback.data as unknown as typeof data;
+        error = fallback.error;
+      }
 
-      setMessages(
-        (data || []).map((m) => ({
-          id: m.id,
-          role: m.role as "user" | "assistant",
-          content: m.content,
-          vacancies: m.vacancies as Vacancy[] | undefined,
-        }))
-      );
-    } catch (err) {
+      if (error) throw error;
+      setMessages(mapMessages((data || []) as unknown as StoredMessageRow[]));
+    } catch {
     }
   }, []);
 
@@ -157,12 +190,6 @@ export default function ChatPage() {
     }
   }, [user?.id, loadChats]);
 
-  const handleLogout = async () => {
-    // Не удаляем связанные аккаунты при выходе - они должны сохраняться
-    await supabase.auth.signOut();
-    router.push("/");
-  };
-
   // Create new chat
   const createChat = async (firstMessage: string): Promise<string | null> => {
     if (!user?.id) return null;
@@ -178,7 +205,7 @@ export default function ChatPage() {
 
       if (error) throw error;
       return data.id;
-    } catch (err) {
+    } catch {
       return null;
     }
   };
@@ -188,16 +215,30 @@ export default function ChatPage() {
     chatId: string,
     role: "user" | "assistant",
     content: string,
-    vacancies?: Vacancy[]
+    vacancies?: Vacancy[],
+    rejectedVacancies?: Vacancy[]
   ) => {
     try {
-      await supabase.from("messages").insert({
+      const payload = {
         chat_id: chatId,
         role,
         content,
         vacancies: vacancies && vacancies.length > 0 ? vacancies : null,
-      });
-    } catch (err) {
+        rejected_vacancies: rejectedVacancies && rejectedVacancies.length > 0 ? rejectedVacancies : null,
+      };
+
+      let { error } = await supabase.from("messages").insert(payload as Record<string, unknown>);
+      if (error) {
+        // Fallback for instances where rejected_vacancies column is not deployed yet
+        ({ error } = await supabase.from("messages").insert({
+          chat_id: chatId,
+          role,
+          content,
+          vacancies: vacancies && vacancies.length > 0 ? vacancies : null,
+        }));
+      }
+      if (error) throw error;
+    } catch {
     }
   };
 
@@ -236,7 +277,7 @@ export default function ChatPage() {
 
         // Сохраняем в БД если есть chatId
         if (currentChatId) {
-          await saveMessage(currentChatId, "assistant", finalText, finalVacancies);
+          await saveMessage(currentChatId, "assistant", finalText, finalVacancies, finalRejectedVacancies);
         }
       }
 
@@ -302,7 +343,6 @@ export default function ChatPage() {
     }
 
     setTimeout(() => {
-      setSearchPhase('searching');
       setShowStartingText(false);
       phaseTimeoutRef.current = null;
     }, 500);
@@ -381,7 +421,7 @@ export default function ChatPage() {
           setSearchPhase('idle'); // Reset phase
 
           // Save assistant message with vacancies
-          await saveMessage(currentChatId!, "assistant", fullText, vacancies);
+          await saveMessage(currentChatId!, "assistant", fullText, vacancies, rejectedVacancies);
 
           // Reload chats to update the list
           loadChats();
@@ -408,7 +448,21 @@ export default function ChatPage() {
         // excludeVacancyIds
         excludeIds,
         // signal
-        abortController.signal
+        abortController.signal,
+        // lifestylePreferences
+        lastLifestylePreferences,
+        // onProgress
+        (progressMessage) => {
+          if (!progressMessage) return;
+          if (progressMessage.includes("Ищу вакансии")) {
+            if (phaseTimeoutRef.current) {
+              clearTimeout(phaseTimeoutRef.current);
+              phaseTimeoutRef.current = null;
+            }
+            setShowStartingText(false);
+            setSearchPhase('searching');
+          }
+        }
       );
     } catch (error) {
       // Clear phase timeout on error
@@ -436,7 +490,11 @@ export default function ChatPage() {
     }
   };
 
-  const handleSend = async (content: string, searchMode: SearchMode) => {
+  const handleSend = async (
+    content: string,
+    searchMode: SearchMode,
+    lifestylePreferences: LifestylePreferences
+  ) => {
     if (!user?.id) return;
 
     // Проверяем, включён ли AI-поиск
@@ -467,6 +525,7 @@ export default function ChatPage() {
 
     setMessages((prev) => [...prev, userMessage]);
     setIsTyping(true);
+    setLastLifestylePreferences(lifestylePreferences);
 
     // Initialize search phase state
     setSearchPhase('starting');
@@ -484,7 +543,6 @@ export default function ChatPage() {
 
     // Transition to 'searching' phase after delay
     phaseTimeoutRef.current = setTimeout(() => {
-      setSearchPhase('searching');
       setShowStartingText(false);
       phaseTimeoutRef.current = null;
     }, 500);
@@ -563,7 +621,7 @@ export default function ChatPage() {
           setSearchPhase('idle'); // Reset phase
 
           // Save assistant message with vacancies
-          await saveMessage(chatId!, "assistant", fullText, vacancies);
+          await saveMessage(chatId!, "assistant", fullText, vacancies, rejectedVacancies);
 
           // Reload chats to update the list
           loadChats();
@@ -590,7 +648,21 @@ export default function ChatPage() {
         // excludeVacancyIds
         undefined,
         // signal
-        abortController.signal
+        abortController.signal,
+        // lifestylePreferences
+        lifestylePreferences,
+        // onProgress
+        (progressMessage) => {
+          if (!progressMessage) return;
+          if (progressMessage.includes("Ищу вакансии")) {
+            if (phaseTimeoutRef.current) {
+              clearTimeout(phaseTimeoutRef.current);
+              phaseTimeoutRef.current = null;
+            }
+            setShowStartingText(false);
+            setSearchPhase('searching');
+          }
+        }
       );
     } catch (error) {
       // Clear phase timeout on error
@@ -664,7 +736,7 @@ export default function ChatPage() {
 
       // Обновляем список чатов
       loadChats();
-    } catch (err) {
+    } catch {
     } finally {
       setDeleteModalOpen(false);
       setChatToDelete(null);

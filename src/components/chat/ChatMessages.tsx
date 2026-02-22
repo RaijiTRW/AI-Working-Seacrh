@@ -45,7 +45,7 @@ function CopyButton({ text }: { text: string }) {
       await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
+    } catch {
     }
   };
 
@@ -88,6 +88,8 @@ function AssistantMessage({
   const [displayedText, setDisplayedText] = useState(animate ? "" : content);
   const [isComplete, setIsComplete] = useState(!animate);
   const [showVacancies, setShowVacancies] = useState(!animate);
+  const canLoadMore = Boolean(vacancies && vacancies.length > 0 && onLoadMore && messageId && !animate);
+  const canOpenDrawer = Boolean(vacancies && vacancies.length > 0 && onToggleDrawer && !animate);
 
   useEffect(() => {
     if (!animate) {
@@ -122,7 +124,7 @@ function AssistantMessage({
         <div className="flex-1 pt-1">
           <div className="flex items-center gap-2 pb-4">
             <p>Zend:</p>
-            {vacancies && vacancies.length > 0 && onLoadMore && messageId && !animate && (
+            {canLoadMore && (
               <>
                 <button
                   onClick={() => onLoadMore(messageId)}
@@ -131,6 +133,10 @@ function AssistantMessage({
                 >
                   Еще
                 </button>
+              </>
+            )}
+            {canOpenDrawer && (
+              <>
                 <button
                   onClick={onToggleDrawer}
                   className="p-1 rounded hover:bg-gray-200 transition-colors"
@@ -190,7 +196,6 @@ export default function ChatMessages({
   onLoadMore,
   searchPhase = 'idle',
   showStartingText = false,
-  isDrawerOpen = false,
   onToggleDrawer,
 }: ChatMessagesProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -336,7 +341,21 @@ export default function ChatMessages({
               <span className="text-white text-xs font-bold">AI</span>
             </div>
             <div className="flex-1 pt-2">
-              <p>Zend:</p>
+              <div className="flex items-center gap-2">
+                <p>Zend:</p>
+                {onToggleDrawer && (
+                  <button
+                    type="button"
+                    onClick={onToggleDrawer}
+                    className="p-1 rounded hover:bg-gray-200 transition-colors"
+                    title="Открыть ленту вакансий"
+                  >
+                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           <VacancyFeedPreview isBlurred={true} overlayText="Ищу вакансии..." />
