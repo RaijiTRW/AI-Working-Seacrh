@@ -46,70 +46,41 @@ jobs:
             echo "🔨 Building project..."
             NODE_ENV=production npm run build
 
-            echo "📝 Ensuring startup script exists..."
+            echo "🛑 Stopping any existing processes..."
+            pkill -f "node.*next" || true
+            pkill -f "uvicorn" || true
+            sleep 3
 
-            # Create startup script if it doesn't exist
-            sudo mkdir -p /usr/local/bin
-            sudo tee /usr/local/bin/start-services.sh > /dev/null <<'SCRIPT_EOF'
-#!/bin/bash
-cd /var/www/jobaisearch
-echo "Starting frontend..."
-nohup npm run start > /tmp/frontend.log 2>&1 &
-echo "Starting backend..."
-cd /var/www/jobaisearch/backend/JobAISeacrh_Backend
-nohup venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
-echo "Services started"
-SCRIPT_EOF
-            sudo chmod +x /usr/local/bin/start-services.sh
+            echo "🚀 Starting services directly..."
+            # Start backend
+            cd /var/www/jobaisearch/backend/JobAISeacrh_Backend
+            nohup venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
+            echo $! > /tmp/backend.pid
 
-            echo "🔄 Restarting application..."
+            # Start frontend
+            cd /var/www/jobaisearch
+            nohup npm run start > /tmp/frontend.log 2>&1 &
+            echo $! > /tmp/frontend.pid
 
-            # Check if service file exists
-            if [ -f /etc/systemd/system/jobaisearch.service ]; then
-              echo "✓ Service file exists"
-            else
-              echo "✗ Service file NOT found - creating it"
-              sudo tee /etc/systemd/system/jobaisearch.service > /dev/null <<'SERVICE_EOF'
-[Unit]
-Description=JobAISearch Services
-After=network.target caddy.service
-
-[Service]
-Type=simple
-User=ubuntu
-WorkingDirectory=/var/www/jobaisearch
-ExecStart=/usr/local/bin/start-services.sh
-Restart=on-failure
-RestartSec=10
-MemoryMax=2G
-CPUQuota=50%
-
-[Install]
-WantedBy=multi-user.target
-SERVICE_EOF
-              sudo systemctl daemon-reload
-              sudo systemctl enable jobaisearch.service
-            fi
-
-            # Kill any existing processes on ports 3000
-            sudo fuser -k 3000/tcp 2>/dev/null || true
-            sudo fuser -k 8000/tcp 2>/dev/null || true
-            sleep 2
-
-            # Restart systemd service
-            sudo systemctl restart jobaisearch.service
-
-            echo "⏳ Waiting for app to be ready..."
+            echo "⏳ Waiting for services to start..."
             sleep 20
 
             echo "✅ Deployment complete!"
-            sudo systemctl status jobaisearch.service --no-pager | head -20
 
             echo ""
-            echo "🔍 Service logs (last 30 lines):"
-            sudo journalctl -u jobaisearch.service -n 30 --no-pager
+            echo "🔍 Process status:"
+            ps aux | grep -E "(next|uvicorn)" | grep -v grep || echo "No processes found"
+
+            echo ""
+            echo "📋 Frontend log (last 10 lines):"
+            tail -10 /tmp/frontend.log || echo "No frontend log"
+
+            echo ""
+            echo "📋 Backend log (last 10 lines):"
+            tail -10 /tmp/backend.log || echo "No backend log"
 
             # Health check
             echo ""
             echo "🔍 Health check:"
             curl -sf http://localhost:3000 > /dev/null && echo "✓ Frontend is responding" || echo "✗ Frontend is not responding"
+            curl -sf http://localhost:8000/health && echo "✓ Backend is healthy" || echo "✗ Backend health check failed"
