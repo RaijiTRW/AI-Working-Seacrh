@@ -23,7 +23,7 @@ jobs:
           remote_user: ${{ secrets.VDS_USERNAME }}
           remote_key: ${{ secrets.VDS_SSH_KEY }}
 
-      - name: Zero-downtime deployment on VDS
+      - name: Deploy on VDS
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VDS_HOST }}
@@ -46,27 +46,24 @@ jobs:
             echo "🔨 Building project..."
             NODE_ENV=production npm run build
 
-            echo "🔄 Starting or updating PM2 cluster..."
-            # Check if app exists
+            echo "🔄 Restarting application..."
+            # Restart or start the application
             if pm2 describe jobaisearch >/dev/null 2>&1; then
-              echo "App exists, reloading with zero-downtime..."
-              # Reload cluster mode - restarts instances one by one
-              pm2 reload ecosystem.vds.config.js --update-env
+              pm2 restart jobaisearch
             else
-              echo "Starting new cluster..."
-              pm2 start ecosystem.vds.config.js
+              pm2 start ecosystem.config.js
             fi
 
             # Save PM2 config for auto-start on reboot
             pm2 save --force
 
-            echo "⏳ Waiting for instances to be ready..."
-            sleep 5
+            echo "⏳ Waiting for app to be ready..."
+            sleep 10
 
-            echo "✅ Deployment complete! Zero-downtime achieved."
+            echo "✅ Deployment complete!"
             pm2 status
 
-            # Show recent logs
+            # Health check
             echo ""
-            echo "📋 Recent logs:"
-            pm2 logs jobaisearch --lines 3 --nostream
+            echo "🔍 Health check:"
+            curl -sf http://localhost:3000 > /dev/null && echo "✓ Frontend is responding" || echo "✗ Frontend is not responding"
