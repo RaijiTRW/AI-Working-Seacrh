@@ -31,7 +31,7 @@ jobs:
           key: ${{ secrets.VDS_SSH_KEY }}
           port: 22
           command_timeout: 30m
-          script_stop: true
+          script_stop: false
           script: |
             set -e
 
@@ -41,10 +41,10 @@ jobs:
             mkdir -p logs
 
             echo "📦 Installing dependencies..."
-            npm ci --prefer-offline --no-audit --no-fund
+            npm ci --prefer-offline --no-audit --no-fund 2>&1 | tail -20
 
             echo "🔨 Building project..."
-            NODE_ENV=production npm run build
+            NODE_ENV=production npm run build 2>&1 | tail -30
 
             echo "🛑 Stopping any existing processes..."
             pkill -f "node.*next" || true
@@ -52,35 +52,53 @@ jobs:
             sleep 3
 
             echo "🚀 Starting services directly..."
-            # Start backend
+
+            # Check backend venv exists
             cd /var/www/jobaisearch/backend/JobAISeacrh_Backend
-            nohup venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
-            echo $! > /tmp/backend.pid
+            if [ ! -d "venv" ]; then
+              echo "⚠️  Backend venv not found, creating..."
+              python3 -m venv venv
+              ./venv/bin/pip install -r requirements.txt --quiet
+            fi
+
+            # Test backend start
+            echo "Starting backend..."
+            cd /var/www/jobaisearch/backend/JobAISeacrh_Backend
+            ./venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
+            BACKEND_PID=$!
+            echo $BACKEND_PID > /tmp/backend.pid
+            echo "Backend PID: $BACKEND_PID"
 
             # Start frontend
+            echo "Starting frontend..."
             cd /var/www/jobaisearch
-            nohup npm run start > /tmp/frontend.log 2>&1 &
-            echo $! > /tmp/frontend.pid
+            npm run start > /tmp/frontend.log 2>&1 &
+            FRONTEND_PID=$!
+            echo $FRONTEND_PID > /tmp/frontend.pid
+            echo "Frontend PID: $FRONTEND_PID"
 
             echo "⏳ Waiting for services to start..."
-            sleep 20
+            sleep 25
 
+            echo ""
             echo "✅ Deployment complete!"
 
             echo ""
-            echo "🔍 Process status:"
+            echo "🔍 Running processes:"
             ps aux | grep -E "(next|uvicorn)" | grep -v grep || echo "No processes found"
 
             echo ""
-            echo "📋 Frontend log (last 10 lines):"
-            tail -10 /tmp/frontend.log || echo "No frontend log"
+            echo "📋 Backend log:"
+            cat /tmp/backend.log || echo "No backend log"
 
             echo ""
-            echo "📋 Backend log (last 10 lines):"
-            tail -10 /tmp/backend.log || echo "No backend log"
+            echo "📋 Frontend log:"
+            cat /tmp/frontend.log || echo "No frontend log"
 
             # Health check
             echo ""
-            echo "🔍 Health check:"
-            curl -sf http://localhost:3000 > /dev/null && echo "✓ Frontend is responding" || echo "✗ Frontend is not responding"
-            curl -sf http://localhost:8000/health && echo "✓ Backend is healthy" || echo "✗ Backend health check failed"
+            echo "🔍 Health checks:"
+            echo "Frontend (port 3000):"
+            curl -sf http://localhost:3000 > /dev/null && echo "✓ OK" || echo "✗ FAILED"
+            echo "Backend (port 8000):"
+            curl -sf http://localhost:8000/health && echo "✓ OK" || echo "✗ FAILED"
