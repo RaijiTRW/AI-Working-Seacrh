@@ -47,18 +47,51 @@ jobs:
             NODE_ENV=production npm run build
 
             echo "🔄 Restarting application..."
+
+            # Check if service file exists
+            if [ -f /etc/systemd/system/jobaisearch.service ]; then
+              echo "✓ Service file exists"
+            else
+              echo "✗ Service file NOT found - creating it"
+              sudo tee /etc/systemd/system/jobaisearch.service > /dev/null <<'SERVICE_EOF'
+[Unit]
+Description=JobAISearch Services
+After=network.target caddy.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/var/www/jobaisearch
+ExecStart=/usr/local/bin/start-services.sh
+Restart=on-failure
+RestartSec=10
+MemoryMax=2G
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target
+SERVICE_EOF
+              sudo systemctl daemon-reload
+              sudo systemctl enable jobaisearch.service
+            fi
+
             # Kill any existing processes on ports 3000
             sudo fuser -k 3000/tcp 2>/dev/null || true
+            sudo fuser -k 8000/tcp 2>/dev/null || true
             sleep 2
 
             # Restart systemd service
             sudo systemctl restart jobaisearch.service
 
             echo "⏳ Waiting for app to be ready..."
-            sleep 15
+            sleep 20
 
             echo "✅ Deployment complete!"
             sudo systemctl status jobaisearch.service --no-pager | head -20
+
+            echo ""
+            echo "🔍 Service logs (last 30 lines):"
+            sudo journalctl -u jobaisearch.service -n 30 --no-pager
 
             # Health check
             echo ""
