@@ -46,6 +46,22 @@ jobs:
             echo "🔨 Building project..."
             NODE_ENV=production npm run build
 
+            echo "📝 Ensuring startup script exists..."
+
+            # Create startup script if it doesn't exist
+            sudo mkdir -p /usr/local/bin
+            sudo tee /usr/local/bin/start-services.sh > /dev/null <<'SCRIPT_EOF'
+#!/bin/bash
+cd /var/www/jobaisearch
+echo "Starting frontend..."
+nohup npm run start > /tmp/frontend.log 2>&1 &
+echo "Starting backend..."
+cd /var/www/jobaisearch/backend/JobAISeacrh_Backend
+nohup venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
+echo "Services started"
+SCRIPT_EOF
+            sudo chmod +x /usr/local/bin/start-services.sh
+
             echo "🔄 Restarting application..."
 
             # Check if service file exists
