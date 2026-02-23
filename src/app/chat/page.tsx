@@ -745,33 +745,33 @@ export default function ChatPage() {
 
   if (loading || settingsLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+      <div className="min-h-screen flex items-center justify-center bg-[#0b0c10]">
+        <div className="animate-spin w-8 h-8 border-4 border-[#ff6b00] border-t-transparent rounded-full" />
       </div>
     );
   }
 
   if (!settings.chat_enabled && !isAdmin) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white border-b border-gray-100">
+      <div className="min-h-screen bg-[#0b0c10]">
+        <header className="bg-[#1f2833]/80 backdrop-blur-md border-b border-[#c5c6c7]/10">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-            <Link href="/" className="text-lg sm:text-xl font-bold text-gray-900">
+            <Link href="/" className="text-lg sm:text-xl font-bold text-white tracking-tight">
               Job Search
             </Link>
           </div>
         </header>
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-20">
-          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-[#1f2833]/40 backdrop-blur-sm rounded-xl border border-[#c5c6c7]/10 p-8 text-center shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+            <div className="w-16 h-16 bg-[#ff6b00]/10 border border-[#ff6b00]/30 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+              <svg className="w-8 h-8 text-[#ff6b00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-white mb-3">
               AI-поиск временно недоступен
             </h1>
-            <p className="text-gray-600">
+            <p className="text-[#c5c6c7]/80">
               Функция отключена администратором. Пожалуйста, попробуйте позже.
             </p>
           </div>
@@ -781,12 +781,13 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-gray-50">
+    <div className="h-[100dvh] flex flex-col bg-[#0b0c10] relative">
+      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-5 pointer-events-none" />
       {/* Universal Header */}
       <AppHeader showRequestCounter={true} hideOnMobile={isDrawerOpen} />
 
       {/* Chat area */}
-      <main className="flex-1 flex flex-col relative overflow-hidden pt-16 sm:pt-20 min-h-0">
+      <main className="flex-1 flex flex-col relative overflow-hidden pt-16 sm:pt-20 min-h-0 z-10">
         {/* Messages area - always present but hidden when empty */}
         <div className={`flex-1 overflow-y-auto overflow-x-hidden pb-40 sm:pb-10 transition-opacity duration-500 ${hasStarted && showMessages ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <ChatMessages
@@ -806,17 +807,16 @@ export default function ChatPage() {
         {/* Loading indicator when fetching chat history */}
         {isLoadingChat && !showMessages && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="animate-spin w-6 h-6 border-2 border-orange-500 border-t-transparent rounded-full" />
+            <div className="animate-spin w-8 h-8 border-4 border-[#ff6b00] border-t-transparent rounded-full shadow-[0_0_15px_rgba(255,107,0,0.5)]" />
           </div>
         )}
 
         {/* Input area - animated from center to bottom using transform */}
         <div
-          className={`absolute left-0 right-0 transition-all duration-700 ease-out ${
-            hasStarted
-              ? 'bottom-0 translate-y-0 bg-gradient-to-t from-gray-50 via-gray-50 to-transparent pt-4'
+          className={`absolute left-0 right-0 transition-all duration-700 ease-out ${hasStarted
+              ? 'bottom-0 translate-y-0 bg-gradient-to-t from-[#0b0c10] via-[#0b0c10] to-transparent pt-8 pb-4'
               : 'bottom-1/2 translate-y-1/2'
-          }`}
+            }`}
         >
           <ChatInput
             onSend={handleSend}

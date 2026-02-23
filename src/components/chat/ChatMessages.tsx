@@ -29,10 +29,10 @@ interface ChatMessagesProps {
 
 function TypingDots() {
   return (
-    <div className="flex items-center gap-1">
-      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+    <div className="flex items-center gap-1.5 h-6">
+      <span className="w-2 h-2 bg-[#ff6b00] rounded-full animate-bounce shadow-[0_0_8px_rgba(255,107,0,0.8)]" style={{ animationDelay: "0ms" }} />
+      <span className="w-2 h-2 bg-[#00f0ff] rounded-full animate-bounce shadow-[0_0_8px_rgba(0,240,255,0.8)]" style={{ animationDelay: "150ms" }} />
+      <span className="w-2 h-2 bg-[#a200ff] rounded-full animate-bounce shadow-[0_0_8px_rgba(162,0,255,0.8)]" style={{ animationDelay: "300ms" }} />
     </div>
   );
 }
@@ -52,15 +52,15 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="p-1 rounded hover:bg-gray-200 transition-colors opacity-0 group-hover:opacity-100"
-      title={copied ? "Скопировано!" : "Копировать"}
+      className="p-1.5 rounded-lg hover:bg-[#1f2833] transition-colors opacity-0 group-hover:opacity-100 border border-transparent hover:border-[#c5c6c7]/20"
+      title={copied ? "Скопировано!" : "Копировать текст"}
     >
       {copied ? (
-        <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 text-[#00ff88]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
       ) : (
-        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 text-[#c5c6c7]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
         </svg>
       )}
@@ -116,22 +116,23 @@ function AssistantMessage({
   }, [content, animate]);
 
   return (
-    <div className={`group transition-all duration-300 ${onToggleDrawer ? 'max-w-4xl lg:max-w-2xl' : 'max-w-4xl'}`}>
-      <div className="flex gap-3">
-        <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-          <span className="text-white text-xs font-bold">AI</span>
+    <div className={`group transition-all duration-300 ${onToggleDrawer ? 'max-w-5xl lg:max-w-3xl' : 'max-w-5xl'}`}>
+      <div className="flex gap-4">
+        <div className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[#ff6b00] to-[#ff8c00] flex items-center justify-center shadow-[0_0_15px_rgba(255,107,0,0.3)] relative">
+          <div className="absolute inset-0 rounded-xl border border-white/20" />
+          <span className="text-white text-sm font-black tracking-wider">AI</span>
         </div>
-        <div className="flex-1 pt-1">
-          <div className="flex items-center gap-2 pb-4">
-            <p>Zend:</p>
+        <div className="flex-1 pt-1.5">
+          <div className="flex items-center gap-3 pb-3">
+            <p className="font-bold text-[#ff6b00] tracking-wide uppercase text-xs">JobAISearch</p>
             {canLoadMore && (
               <>
                 <button
                   onClick={() => onLoadMore(messageId)}
-                  className="text-xs px-2 py-1 rounded-md bg-orange-50 text-orange-600 hover:bg-orange-100 hover:text-orange-700 transition-colors font-medium"
+                  className="text-xs px-2.5 py-1 rounded-md bg-[#00f0ff]/10 border border-[#00f0ff]/30 text-[#00f0ff] hover:bg-[#00f0ff]/20 hover:shadow-[0_0_10px_rgba(0,240,255,0.4)] transition-all font-bold"
                   title="Найти еще вакансии по этому запросу"
                 >
-                  Еще
+                  Глубже
                 </button>
               </>
             )}
@@ -139,10 +140,10 @@ function AssistantMessage({
               <>
                 <button
                   onClick={onToggleDrawer}
-                  className="p-1 rounded hover:bg-gray-200 transition-colors"
+                  className="p-1.5 rounded-lg border border-[#c5c6c7]/10 bg-[#1f2833]/50 hover:bg-[#1f2833] transition-colors"
                   title="Открыть ленту вакансий"
                 >
-                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-[#00f0ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 </button>
@@ -150,16 +151,16 @@ function AssistantMessage({
             )}
             {isComplete && <CopyButton text={content} />}
           </div>
-          <p className="text-gray-900 leading-relaxed whitespace-pre-wrap">
+          <p className="text-[#c5c6c7] leading-relaxed whitespace-pre-wrap font-light text-base md:text-[17px]">
             {displayedText}
-            {!isComplete && <span className="inline-block w-0.5 h-5 bg-orange-500 ml-0.5 animate-pulse" />}
+            {!isComplete && <span className="inline-block w-1.5 h-5 bg-[#ff6b00] ml-1 shadow-[0_0_8px_rgba(255,107,0,0.8)] animate-pulse" />}
           </p>
         </div>
       </div>
 
       {/* Vacancy cards */}
       {showVacancies && vacancies && vacancies.length > 0 && (
-        <div className="mt-4 ml-11 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="mt-6 ml-14 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <VacancyCards vacancies={vacancies} rejectedVacancies={rejectedVacancies} />
         </div>
       )}
@@ -169,18 +170,20 @@ function AssistantMessage({
 
 function UserMessage({ content, isNew }: { content: string; isNew?: boolean }) {
   return (
-    <div className={`flex gap-3 max-w-3xl ml-auto ${isNew ? 'animate-user-message' : ''}`}>
-      <div className="flex-1 pt-1 text-right">
-        <div className="inline-flex items-center gap-1 group">
-          <CopyButton text={content} />
-          <div className="bg-gray-100 rounded-2xl px-4 py-3 text-left">
-            <p className="text-gray-900 leading-relaxed whitespace-pre-wrap">{content}</p>
+    <div className={`flex gap-4 max-w-3xl ml-auto ${isNew ? 'animate-user-message' : ''}`}>
+      <div className="flex-1 pt-1.5 text-right flex justify-end">
+        <div className="inline-flex items-start gap-2 group justify-end">
+          <div className="mt-2">
+            <CopyButton text={content} />
+          </div>
+          <div className="bg-[#1f2833]/80 border border-[#c5c6c7]/10 backdrop-blur-md rounded-2xl rounded-tr-sm px-5 py-3.5 text-left shadow-lg">
+            <p className="text-white leading-relaxed whitespace-pre-wrap font-medium">{content}</p>
           </div>
         </div>
       </div>
-      <div className="shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+      <div className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[#1f2833] to-[#0b0c10] border border-[#c5c6c7]/20 flex items-center justify-center">
+        <svg className="w-5 h-5 text-[#c5c6c7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
         </svg>
       </div>
     </div>
@@ -267,7 +270,7 @@ export default function ChatMessages({
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto px-6 pt-8 pb-32 space-y-6"
+      className="flex-1 overflow-y-auto px-6 py-10 pt-16 pb-40 space-y-8"
     >
       {messages.map((msg, index) => {
         const isHistory = historyMessageIds.has(msg.id);
@@ -300,7 +303,7 @@ export default function ChatMessages({
       {isTyping && (streamingText || (streamingVacancies?.length ?? 0) > 0) && (
         <div className="animate-in fade-in duration-300">
           <AssistantMessage
-            content={streamingText || "Ищу вакансии..."}
+            content={streamingText || "Инициализация конвейера поиска..."}
             vacancies={streamingVacancies}
             rejectedVacancies={streamingRejectedVacancies}
             animate={false}
@@ -311,9 +314,9 @@ export default function ChatMessages({
 
       {/* Typing indicator (before text starts streaming) */}
       {isTyping && !streamingText && (streamingVacancies?.length ?? 0) === 0 && !showStartingText && searchPhase !== 'searching' && (
-        <div className="flex gap-3 max-w-3xl animate-in fade-in duration-300">
-          <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">AI</span>
+        <div className="flex gap-4 max-w-3xl animate-in fade-in duration-300 mt-4">
+          <div className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[#1f2833] to-[#0b0c10] border border-[#c5c6c7]/10 flex items-center justify-center">
+            <span className="text-[#00f0ff] text-xs font-black tracking-wider">AI</span>
           </div>
           <div className="flex-1 pt-2">
             <TypingDots />
@@ -323,12 +326,12 @@ export default function ChatMessages({
 
       {/* Phase 1: "Начинаю поиск..." */}
       {showStartingText && isTyping && (
-        <div className="flex gap-3 max-w-3xl animate-in fade-in duration-300">
-          <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">AI</span>
+        <div className="flex gap-4 max-w-3xl animate-in fade-in duration-300">
+          <div className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[#1f2833] to-[#0b0c10] border border-[#ff6b00]/30 shadow-[0_0_10px_rgba(255,107,0,0.2)] flex items-center justify-center">
+            <span className="text-[#ff6b00] text-xs font-black tracking-wider">AI</span>
           </div>
-          <div className="flex-1 pt-2">
-            <p className="text-gray-900">Начинаю поиск...</p>
+          <div className="flex-1 pt-2.5">
+            <p className="text-[#c5c6c7] font-medium tracking-wide">Подключение к узлам рекрутмента...</p>
           </div>
         </div>
       )}
@@ -336,21 +339,21 @@ export default function ChatMessages({
       {/* Phase 2: Размытая лента с "Ищу вакансии..." */}
       {searchPhase === 'searching' && isTyping && (
         <div className="animate-in fade-in duration-300">
-          <div className="flex gap-3 mb-4">
-            <div className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
-              <span className="text-white text-xs font-bold">AI</span>
+          <div className="flex gap-4 mb-5">
+            <div className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-[#1f2833] to-[#0b0c10] border border-[#00f0ff]/30 shadow-[0_0_10px_rgba(0,240,255,0.2)] flex items-center justify-center">
+              <span className="text-[#00f0ff] text-xs font-black tracking-wider">AI</span>
             </div>
             <div className="flex-1 pt-2">
-              <div className="flex items-center gap-2">
-                <p>Zend:</p>
+              <div className="flex items-center gap-3">
+                <p className="font-bold text-[#00f0ff] tracking-wide uppercase text-xs">JobAISearch</p>
                 {onToggleDrawer && (
                   <button
                     type="button"
                     onClick={onToggleDrawer}
-                    className="p-1 rounded hover:bg-gray-200 transition-colors"
-                    title="Открыть ленту вакансий"
+                    className="p-1.5 rounded-lg border border-[#c5c6c7]/10 bg-[#1f2833]/50 hover:bg-[#1f2833] transition-colors shadow-sm"
+                    title="Войти в интерфейс ленты"
                   >
-                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-[#00f0ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                   </button>
@@ -358,7 +361,7 @@ export default function ChatMessages({
               </div>
             </div>
           </div>
-          <VacancyFeedPreview isBlurred={true} overlayText="Ищу вакансии..." />
+          <VacancyFeedPreview isBlurred={true} overlayText="Обработка потока данных..." />
         </div>
       )}
     </div>

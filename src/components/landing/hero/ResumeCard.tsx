@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { motion } from "framer-motion";
 
 interface Resume {
   name: string;
@@ -16,40 +16,32 @@ interface ResumeCardProps {
 }
 
 export default function ResumeCard({ resume, index }: ResumeCardProps) {
-  const [isHovered, setIsHovered] = useState(false);
-
   return (
-    <div
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className="bg-white rounded-xl shadow-lg p-4 w-56 border border-gray-100 transition-all duration-500 animate-in fade-in slide-in-from-left-4"
-      style={{
-        animationDelay: `${index * 400}ms`,
-        animationFillMode: "backwards",
-        transform: isHovered ? "scale(1.02) translateX(4px)" : "scale(1)",
-      }}
+    <motion.div
+      whileHover={{ scale: 1.05, x: 5 }}
+      className="bg-[#1f2833]/80 backdrop-blur-md rounded-xl shadow-[0_5px_15px_rgba(0,0,0,0.5)] p-4 w-60 border border-[#c5c6c7]/10 hover:border-[#00f0ff]/50 transition-colors"
     >
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-          <span className="text-white text-xs font-bold">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00f0ff] to-[#00c0cc] flex items-center justify-center shadow-[0_0_10px_rgba(0,240,255,0.4)]">
+          <span className="text-[#0b0c10] text-xs font-bold">
             {resume.name.split(" ").map(n => n[0]).join("")}
           </span>
         </div>
         <div>
-          <h4 className="font-semibold text-sm">{resume.name}</h4>
-          <p className="text-xs text-gray-500">{resume.position}</p>
+          <h4 className="font-bold text-sm text-white">{resume.name}</h4>
+          <p className="text-xs text-[#c5c6c7]">{resume.position}</p>
         </div>
       </div>
-      <p className="text-blue-500 font-bold text-sm mb-2">{resume.salary}</p>
-      <p className="text-xs text-gray-600 mb-1">
-        <span className="font-medium">Опыт:</span> {resume.experience}
+      <p className="text-[#00f0ff] font-bold text-sm mb-2 drop-shadow-[0_0_5px_rgba(0,240,255,0.4)]">{resume.salary}</p>
+      <p className="text-xs text-[#c5c6c7] mb-1">
+        <span className="font-medium opacity-70">Опыт:</span> {resume.experience}
       </p>
-      <p className="text-xs text-gray-600 mb-3">
-        <span className="font-medium">Навыки:</span> {resume.skills}
+      <p className="text-xs text-[#c5c6c7] mb-3 truncate">
+        <span className="font-medium opacity-70">Навыки:</span> {resume.skills}
       </p>
-      <button className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-xs rounded-full hover:from-blue-600 hover:to-blue-700 transition-all">
+      <button className="px-4 py-1.5 bg-[#00f0ff]/10 border border-[#00f0ff]/30 text-[#00f0ff] text-xs font-bold rounded-full hover:bg-[#00f0ff] hover:text-[#0b0c10] transition-all w-full shadow-[0_0_10px_rgba(0,240,255,0.1)] hover:shadow-[0_0_15px_rgba(0,240,255,0.4)]">
         Пригласить
       </button>
-    </div>
+    </motion.div>
   );
 }

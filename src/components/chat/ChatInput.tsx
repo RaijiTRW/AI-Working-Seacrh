@@ -160,22 +160,22 @@ export default function ChatInput({
       {/* Welcome text with fade animation */}
       <div
         className={`text-center mb-8 transition-all duration-500 ease-out ${centered
-            ? "opacity-100 transform translate-y-0"
-            : "opacity-0 transform -translate-y-6 pointer-events-none h-0 mb-0 overflow-hidden"
+          ? "opacity-100 transform translate-y-0"
+          : "opacity-0 transform -translate-y-6 pointer-events-none h-0 mb-0 overflow-hidden"
           }`}
       >
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+        <h1 className="text-3xl font-bold text-white mb-3 tracking-tight">
           Что ищем сегодня?
         </h1>
-        <p className="text-gray-500">
-          Расскажи, какую работу ищешь
+        <p className="text-[#c5c6c7]/80">
+          Опиши свой опыт и идеальную позицию для ИИ...
         </p>
       </div>
 
-      <div className="relative bg-white rounded-3xl shadow-lg border border-gray-200">
+      <div className="relative bg-[#1f2833]/60 backdrop-blur-xl rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] border border-[#c5c6c7]/10">
         {/* Search Mode Toggles */}
-        <div className="flex items-center gap-3 px-4 pt-3 pb-1 border-b border-gray-100">
-          <span className="text-xs text-gray-400">Искать:</span>
+        <div className="flex items-center gap-3 px-4 pt-4 pb-2 border-b border-[#c5c6c7]/5">
+          <span className="text-xs text-[#c5c6c7]/50 font-medium uppercase tracking-wider">Где искать:</span>
 
           {/* В ленте */}
           <button
@@ -184,16 +184,15 @@ export default function ChatInput({
               if (searchInFeed && !searchOnline) return;
               setSearchInFeed(!searchInFeed);
             }}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all ${
-              searchInFeed
-                ? "bg-orange-100 text-orange-600 border border-orange-200"
-                : "bg-gray-50 text-gray-400 border border-gray-200 hover:bg-gray-100"
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${searchInFeed
+                ? "bg-[#ff6b00]/20 text-[#ff6b00] border border-[#ff6b00]/40 shadow-[0_0_10px_rgba(255,107,0,0.2)]"
+                : "bg-[#0b0c10]/50 text-[#c5c6c7]/60 border border-[#c5c6c7]/10 hover:bg-[#0b0c10]"
+              }`}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
-            В ленте
+            Платформа
           </button>
 
           {/* В сети */}
@@ -206,13 +205,12 @@ export default function ChatInput({
                 setSearchOnline(!searchOnline);
               }}
               disabled={!canSearchOnline}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs transition-all ${
-                !canSearchOnline
-                  ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${!canSearchOnline
+                  ? "bg-[#0b0c10]/30 text-[#c5c6c7]/40 border border-[#c5c6c7]/5 cursor-not-allowed"
                   : searchOnline
-                  ? "bg-blue-100 text-blue-600 border border-blue-200"
-                  : "bg-gray-50 text-gray-400 border border-gray-200 hover:bg-gray-100"
-              }`}
+                    ? "bg-[#00f0ff]/20 text-[#00f0ff] border border-[#00f0ff]/40 shadow-[0_0_10px_rgba(0,240,255,0.2)]"
+                    : "bg-[#0b0c10]/50 text-[#c5c6c7]/60 border border-[#c5c6c7]/10 hover:bg-[#0b0c10]"
+                }`}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
@@ -226,7 +224,7 @@ export default function ChatInput({
             </button>
             {/* Tooltip для Base плана */}
             {!canSearchOnline && (
-              <div className="absolute left-0 bottom-full mb-1 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50">
+              <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block bg-[#00f0ff]/10 border border-[#00f0ff]/30 text-[#00f0ff] backdrop-blur-md text-xs font-medium rounded-md px-3 py-1.5 whitespace-nowrap z-50 shadow-[0_0_10px_rgba(0,240,255,0.2)]">
                 Доступно в Pro подписке
               </div>
             )}
@@ -236,41 +234,43 @@ export default function ChatInput({
           <div className="relative ml-auto">
             <button
               onClick={() => setShowSearchHelp(!showSearchHelp)}
-              className="w-5 h-5 rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600 flex items-center justify-center text-xs"
+              className="w-6 h-6 rounded-full bg-[#0b0c10]/50 border border-[#c5c6c7]/10 text-[#c5c6c7]/60 hover:text-white hover:border-[#c5c6c7]/30 flex items-center justify-center text-xs font-bold transition-colors"
             >
               ?
             </button>
 
             {/* Help tooltip - открывается вверх когда инпут внизу */}
             {showSearchHelp && (
-              <div className={`absolute right-0 w-64 bg-white rounded-lg shadow-xl border border-gray-200 p-3 z-50 ${centered ? "top-7" : "bottom-full mb-2"}`}>
-                <div className="text-xs space-y-2">
-                  <div className="flex items-start gap-2">
-                    <div className="w-4 h-4 rounded bg-orange-100 flex-shrink-0 mt-0.5" />
+              <div className={`absolute right-0 w-72 bg-[#1f2833]/90 backdrop-blur-xl rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] border border-[#c5c6c7]/10 p-4 z-50 ${centered ? "top-9" : "bottom-full mb-3"}`}>
+                <div className="text-sm space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded bg-[#ff6b00]/20 border border-[#ff6b00]/30 shadow-[0_0_10px_rgba(255,107,0,0.2)] flex-shrink-0 mt-0.5" />
                     <div>
-                      <span className="font-medium text-gray-700">В ленте</span>
-                      <p className="text-gray-500">Быстрый поиск среди сохранённых вакансий в нашей базе</p>
+                      <span className="font-bold text-white block mb-0.5">Платформа</span>
+                      <p className="text-[#c5c6c7]/80 text-xs">Быстрый поиск среди сохранённых вакансий в нашей AI-базе</p>
                     </div>
                   </div>
-                  <div className="flex items-start gap-2">
-                    <div className="w-4 h-4 rounded bg-blue-100 flex-shrink-0 mt-0.5" />
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded bg-[#00f0ff]/20 border border-[#00f0ff]/30 shadow-[0_0_10px_rgba(0,240,255,0.2)] flex-shrink-0 mt-0.5" />
                     <div>
-                      <span className="font-medium text-gray-700">В сети</span>
-                      <p className="text-gray-500">Парсинг свежих вакансий с hh.ru, SuperJob</p>
+                      <span className="font-bold text-white block mb-0.5">В сети</span>
+                      <p className="text-[#c5c6c7]/80 text-xs">Live-парсинг свежих вакансий с hh.ru, SuperJob, Хабр Карьера</p>
                       {!canSearchOnline && (
-                        <p className="text-orange-500 mt-1">Требуется Pro подписка</p>
+                        <p className="text-[#00f0ff] text-xs font-bold mt-1 inline-flex items-center gap-1">
+                          Требуется Pro подписка
+                        </p>
                       )}
                     </div>
                   </div>
-                  <div className="pt-2 border-t border-gray-100 text-gray-400">
+                  <div className="pt-3 border-t border-[#c5c6c7]/10 text-[#c5c6c7]/60 text-xs">
                     {canSearchOnline
-                      ? "Включите оба для максимального охвата"
-                      : "Base план: только поиск в ленте"}
+                      ? "Включите оба тумблера для максимального охвата"
+                      : "Base план ограничен локальным поиском"}
                   </div>
                 </div>
                 <button
                   onClick={() => setShowSearchHelp(false)}
-                  className="absolute top-1 right-1 text-gray-300 hover:text-gray-500"
+                  className="absolute top-2 right-2 text-[#c5c6c7]/50 hover:text-white"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -281,19 +281,19 @@ export default function ChatInput({
           </div>
         </div>
 
-        <div className="flex items-end gap-2 p-2">
+        <div className="flex items-end gap-2 p-3">
           {/* Chat list button */}
           <div className="relative">
             <button
               onClick={() => setShowChatList(!showChatList)}
               disabled={!hasChats && centered}
-              className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${hasChats || !centered
-                  ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  : "bg-gray-50 text-gray-300 cursor-not-allowed"
+              className={`flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-all border ${hasChats || !centered
+                ? "bg-[#0b0c10]/50 text-[#c5c6c7] border-[#c5c6c7]/10 hover:bg-[#0b0c10] hover:text-white"
+                : "bg-transparent text-[#c5c6c7]/20 border-transparent cursor-not-allowed"
                 }`}
               title="Список чатов"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
             </button>
@@ -319,18 +319,17 @@ export default function ChatInput({
               type="button"
               ref={lifestyleButtonRef}
               onClick={() => setShowLifestyleFilters((prev) => !prev)}
-              className={`relative flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                hasAnyLifestyleFilters || showLifestyleFilters
-                  ? "bg-orange-100 text-orange-600 border border-orange-200"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-              title="Фильтр по стилю жизни"
+              className={`relative flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-all border ${hasAnyLifestyleFilters || showLifestyleFilters
+                  ? "bg-[#ff6b00]/10 text-[#ff6b00] border-[#ff6b00]/30 shadow-inner"
+                  : "bg-[#0b0c10]/50 text-[#c5c6c7] border-[#c5c6c7]/10 hover:bg-[#0b0c10] hover:text-white"
+                }`}
+              title="Нейро-фильтры формата работы"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M7 12h10M10 18h4" />
               </svg>
               {activeLifestyleCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-orange-500 text-white text-[10px] leading-4 font-semibold">
+                <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 rounded-full bg-[#ff6b00] text-white text-[11px] leading-5 font-bold shadow-[0_0_10px_rgba(255,107,0,0.6)] text-center">
                   {activeLifestyleCount}
                 </span>
               )}
@@ -338,14 +337,13 @@ export default function ChatInput({
 
             {showLifestyleFilters && (
               <div
-                className={`absolute z-50 w-72 bg-white rounded-2xl shadow-xl border border-gray-200 p-3 max-h-[min(75vh,34rem)] overflow-y-auto ${
-                  lifestylePanelPlacement === "bottom" ? "top-12 left-0" : "bottom-full mb-2 left-0"
-                }`}
+                className={`absolute z-50 w-80 bg-[#1f2833]/95 backdrop-blur-xl rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.8)] border border-[#ff6b00]/20 p-4 max-h-[min(75vh,34rem)] overflow-y-auto ${lifestylePanelPlacement === "bottom" ? "top-14 left-0" : "bottom-full mb-3 left-0"
+                  }`}
               >
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-start justify-between mb-4 border-b border-[#c5c6c7]/10 pb-3">
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">Стиль жизни</p>
-                    <p className="text-xs text-gray-500">ИИ отсечёт неподходящие вакансии по описанию</p>
+                    <p className="text-sm font-bold text-white mb-0.5">Критерии комфорта</p>
+                    <p className="text-[11px] text-[#c5c6c7]/70 font-medium">ИИ проанализирует текст вакансии</p>
                   </div>
                   <button
                     type="button"
@@ -358,62 +356,62 @@ export default function ChatInput({
                         strict_mode: false,
                       })
                     }
-                    className="text-xs text-gray-400 hover:text-gray-600"
+                    className="text-xs text-[#00f0ff] hover:text-white font-semibold transition-colors mt-0.5"
                   >
                     Сброс
                   </button>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {[
-                    { key: "full_remote_only" as const, label: "Только полная удалёнка", hint: "Исключать офис и гибрид" },
+                    { key: "full_remote_only" as const, label: "Только полная удалёнка", hint: "Блокировать офис и гибрид" },
                     { key: "no_mandatory_calls" as const, label: "Без обязательных созвонов", hint: "Отсеивать daily/митинги" },
                     { key: "async_first" as const, label: "Асинхронный формат", hint: "Искать async-first сигналы" },
-                    { key: "flexible_hours" as const, label: "Гибкий график", hint: "Исключать жёсткий 5/2" },
+                    { key: "flexible_hours" as const, label: "Гибкий график", hint: "Блокировать жёсткий 5/2" },
                   ].map((item) => (
                     <label
                       key={item.key}
-                      className="flex items-start gap-3 p-2 rounded-xl hover:bg-gray-50 cursor-pointer"
+                      className="flex items-start gap-3 p-3 rounded-xl hover:bg-[#0b0c10]/50 transition-colors cursor-pointer border border-transparent hover:border-[#c5c6c7]/10"
                     >
                       <input
                         type="checkbox"
                         checked={lifestylePreferences[item.key]}
                         onChange={() => toggleLifestylePreference(item.key)}
-                        className="mt-0.5 w-4 h-4 text-orange-500 rounded border-gray-300 focus:ring-orange-500"
+                        className="mt-0.5 w-4 h-4 text-[#ff6b00] rounded focus:ring-0 focus:ring-offset-0 bg-[#0b0c10] border-[#c5c6c7]/20"
                       />
                       <span className="min-w-0">
-                        <span className="block text-sm text-gray-800">{item.label}</span>
-                        <span className="block text-xs text-gray-500">{item.hint}</span>
+                        <span className="block text-sm font-semibold text-white">{item.label}</span>
+                        <span className="block text-[11px] text-[#c5c6c7]/60 mt-0.5">{item.hint}</span>
                       </span>
                     </label>
                   ))}
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <label className="flex items-start gap-3 p-2 rounded-xl hover:bg-gray-50 cursor-pointer">
+                <div className="mt-3 pt-3 border-t border-[#c5c6c7]/10">
+                  <label className="flex items-start gap-3 p-3 rounded-xl bg-[#ff6b00]/5 border border-[#ff6b00]/10 hover:bg-[#ff6b00]/10 transition-colors cursor-pointer">
                     <input
                       type="checkbox"
                       checked={lifestylePreferences.strict_mode}
                       onChange={() => toggleLifestylePreference("strict_mode")}
-                      className="mt-0.5 w-4 h-4 text-orange-500 rounded border-gray-300 focus:ring-orange-500"
+                      className="mt-0.5 w-4 h-4 text-[#ff6b00] rounded focus:ring-0 focus:ring-offset-0 bg-[#0b0c10] border-[#ff6b00]/30"
                     />
                     <span>
-                      <span className="block text-sm font-medium text-gray-800">Жёсткий режим</span>
-                      <span className="block text-xs text-gray-500">Показывать только явно подходящие вакансии</span>
+                      <span className="block text-sm font-bold text-white">Жёсткий отбор</span>
+                      <span className="block text-[11px] text-[#c5c6c7]/70 mt-0.5">Показывать исключительно совпадения 100%</span>
                     </span>
                   </label>
                 </div>
 
                 {lifestyleSummary.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
+                  <div className="mt-4 flex flex-wrap gap-2">
                     {lifestyleSummary.map((label) => (
-                      <span key={label} className="text-[11px] px-2 py-1 rounded-full bg-orange-50 text-orange-600 border border-orange-100">
+                      <span key={label} className="text-[10px] uppercase font-bold px-2.5 py-1 rounded border border-[#ff6b00]/30 bg-[#ff6b00]/10 text-[#ff6b00]">
                         {label}
                       </span>
                     ))}
                     {lifestylePreferences.strict_mode && (
-                      <span className="text-[11px] px-2 py-1 rounded-full bg-red-50 text-red-600 border border-red-100">
-                        Жёстко
+                      <span className="text-[10px] uppercase font-bold px-2.5 py-1 rounded border border-[#00f0ff]/30 bg-[#00f0ff]/10 text-[#00f0ff]">
+                        Strict
                       </span>
                     )}
                   </div>
@@ -428,35 +426,35 @@ export default function ChatInput({
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Напиши сообщение..."
+            placeholder="Я Senior Frontend (React, Node)..."
             disabled={disabled}
             rows={1}
-            className="flex-1 resize-none bg-transparent px-2 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none max-h-[200px]"
+            className="flex-1 resize-none bg-transparent px-3 py-3 text-white placeholder-[#c5c6c7]/30 text-base focus:outline-none max-h-[200px]"
           />
 
           {/* Send/Stop button */}
           {isTyping ? (
             <button
               onClick={onStop}
-              className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all bg-red-500 text-white hover:bg-red-600"
+              className="flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-all bg-[#0b0c10] border border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white shadow-[0_0_15px_rgba(239,68,68,0.2)]"
               title="Остановить"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <rect x="6" y="6" width="12" height="12" rx="1" />
+                <rect x="6" y="6" width="12" height="12" rx="2" />
               </svg>
             </button>
           ) : (
             <button
               onClick={handleSubmit}
               disabled={!message.trim() || disabled}
-              className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${message.trim() && !disabled
-                  ? "bg-orange-500 text-white hover:bg-orange-600"
-                  : "bg-gray-100 text-gray-300 cursor-not-allowed"
+              className={`flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${message.trim() && !disabled
+                ? "bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] text-white shadow-[0_0_20px_rgba(255,107,0,0.4)] hover:shadow-[0_0_30px_rgba(255,107,0,0.6)] hover:scale-105"
+                : "bg-[#0b0c10]/50 text-[#c5c6c7]/30 border border-[#c5c6c7]/10 cursor-not-allowed"
                 }`}
-              title="Отправить"
+              title="Запустить поиск"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M12 5l7 7-7 7" />
+              <svg className="w-5 h-5 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14M12 5l7 7-7 7" />
               </svg>
             </button>
           )}
@@ -465,12 +463,12 @@ export default function ChatInput({
 
       {/* Disclaimer with fade animation */}
       <p
-        className={`text-center text-xs text-gray-400 mt-4 transition-all duration-500 ease-out ${centered
-            ? "opacity-100"
-            : "opacity-0 h-0 mt-0 overflow-hidden"
+        className={`text-center text-[11px] text-[#c5c6c7]/40 uppercase tracking-widest font-semibold mt-6 transition-all duration-500 ease-out ${centered
+          ? "opacity-100"
+          : "opacity-0 h-0 mt-0 overflow-hidden"
           }`}
       >
-        ИИ может ошибаться. Проверяйте важную информацию.
+        Нейросеть агрегирует данные. Возможны неточности парсинга.
       </p>
     </div>
   );

@@ -11,43 +11,49 @@ interface VacancyFeedPreviewProps {
  */
 export default function VacancyFeedPreview({ isBlurred, overlayText }: VacancyFeedPreviewProps) {
   return (
-    <div className="ml-11 relative">
+    <div className="ml-14 relative overflow-hidden py-2" style={{ maskImage: 'linear-gradient(to right, black 80%, transparent 100%)' }}>
       {/* Скелетоны карточек */}
       <div
-        className={`flex gap-4 transition-all duration-500 ${isBlurred ? 'animate-blur-in' : ''}`}
-        style={{ filter: isBlurred ? 'blur(8px)' : 'none' }}
+        className={`flex gap-5 transition-all duration-700 ease-in-out ${isBlurred ? 'animate-blur-in' : ''}`}
+        style={{ filter: isBlurred ? 'blur(10px) brightness(0.6)' : 'none' }}
       >
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="flex-shrink-0 w-72 bg-white rounded-2xl border border-gray-200 p-4"
+            className="flex-shrink-0 w-80 bg-[#1f2833]/20 border border-[#c5c6c7]/5 rounded-2xl p-5"
           >
             {/* Source badge skeleton */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-16 h-6 bg-gray-200 rounded-full animate-pulse" />
-              <div className="w-12 h-4 bg-gray-100 rounded" />
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-20 h-6 bg-[#c5c6c7]/5 rounded m-0 animate-pulse" />
+              <div className="w-14 h-4 bg-[#c5c6c7]/5 rounded m-0" />
             </div>
 
             {/* Title skeleton */}
-            <div className="w-full h-6 bg-gray-200 rounded mb-2 animate-pulse" />
+            <div className="w-full h-7 bg-[#c5c6c7]/10 rounded mb-3 animate-pulse" />
 
             {/* Company skeleton */}
-            <div className="w-3/4 h-4 bg-gray-100 rounded mb-3 animate-pulse" />
+            <div className="w-2/3 h-5 bg-[#c5c6c7]/5 rounded mb-5 animate-pulse" />
 
             {/* Salary skeleton */}
-            <div className="w-1/2 h-6 bg-orange-100 rounded mb-2 animate-pulse" />
+            <div className="w-1/2 h-7 bg-[#00f0ff]/10 rounded mb-4 animate-pulse" />
 
             {/* City & experience skeleton */}
-            <div className="flex items-center gap-2">
-              <div className="w-20 h-3 bg-gray-100 rounded animate-pulse" />
-              <div className="w-px h-3 bg-gray-200" />
-              <div className="w-16 h-3 bg-gray-100 rounded animate-pulse" />
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-24 h-4 bg-[#c5c6c7]/5 rounded animate-pulse" />
+              <div className="w-2 h-2 rounded-full bg-[#c5c6c7]/10" />
+              <div className="w-16 h-4 bg-[#c5c6c7]/5 rounded animate-pulse" />
             </div>
 
             {/* Description skeleton */}
-            <div className="mt-3 space-y-1">
-              <div className="w-full h-3 bg-gray-50 rounded animate-pulse" />
-              <div className="w-2/3 h-3 bg-gray-50 rounded animate-pulse" />
+            <div className="mt-4 space-y-2">
+              <div className="w-full h-3 bg-[#c5c6c7]/5 rounded animate-pulse" />
+              <div className="w-5/6 h-3 bg-[#c5c6c7]/5 rounded animate-pulse" />
+              <div className="w-2/3 h-3 bg-[#c5c6c7]/5 rounded animate-pulse" />
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-[#c5c6c7]/5 flex justify-between">
+              <div className="w-1/3 h-3 bg-[#c5c6c7]/5 rounded" />
+              <div className="w-1/4 h-3 bg-[#c5c6c7]/10 rounded" />
             </div>
           </div>
         ))}
@@ -55,13 +61,13 @@ export default function VacancyFeedPreview({ isBlurred, overlayText }: VacancyFe
 
       {/* Overlay text */}
       {isBlurred && overlayText && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="bg-white/90 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
-            <p className="text-gray-700 font-medium animate-pulse-subtle flex items-center gap-2">
-              <svg className="w-5 h-5 text-orange-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <div className="bg-[#0b0c10]/80 backdrop-blur-xl border border-[#00f0ff]/30 px-8 py-4 rounded-xl shadow-[0_0_30px_rgba(0,240,255,0.2)] flex items-center gap-4">
+            <div className="relative w-6 h-6">
+              <div className="absolute inset-0 border-2 border-[#00f0ff]/20 rounded-full" />
+              <div className="absolute inset-0 border-2 border-[#00f0ff] border-t-transparent rounded-full animate-spin shadow-[0_0_10px_rgba(0,240,255,0.5)]" />
+            </div>
+            <p className="text-[#00f0ff] font-bold text-sm uppercase tracking-widest drop-shadow-[0_0_8px_rgba(0,240,255,0.6)] animate-pulse-subtle">
               {overlayText}
             </p>
           </div>

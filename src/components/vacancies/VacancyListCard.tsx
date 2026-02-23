@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "framer-motion";
 
 export interface Vacancy {
   id: string;
@@ -26,13 +27,13 @@ interface VacancyListCardProps {
 
 function formatSalary(from?: number, to?: number): string {
   if (from && to) {
-    return `${from.toLocaleString("ru-RU")} - ${to.toLocaleString("ru-RU")} ₽`;
+    return `${from.toLocaleString("ru-RU")} - ${to.toLocaleString("ru-RU")} \u20BD`;
   }
   if (from) {
-    return `от ${from.toLocaleString("ru-RU")} ₽`;
+    return `от ${from.toLocaleString("ru-RU")} \u20BD`;
   }
   if (to) {
-    return `до ${to.toLocaleString("ru-RU")} ₽`;
+    return `до ${to.toLocaleString("ru-RU")} \u20BD`;
   }
   return "";
 }
@@ -73,20 +74,20 @@ function getSourceLabel(source: string, isOwner: boolean): string {
     hh: "hh.ru",
     avito: "Avito",
     superjob: "SuperJob",
-    platform: "Наша",
+    platform: "JobAISearch",
   };
   return labels[source] || source;
 }
 
 function getSourceColor(source: string, isOwner: boolean): string {
-  if (isOwner) return "bg-green-100 text-green-600 ring-2 ring-green-300";
+  if (isOwner) return "bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/30 border";
   const colors: Record<string, string> = {
-    hh: "bg-red-100 text-red-600",
-    avito: "bg-green-100 text-green-600",
-    superjob: "bg-blue-100 text-blue-600",
-    platform: "bg-orange-100 text-orange-600 ring-2 ring-orange-300",
+    hh: "bg-red-500/10 text-red-500 border-red-500/30 border",
+    avito: "bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/30 border",
+    superjob: "bg-[#00f0ff]/10 text-[#00f0ff] border-[#00f0ff]/30 border",
+    platform: "bg-[#ff6b00]/10 text-[#ff6b00] border-[#ff6b00]/50 border shadow-[0_0_10px_rgba(255,107,0,0.2)]",
   };
-  return colors[source] || "bg-gray-100 text-gray-600";
+  return colors[source] || "bg-[#c5c6c7]/10 text-[#c5c6c7] border-[#c5c6c7]/30 border";
 }
 
 export default function VacancyListCard({ vacancy, currentUserId }: VacancyListCardProps) {
@@ -99,15 +100,21 @@ export default function VacancyListCard({ vacancy, currentUserId }: VacancyListC
   const vacancyLink = isPlatform ? `/vacancies/${vacancy.id}` : vacancy.url;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-5 hover:shadow-lg hover:border-orange-200 transition-all duration-200 group/card">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-[#1f2833]/40 backdrop-blur-md rounded-2xl border border-[#c5c6c7]/10 p-5 hover:border-[#00f0ff]/40 hover:shadow-[0_0_20px_rgba(0,240,255,0.15)] transition-all duration-300 group/card relative overflow-hidden"
+    >
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#00f0ff]/5 to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 rounded-bl-full pointer-events-none" />
+
       {/* Header row */}
-      <div className="flex items-start justify-between gap-4 mb-3">
+      <div className="flex items-start justify-between gap-4 mb-4 relative z-10">
         <div className="flex-1">
           {/* Title */}
           {isPlatform ? (
             <Link
               href={vacancyLink}
-              className="text-lg font-semibold text-gray-900 group-hover/card:text-orange-600 transition-colors"
+              className="text-lg font-bold text-white group-hover/card:text-[#00f0ff] transition-colors drop-shadow-sm"
             >
               {vacancy.title}
             </Link>
@@ -116,65 +123,68 @@ export default function VacancyListCard({ vacancy, currentUserId }: VacancyListC
               href={vacancyLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-lg font-semibold text-gray-900 group-hover/card:text-orange-600 transition-colors"
+              className="text-lg font-bold text-white group-hover/card:text-[#00f0ff] transition-colors drop-shadow-sm"
             >
               {vacancy.title}
             </a>
           )}
 
           {/* Tags */}
-          <div className="flex items-center gap-2 mt-2 flex-wrap">
+          <div className="flex items-center gap-2 mt-2.5 flex-wrap">
             {experience && (
-              <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 bg-[#0b0c10]/50 text-[#c5c6c7]/80 rounded border border-[#c5c6c7]/10">
                 {experience}
               </span>
             )}
             {vacancy.employment_type === "remote" && (
-              <span className="text-xs px-2 py-1 bg-purple-100 text-purple-600 rounded-full">
-                Можно удаленно
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 bg-[#00f0ff]/10 text-[#00f0ff] rounded border border-[#00f0ff]/30">
+                Удалённо
               </span>
             )}
           </div>
         </div>
 
         {/* Source badge */}
-        <span className={`text-xs font-medium px-2 py-1 rounded-full shrink-0 ${getSourceColor(vacancy.source, isOwner)}`}>
+        <span className={`text-[10px] uppercase font-black tracking-widest px-2.5 py-1.5 rounded shrink-0 ${getSourceColor(vacancy.source, isOwner)}`}>
           {getSourceLabel(vacancy.source, isOwner)}
         </span>
       </div>
 
       {/* Salary */}
       {salary && (
-        <p className="text-xl font-bold text-gray-900 mb-3">{salary}</p>
+        <p className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-[#00f0ff] to-[#00c0cc] drop-shadow-[0_0_8px_rgba(0,240,255,0.4)] mb-3 relative z-10">
+          {salary}
+        </p>
       )}
 
-      {/* Company */}
-      <p className="text-sm text-gray-700 font-medium mb-1">{vacancy.company}</p>
-
-      {/* City */}
-      <p className="text-sm text-gray-500 mb-3">{vacancy.city}</p>
+      {/* Company & City */}
+      <div className="flex items-center gap-3 text-sm text-[#c5c6c7]/80 font-medium mb-4 relative z-10">
+        <span className="text-white truncate max-w-[200px] sm:max-w-xs">{vacancy.company}</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-[#ff6b00]" />
+        <span className="text-[#c5c6c7]/60">{vacancy.city}</span>
+      </div>
 
       {/* Description */}
       {vacancy.description && (
-        <p className="text-sm text-gray-600 line-clamp-2 mb-4">
+        <p className="text-sm text-[#c5c6c7]/50 line-clamp-2 leading-relaxed mb-5 relative z-10">
           {vacancy.description}
         </p>
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 relative z-10 pt-4 border-t border-[#c5c6c7]/5">
         {isOwner ? (
           // Owner actions
           <>
             <Link
               href={vacancyLink}
-              className="px-5 py-2.5 bg-orange-500 text-white text-sm font-medium rounded-xl hover:bg-orange-600 transition-colors"
+              className="px-5 py-2.5 bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] text-[#0b0c10] text-[11px] uppercase tracking-widest font-black rounded-lg hover:shadow-[0_0_15px_rgba(255,107,0,0.4)] transition-all hover:scale-[1.02]"
             >
               Подробнее
             </Link>
             <Link
               href="/vacancies/my"
-              className="px-5 py-2.5 border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors"
+              className="px-5 py-2.5 border border-[#c5c6c7]/20 text-[#c5c6c7] text-[11px] uppercase tracking-widest font-bold rounded-lg hover:bg-[#c5c6c7]/10 hover:text-white transition-colors"
             >
               Управление
             </Link>
@@ -184,13 +194,13 @@ export default function VacancyListCard({ vacancy, currentUserId }: VacancyListC
           <>
             <Link
               href={vacancyLink}
-              className="px-5 py-2.5 bg-orange-500 text-white text-sm font-medium rounded-xl hover:bg-orange-600 transition-colors"
+              className="px-5 py-2.5 bg-gradient-to-r from-[#00f0ff] to-[#00c0cc] text-[#0b0c10] text-[11px] uppercase tracking-widest font-black rounded-lg hover:shadow-[0_0_15px_rgba(0,240,255,0.4)] transition-all hover:scale-[1.02]"
             >
               Подробнее
             </Link>
             <Link
               href={`/messages?vacancy=${vacancy.id}`}
-              className="px-5 py-2.5 border border-gray-200 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors"
+              className="px-5 py-2.5 border border-[#00f0ff]/30 text-[#00f0ff] text-[11px] uppercase tracking-widest font-bold rounded-lg hover:bg-[#00f0ff]/10 hover:shadow-[0_0_10px_rgba(0,240,255,0.2)] transition-all"
             >
               Написать
             </Link>
@@ -202,13 +212,16 @@ export default function VacancyListCard({ vacancy, currentUserId }: VacancyListC
               href={vacancyLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-5 py-2.5 bg-orange-500 text-white text-sm font-medium rounded-xl hover:bg-orange-600 transition-colors"
+              className="group/btn flex items-center gap-2 px-5 py-2.5 bg-[#00f0ff]/10 border border-[#00f0ff]/30 text-[#00f0ff] hover:bg-[#00f0ff]/20 hover:shadow-[0_0_15px_rgba(0,240,255,0.3)] hover:text-white text-[11px] uppercase tracking-widest font-black rounded-lg transition-all"
             >
               Откликнуться
+              <svg className="w-3.5 h-3.5 text-[#00f0ff] group-hover/btn:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
             </a>
           </>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

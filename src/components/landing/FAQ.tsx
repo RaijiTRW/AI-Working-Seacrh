@@ -1,37 +1,38 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const faqs = [
   {
     question: "А если ИИ найдёт не то, что мне нужно?",
     answer:
-      "ИИ учится на твоих предпочтениях. После первого поиска точность ~85%, после 2-3 уточнений — 94%+. Плюс у тебя 3 дня Pro Trial бесплатно, чтобы убедиться, что подходит.",
+      "ИИ учится на твоих действиях. После первого поиска точность составляет ~85%, после 2-3 уточнений — 94%+. У тебя есть 3 дня бесплатного Pro-доступа, чтобы убедиться в качестве подбора.",
   },
   {
-    question: "Чем это лучше, чем самому искать на hh.ru?",
+    question: "Чем это лучше, чем ручной поиск на hh?",
     answer:
-      "Мы сканируем 5+ площадок одновременно: hh.ru, Avito, SuperJob, Работа.ру. Ты получаешь вакансии из всех источников без дубликатов. В среднем пользователи экономят 3+ часа в день.",
+      "Мы параллельно сканируем 5+ крупнейших агрегаторов: hh.ru, Avito, SuperJob, Хабр Карьера. Ты получаешь поток со всех источников без дубликатов. Пользователи экономят до 3 часов в день.",
   },
   {
-    question: "499 ₽/месяц — дорого. Почему столько?",
+    question: "Почему подписка стоит своих денег?",
     answer:
-      "Это меньше 17 ₽ в день. За эти деньги ИИ экономит тебе 3+ часа ежедневно. Если твой час стоит хотя бы 500 ₽, сервис окупается за первый день. Плюс первые 3 дня бесплатно.",
+      "Цена подписки окупается за первый же день сэкономленного времени (при оценке твоего часа в 500+ ₽). ИИ избавляет от рутины, выгорания и пропущенных возможностей.",
   },
   {
     question: "Как быстро я получу первые вакансии?",
     answer:
-      "Через 2-5 минут после регистрации. Заполняешь профиль в чате с ИИ, и сразу получаешь подборку. Дальше вакансии обновляются автоматически каждые 2 часа.",
+      "Через 2-5 минут после регистрации. Ты рассказываешь нашему AI-боту о себе, он сразу сканирует базы и выдает первую подборку. Дальше — автообновление каждые 2-4 часа.",
   },
   {
-    question: "Что если через 3 дня Trial я не хочу платить?",
+    question: "Что если после 3-дневного триала я не захочу платить?",
     answer:
-      "Ничего не случится. Ты автоматически перейдёшь на бесплатный Base план с 3 запросами в день. Карту мы не привязываем, скрытых списаний нет.",
+      "Ничего не спишется. Мы не требуем привязки карты для активации триала. Ты просто перейдёшь на бесплатный план Base с ограничением на количество AI-запросов в день.",
   },
   {
-    question: "Откуда берутся вакансии? Они настоящие?",
+    question: "Откуда берутся вакансии? Это парсинг или фейки?",
     answer:
-      "Мы парсим официальные API hh.ru, Avito и других площадок. Все вакансии реальные и актуальные. Обновление каждые 2 часа, неактуальные удаляем автоматически.",
+      "Мы используем официальные API площадок и умные парсеры с защитой от фейков. Наша нейросеть анализирует текст вакансии и удаляет подозрительные или неактуальные предложения.",
   },
 ];
 
@@ -39,46 +40,75 @@ export default function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section className="py-16 md:py-24 px-4 sm:px-6 bg-gradient-to-b from-white via-gray-50/30 to-gray-50">
-      <div className="max-w-3xl mx-auto">
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-4">
-          Остались вопросы?
-        </h2>
-        <p className="text-center text-muted mb-10 md:mb-16 max-w-xl mx-auto">
-          Вот что чаще всего спрашивают перед регистрацией
-        </p>
-        <div className="space-y-2 md:space-y-3">
-          {faqs.map((faq, index) => (
-            <div
-              key={index}
-              className="bg-white rounded-lg md:rounded-xl overflow-hidden border border-gray-100 hover:border-orange-100 transition-colors"
-            >
-              <button
-                onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                className="w-full px-4 md:px-6 py-4 md:py-5 text-left flex items-center justify-between gap-3 hover:bg-orange-50/50 transition-colors"
-              >
-                <span className="font-medium text-sm md:text-base">{faq.question}</span>
-                <span
-                  className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${openIndex === index
-                    ? "bg-orange-500 text-white rotate-45"
-                    : "bg-gray-100 text-gray-500"
-                    }`}
-                >
-                  <svg className="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                </span>
-              </button>
-              <div
-                className={`overflow-hidden transition-all duration-300 ${openIndex === index ? "max-h-48" : "max-h-0"
+    <section className="py-20 md:py-32 px-4 sm:px-6 bg-[#0b0c10] relative overflow-hidden">
+      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:radial-gradient(ellipse_at_bottom,white,transparent_80%)] opacity-5 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#1f2833] to-transparent" />
+
+      <div className="max-w-4xl mx-auto relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
+        >
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-6">
+            Люди спрашивают
+          </h2>
+          <p className="text-lg text-[#c5c6c7] max-w-xl mx-auto font-light">
+            Прозрачные ответы на самые частые вопросы перед стартом.
+          </p>
+        </motion.div>
+
+        <div className="space-y-4">
+          {faqs.map((faq, index) => {
+            const isOpen = openIndex === index;
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className={`bg-[#1f2833]/40 backdrop-blur-sm rounded-2xl overflow-hidden border transition-colors duration-300 ${isOpen ? "border-[#ff6b00]/50 shadow-[0_0_20px_rgba(255,107,0,0.1)]" : "border-[#c5c6c7]/10 hover:border-[#c5c6c7]/30"
                   }`}
               >
-                <div className="px-4 md:px-6 pb-4 md:pb-5 text-sm md:text-base text-muted">
-                  {faq.answer}
-                </div>
-              </div>
-            </div>
-          ))}
+                <button
+                  onClick={() => setOpenIndex(isOpen ? null : index)}
+                  className="w-full px-6 py-5 text-left flex items-center justify-between gap-4"
+                >
+                  <span className={`font-bold text-base md:text-lg transition-colors ${isOpen ? "text-[#ff6b00]" : "text-white"}`}>
+                    {faq.question}
+                  </span>
+                  <motion.span
+                    animate={{ rotate: isOpen ? 45 : 0 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 20 }}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${isOpen
+                        ? "bg-[#ff6b00] text-white shadow-[0_0_10px_rgba(255,107,0,0.5)]"
+                        : "bg-[#0b0c10] text-[#c5c6c7]"
+                      }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </motion.span>
+                </button>
+                <AnimatePresence>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                    >
+                      <div className="px-6 pb-6 text-base text-[#c5c6c7]/80 leading-relaxed font-light border-t border-[#c5c6c7]/10 pt-4 mt-2">
+                        {faq.answer}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </section>

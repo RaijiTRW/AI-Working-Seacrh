@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const chatMessages = [
   { type: "bot", text: "Какую работу ищешь?" },
@@ -13,9 +14,9 @@ const chatMessages = [
 function TypingDots() {
   return (
     <div className="flex items-center gap-1">
-      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-      <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+      <motion.span animate={{ y: [0, -5, 0] }} transition={{ duration: 0.6, repeat: Infinity }} className="w-2 h-2 bg-[#c5c6c7] rounded-full" />
+      <motion.span animate={{ y: [0, -5, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }} className="w-2 h-2 bg-[#c5c6c7] rounded-full" />
+      <motion.span animate={{ y: [0, -5, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }} className="w-2 h-2 bg-[#c5c6c7] rounded-full" />
     </div>
   );
 }
@@ -48,44 +49,49 @@ export default function ChatCard() {
   }, [visibleMessages]);
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-4 w-64 border border-gray-100">
-      <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+    <div className="bg-[#1f2833]/80 backdrop-blur-md rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] p-4 w-72 border border-[#c5c6c7]/10">
+      <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[#c5c6c7]/10">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#ff6b00] to-[#ff8c00] flex items-center justify-center shadow-[0_0_10px_rgba(255,107,0,0.4)]">
           <span className="text-white text-xs font-bold">AI</span>
         </div>
-        <span className="text-sm font-medium">Ваши пожелания по работе?</span>
+        <span className="text-sm font-medium text-white">Ваши пожелания по работе?</span>
       </div>
-      <div className="space-y-2 min-h-36">
-        {chatMessages.slice(0, visibleMessages).map((msg, i) => (
-          <div
-            key={i}
-            className={`px-3 py-2 rounded-xl text-sm animate-in fade-in slide-in-from-bottom-2 duration-300 ${
-              msg.type === "bot"
-                ? "bg-gray-100 text-gray-700 mr-8"
-                : "bg-orange-50 text-orange-700 ml-8 border border-orange-100"
-            }`}
-          >
-            {msg.text}
-          </div>
-        ))}
-        {showTyping && (
-          <div
-            className={`px-3 py-2.5 rounded-xl ${
-              typingType === "bot"
-                ? "bg-gray-100 mr-8"
-                : "bg-orange-50 ml-8 border border-orange-100"
-            }`}
-          >
-            <TypingDots />
-          </div>
-        )}
+      <div className="space-y-3 min-h-[160px] flex flex-col justify-end">
+        <AnimatePresence>
+          {chatMessages.slice(0, visibleMessages).map((msg, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              className={`px-3 py-2 rounded-xl text-sm ${msg.type === "bot"
+                  ? "bg-[#0b0c10] text-[#c5c6c7] mr-8 rounded-tl-sm border border-[#c5c6c7]/5"
+                  : "bg-[#ff6b00]/10 text-white ml-8 rounded-tr-sm border border-[#ff6b00]/20"
+                }`}
+            >
+              {msg.text}
+            </motion.div>
+          ))}
+          {showTyping && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className={`px-3 py-2.5 rounded-xl w-fit ${typingType === "bot"
+                  ? "bg-[#0b0c10] mr-8 rounded-tl-sm border border-[#c5c6c7]/5"
+                  : "bg-[#ff6b00]/10 ml-8 rounded-tr-sm border border-[#ff6b00]/20"
+                }`}
+            >
+              <TypingDots />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-      <div className="mt-3 pt-3 border-t border-gray-100">
-        <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-full text-sm text-gray-400">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="mt-4 pt-3 border-t border-[#c5c6c7]/10">
+        <div className="flex items-center gap-2 px-3 py-2 bg-[#0b0c10] rounded-full text-sm text-[#c5c6c7]/70 border border-[#c5c6c7]/5">
+          <svg className="w-4 h-4 text-[#ff6b00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <span>Поиск работы...</span>
+          <span className="animate-pulse">Поиск идеальной работы...</span>
         </div>
       </div>
     </div>
