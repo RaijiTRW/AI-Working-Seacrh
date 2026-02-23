@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch:
 
+concurrency:
+  group: deploy-jobaisearch-vds
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -16,89 +20,35 @@ jobs:
       - name: Deploy to VDS via rsync
         uses: burnett01/rsync-deployments@6.0.0
         with:
-          switches: -avzr --delete --exclude='.env*' --exclude='node_modules/' --exclude='.next/' --exclude='logs/'
-          path: /
-          remote_path: /var/www/jobaisearch
+          switches: >-
+            -avzr --delete
+            --exclude='.env*'
+            --exclude='node_modules/'
+            --exclude='.next/'
+            --exclude='logs/'
+            --exclude='backend/JobAISeacrh_Backend/venv/'
+            --exclude='.claude/'
+            --exclude='.gemini/'
+            --exclude='._*'
+          path: ./
+          remote_path: /var/www/jobaisearch/repo/
           remote_host: ${{ secrets.VDS_HOST }}
           remote_user: ${{ secrets.VDS_USERNAME }}
           remote_key: ${{ secrets.VDS_SSH_KEY }}
 
-      - name: Deploy on VDS
+      - name: Deploy on VDS (systemd)
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VDS_HOST }}
           username: ${{ secrets.VDS_USERNAME }}
           key: ${{ secrets.VDS_SSH_KEY }}
           port: 22
-          command_timeout: 30m
-          script_stop: false
+          command_timeout: 45m
+          script_stop: true
           script: |
-            set -e
-
-            cd /var/www/jobaisearch
-
-            # Ensure logs directory exists
-            mkdir -p logs
-
-            echo "📦 Installing dependencies..."
-            npm ci --prefer-offline --no-audit --no-fund 2>&1 | tail -20
-
-            echo "🔨 Building project..."
-            NODE_ENV=production npm run build 2>&1 | tail -30
-
-            echo "🛑 Stopping any existing processes..."
-            pkill -f "node.*next" || true
-            pkill -f "uvicorn" || true
-            sleep 3
-
-            echo "🚀 Starting services directly..."
-
-            # Check backend venv exists
-            cd /var/www/jobaisearch/backend/JobAISeacrh_Backend
-            if [ ! -d "venv" ]; then
-              echo "⚠️  Backend venv not found, creating..."
-              python3 -m venv venv
-              ./venv/bin/pip install -r requirements.txt --quiet
-            fi
-
-            # Test backend start
-            echo "Starting backend..."
-            cd /var/www/jobaisearch/backend/JobAISeacrh_Backend
-            ./venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
-            BACKEND_PID=$!
-            echo $BACKEND_PID > /tmp/backend.pid
-            echo "Backend PID: $BACKEND_PID"
-
-            # Start frontend
-            echo "Starting frontend..."
-            cd /var/www/jobaisearch
-            npm run start > /tmp/frontend.log 2>&1 &
-            FRONTEND_PID=$!
-            echo $FRONTEND_PID > /tmp/frontend.pid
-            echo "Frontend PID: $FRONTEND_PID"
-
-            echo "⏳ Waiting for services to start..."
-            sleep 25
-
-            echo ""
-            echo "✅ Deployment complete!"
-
-            echo ""
-            echo "🔍 Running processes:"
-            ps aux | grep -E "(next|uvicorn)" | grep -v grep || echo "No processes found"
-
-            echo ""
-            echo "📋 Backend log:"
-            cat /tmp/backend.log || echo "No backend log"
-
-            echo ""
-            echo "📋 Frontend log:"
-            cat /tmp/frontend.log || echo "No frontend log"
-
-            # Health check
-            echo ""
-            echo "🔍 Health checks:"
-            echo "Frontend (port 3000):"
-            curl -sf http://localhost:3000 > /dev/null && echo "✓ OK" || echo "✗ FAILED"
-            echo "Backend (port 8000):"
-            curl -sf http://localhost:8000/health && echo "✓ OK" || echo "✗ FAILED"
+            sudo /usr/local/bin/jobaisearch-deploy
+            systemctl is-active jobaisearch-frontend jobaisearch-backend caddy
+            curl -fsS -o /dev/null -w "frontend:%{http_code}\n" http://127.0.0.1:3000/
+            curl -fsS -o /dev/null -w "backend:%{http_code}\n" http://127.0.0.1:8000/health
+            curl -kfsS -o /dev/null -w "site:%{http_code}\n" https://jobaisearch.ru/
+            curl -kfsS -o /dev/null -w "health:%{http_code}\n" https://jobaisearch.ru/health

@@ -2,7 +2,9 @@
  * Scheduler API - управление планировщиком задач
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+// Scheduler requests must go through Next.js API routes (same-origin).
+// In production, NEXT_PUBLIC_API_URL points to an internal backend slot (127.0.0.1:800x)
+// and is not reachable from the user's browser.
 const NEXT_API = "";
 
 export interface SchedulerJobStatus {
@@ -61,7 +63,7 @@ export interface VolumeDataPoint {
 export async function getSchedulerStatus(token: string): Promise<SchedulerStatus> {
   // Add cache-busting parameter
   const cacheBuster = Date.now();
-  const response = await fetch(`${API_URL}/api/admin/scheduler/status?_=${cacheBuster}`, {
+  const response = await fetch(`${NEXT_API}/api/admin/scheduler/status?_=${cacheBuster}`, {
     headers: {
       Authorization: `Bearer ${token}`,
       'Cache-Control': 'no-cache',
@@ -98,7 +100,7 @@ export async function getJobStates(token: string): Promise<Record<string, { is_p
  * Поставить джоб на паузу
  */
 export async function pauseJob(token: string, jobId: string): Promise<void> {
-  const response = await fetch(`${API_URL}/api/admin/scheduler/jobs/${jobId}/pause`, {
+  const response = await fetch(`${NEXT_API}/api/admin/scheduler/jobs/${jobId}/pause`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -114,7 +116,7 @@ export async function pauseJob(token: string, jobId: string): Promise<void> {
  * Возобновить джоб
  */
 export async function resumeJob(token: string, jobId: string): Promise<void> {
-  const response = await fetch(`${API_URL}/api/admin/scheduler/jobs/${jobId}/resume`, {
+  const response = await fetch(`${NEXT_API}/api/admin/scheduler/jobs/${jobId}/resume`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -130,7 +132,7 @@ export async function resumeJob(token: string, jobId: string): Promise<void> {
  * Запустить джоб вручную
  */
 export async function triggerJob(token: string, jobId: string): Promise<void> {
-  const response = await fetch(`${API_URL}/api/admin/scheduler/jobs/${jobId}/trigger`, {
+  const response = await fetch(`${NEXT_API}/api/admin/scheduler/jobs/${jobId}/trigger`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -146,7 +148,7 @@ export async function triggerJob(token: string, jobId: string): Promise<void> {
  * Остановить джоб
  */
 export async function stopJob(token: string, jobId: string): Promise<void> {
-  const response = await fetch(`${API_URL}/api/admin/scheduler/jobs/${jobId}/stop`, {
+  const response = await fetch(`${NEXT_API}/api/admin/scheduler/jobs/${jobId}/stop`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -169,7 +171,7 @@ export async function getJobHistory(
   const params = new URLSearchParams({ limit: limit.toString() });
   if (jobId) params.append("job_id", jobId);
 
-  const response = await fetch(`${API_URL}/api/admin/scheduler/history?${params}`, {
+  const response = await fetch(`${NEXT_API}/api/admin/scheduler/history?${params}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -189,7 +191,7 @@ export async function getVolumeStats(
   token: string,
   hours = 168
 ): Promise<VolumeDataPoint[]> {
-  const response = await fetch(`${API_URL}/api/admin/scheduler/volume?hours=${hours}`, {
+  const response = await fetch(`${NEXT_API}/api/admin/scheduler/volume?hours=${hours}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

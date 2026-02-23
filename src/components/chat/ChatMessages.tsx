@@ -127,7 +127,9 @@ function AssistantMessage({
             {canLoadMore && (
               <>
                 <button
-                  onClick={() => onLoadMore(messageId)}
+                  onClick={() => {
+                    if (onLoadMore && messageId) onLoadMore(messageId);
+                  }}
                   className="text-xs px-2 py-1 rounded-md bg-orange-50 text-orange-600 hover:bg-orange-100 hover:text-orange-700 transition-colors font-medium"
                   title="Найти еще вакансии по этому запросу"
                 >
