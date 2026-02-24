@@ -13,19 +13,45 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
     steps:
-      - name: Checkout code
+      - name: Checkout frontend repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-      - name: Deploy to VDS via rsync
+      - name: Checkout backend repo (separate repository)
+        env:
+          BACKEND_REPO_TOKEN: ${{ secrets.BACKEND_REPO_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          rm -rf backend/JobAISeacrh_Backend
+          mkdir -p backend
+
+          if [ -n "${BACKEND_REPO_TOKEN:-}" ]; then
+            git clone --depth=1 "https://x-access-token:${BACKEND_REPO_TOKEN}@github.com/RaijiTRW/JobAISeacrh_Backend.git" backend/JobAISeacrh_Backend
+          else
+            git clone --depth=1 https://github.com/RaijiTRW/JobAISeacrh_Backend.git backend/JobAISeacrh_Backend
+          fi
+
+          rm -rf backend/JobAISeacrh_Backend/.git
+          test -f backend/JobAISeacrh_Backend/requirements.txt
+          test -f backend/JobAISeacrh_Backend/main.py
+
+      - name: Deploy repo snapshot to VDS via rsync
         uses: burnett01/rsync-deployments@6.0.0
         with:
           switches: >-
             -avzr --delete
+            --exclude='.git/'
             --exclude='.env*'
             --exclude='node_modules/'
             --exclude='.next/'
             --exclude='logs/'
+            --exclude='backend/venv/'
             --exclude='backend/JobAISeacrh_Backend/venv/'
             --exclude='.claude/'
             --exclude='.gemini/'
@@ -36,7 +62,7 @@ jobs:
           remote_user: ${{ secrets.VDS_USERNAME }}
           remote_key: ${{ secrets.VDS_SSH_KEY }}
 
-      - name: Deploy on VDS (systemd)
+      - name: Zero-downtime deploy on VDS
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VDS_HOST }}
@@ -46,9 +72,18 @@ jobs:
           command_timeout: 45m
           script_stop: true
           script: |
+            set -euo pipefail
+
             sudo /usr/local/bin/jobaisearch-deploy
-            systemctl is-active jobaisearch-frontend jobaisearch-backend caddy
-            curl -fsS -o /dev/null -w "frontend:%{http_code}\n" http://127.0.0.1:3000/
-            curl -fsS -o /dev/null -w "backend:%{http_code}\n" http://127.0.0.1:8000/health
+
+            ACTIVE_SLOT="$(sudo cat /etc/jobaisearch/active_slot)"
+            echo "active-slot:${ACTIVE_SLOT}"
+
+            if [ "${ACTIVE_SLOT}" = "blue" ]; then
+              systemctl is-active jobaisearch-frontend-blue jobaisearch-backend-blue caddy
+            else
+              systemctl is-active jobaisearch-frontend-green jobaisearch-backend-green caddy
+            fi
+
             curl -kfsS -o /dev/null -w "site:%{http_code}\n" https://jobaisearch.ru/
             curl -kfsS -o /dev/null -w "health:%{http_code}\n" https://jobaisearch.ru/health
