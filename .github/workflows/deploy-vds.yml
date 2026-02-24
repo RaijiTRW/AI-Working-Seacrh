@@ -22,21 +22,29 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Checkout backend repo (separate repository)
+      - name: Validate backend repo token
         env:
           BACKEND_REPO_TOKEN: ${{ secrets.BACKEND_REPO_TOKEN }}
         run: |
           set -euo pipefail
-
+          if [ -z "${BACKEND_REPO_TOKEN:-}" ]; then
+            echo "::error::Missing GitHub Actions secret BACKEND_REPO_TOKEN"
+            exit 1
+          fi
           rm -rf backend/JobAISeacrh_Backend
           mkdir -p backend
 
-          if [ -n "${BACKEND_REPO_TOKEN:-}" ]; then
-            git clone --depth=1 "https://x-access-token:${BACKEND_REPO_TOKEN}@github.com/RaijiTRW/JobAISeacrh_Backend.git" backend/JobAISeacrh_Backend
-          else
-            git clone --depth=1 https://github.com/RaijiTRW/JobAISeacrh_Backend.git backend/JobAISeacrh_Backend
-          fi
+      - name: Checkout backend repo (separate repository)
+        uses: actions/checkout@v4
+        with:
+          repository: RaijiTRW/JobAISeacrh_Backend
+          token: ${{ secrets.BACKEND_REPO_TOKEN }}
+          path: backend/JobAISeacrh_Backend
+          fetch-depth: 1
 
+      - name: Validate backend checkout
+        run: |
+          set -euo pipefail
           rm -rf backend/JobAISeacrh_Backend/.git
           test -f backend/JobAISeacrh_Backend/requirements.txt
           test -f backend/JobAISeacrh_Backend/main.py
