@@ -63,25 +63,26 @@ function ResetPasswordContent() {
   };
 
   return (
-    <div className="flex flex-col justify-center h-full p-8 lg:p-12">
-      <div className="max-w-sm mx-auto w-full">
+    <div className="flex flex-col justify-center min-h-screen bg-[#0b0c10] p-8 lg:p-12 relative">
+      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-5 pointer-events-none" />
+      <div className="max-w-sm mx-auto w-full relative z-10">
         {/* Logo */}
-        <Link href="/auth" className="inline-block mb-8">
-          <span className="text-xl font-bold text-gray-900 flex items-center gap-2">
+        <Link href="/auth" className="inline-block mb-8 hover:opacity-80 transition-opacity">
+          <span className="text-xl font-bold text-white flex items-center gap-2">
             <ArrowLeft size={20} /> Job Search
           </span>
         </Link>
 
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <h2 className="text-2xl font-bold text-white mb-2">
           Новый пароль
         </h2>
-        <p className="text-gray-500 mb-8">
+        <p className="text-gray-400 mb-8">
           Придумайте новый пароль для аккаунта
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1.5">
               Новый пароль
             </label>
             <div className="relative">
@@ -93,12 +94,12 @@ function ResetPasswordContent() {
                 placeholder="Минимум 6 символов"
                 required
                 minLength={6}
-                className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all"
+                className="w-full px-4 py-3 pr-12 bg-black/20 text-white placeholder-gray-500 rounded-xl border border-white/10 focus:border-[#ff6b00] focus:ring-1 focus:ring-[#ff6b00] outline-none transition-all"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
               >
                 {showPassword ? (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,7 +116,7 @@ function ResetPasswordContent() {
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-1.5">
               Подтвердите пароль
             </label>
             <input
@@ -125,7 +126,7 @@ function ResetPasswordContent() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Повторите пароль"
               required
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all"
+              className="w-full px-4 py-3 bg-black/20 text-white placeholder-gray-500 rounded-xl border border-white/10 focus:border-[#ff6b00] focus:ring-1 focus:ring-[#ff6b00] outline-none transition-all"
             />
           </div>
 
@@ -134,15 +135,15 @@ function ResetPasswordContent() {
           <button
             type="submit"
             disabled={loading || password.length < 6 || password !== confirmPassword}
-            className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-medium hover:from-orange-600 hover:to-orange-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] text-white rounded-xl font-medium hover:shadow-[0_0_15px_rgba(255,107,0,0.4)] transition-all duration-300 disabled:opacity-50 disabled:hover:shadow-none disabled:cursor-not-allowed"
           >
             {loading ? "Сохранение..." : "Сохранить пароль"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
+        <p className="mt-6 text-center text-sm text-gray-400">
           Вспомнили пароль?{" "}
-          <Link href="/auth" className="text-orange-500 hover:text-orange-600 font-medium">
+          <Link href="/auth" className="text-[#ff6b00] hover:text-[#ff8c00] font-medium transition-colors">
             Войти
           </Link>
         </p>

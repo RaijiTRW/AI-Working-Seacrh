@@ -151,8 +151,8 @@ export default function AgentsTab({ token }: AgentsTabProps) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
-            <div className="h-24 bg-gray-100 rounded" />
+          <div key={i} className="bg-[#1f2833]/50 backdrop-blur-xl border border-white/10 rounded-xl p-4 animate-pulse">
+            <div className="h-24 bg-white/5 rounded" />
           </div>
         ))}
       </div>
@@ -163,9 +163,9 @@ export default function AgentsTab({ token }: AgentsTabProps) {
     <div className="space-y-6">
       {/* Error banner */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-red-700 text-sm flex items-center justify-between">
+        <div className="bg-[#ff3333]/10 border border-[#ff3333]/30 rounded-xl p-3 text-[#ff3333] text-sm flex items-center justify-between shadow-[0_0_15px_rgba(255,51,51,0.2)]">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700">
+          <button onClick={() => setError(null)} className="text-[#ff3333] hover:text-[#ff6b6b] transition-colors">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -174,14 +174,14 @@ export default function AgentsTab({ token }: AgentsTabProps) {
       )}
 
       {/* Info message */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+      <div className="bg-[#00f0ff]/10 border border-[#00f0ff]/30 rounded-xl p-4 shadow-[0_0_15px_rgba(0,240,255,0.1)]">
         <div className="flex items-start gap-3">
-          <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-[#00f0ff] mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <div className="text-sm text-blue-800">
-            <p className="font-medium mb-1">Управление AI агентами и парсерами</p>
-            <p className="text-blue-700">
+          <div className="text-sm text-gray-300">
+            <p className="font-medium text-[#00f0ff] mb-1">Управление AI агентами и парсерами</p>
+            <p className="text-gray-400">
               Здесь можно включать и выключать AI агенты и управлять парсерами вакансий.
               Support Chat управляется отдельно во вкладке "Настройки".
             </p>
@@ -191,7 +191,7 @@ export default function AgentsTab({ token }: AgentsTabProps) {
 
       {/* AI Agents Section */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">AI Агенты</h2>
+        <h2 className="text-lg font-semibold text-white mb-3">AI Агенты</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {aiAgentsToShow.map((agentId) => {
             const agent = agents[agentId];
@@ -210,7 +210,7 @@ export default function AgentsTab({ token }: AgentsTabProps) {
 
         {/* No agents message */}
         {aiAgentsToShow.every((id) => !agents[id]) && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-yellow-800 text-sm">
+          <div className="bg-[#ff6b00]/10 border border-[#ff6b00]/30 rounded-xl p-4 text-[#ffb88a] text-sm shadow-[0_0_15px_rgba(255,107,0,0.1)]">
             Нет доступных AI агентов. Убедитесь что Python бэкенд запущен.
           </div>
         )}
@@ -218,7 +218,7 @@ export default function AgentsTab({ token }: AgentsTabProps) {
 
       {/* Parsers Section */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">Парсеры</h2>
+        <h2 className="text-lg font-semibold text-white mb-3">Парсеры</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {parserJobs.map((job) => (
             <ParserJobCard
@@ -235,7 +235,7 @@ export default function AgentsTab({ token }: AgentsTabProps) {
 
         {/* No parsers message */}
         {parserJobs.length === 0 && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-yellow-800 text-sm">
+          <div className="bg-[#ff6b00]/10 border border-[#ff6b00]/30 rounded-xl p-4 text-[#ffb88a] text-sm shadow-[0_0_15px_rgba(255,107,0,0.1)]">
             Нет доступных парсеров. Убедитесь что Python бэкенд запущен.
           </div>
         )}
@@ -309,21 +309,21 @@ function ParserJobCard({ job, onPause, onResume, onStop, onTrigger, isLoading }:
   };
 
   return (
-    <div className={`bg-white rounded-xl border p-5 shadow-sm transition-all ${isRunning ? "border-blue-400 ring-2 ring-blue-200" : "border-gray-200"}`}>
+    <div className={`bg-[#1f2833]/50 backdrop-blur-xl rounded-xl border p-5 shadow-[0_0_20px_rgba(0,0,0,0.5)] transition-all ${isRunning ? "border-[#00f0ff] ring-2 ring-[#00f0ff]/30" : "border-white/10"}`}>
       {/* Заголовок с иконкой и статусом */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${isRunning ? "bg-blue-100 animate-pulse" : "bg-gray-100"}`}>
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${isRunning ? "bg-[#00f0ff]/20 shadow-[0_0_15px_rgba(0,240,255,0.4)] animate-pulse" : "bg-black/40 border border-white/5"}`}>
             {info.icon}
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">{info.name}</h3>
-            <p className="text-xs text-gray-500">{info.description}</p>
+            <h3 className="font-semibold text-white">{info.name}</h3>
+            <p className="text-xs text-gray-400">{info.description}</p>
           </div>
         </div>
 
         {/* Статус */}
-        <div className={`px-3 py-1 rounded-full text-xs font-medium ${isRunning ? "bg-blue-100 text-blue-700" : isPaused ? "bg-gray-100 text-gray-600" : "bg-green-100 text-green-700"}`}>
+        <div className={`px-3 py-1 rounded-full text-xs font-medium border ${isRunning ? "bg-[#00f0ff]/10 text-[#00f0ff] border-[#00f0ff]/30 shadow-[0_0_10px_rgba(0,240,255,0.2)]" : isPaused ? "bg-black/40 text-gray-400 border-white/10" : "bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/30 shadow-[0_0_10px_rgba(0,255,136,0.2)]"}`}>
           {isRunning ? (
             <span className="flex items-center gap-1.5">
               <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
@@ -342,8 +342,8 @@ function ParserJobCard({ job, onPause, onResume, onStop, onTrigger, isLoading }:
 
       {/* Сообщение при работе */}
       {isRunning && (
-        <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm text-blue-700 font-medium flex items-center gap-2">
+        <div className="mb-4 p-3 bg-[#00f0ff]/10 rounded-lg border border-[#00f0ff]/20">
+          <p className="text-sm text-[#00f0ff] font-medium flex items-center gap-2">
             <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 0 5.373 0 0 0 12 12c0 5.627 2.627 12 0 0 0 0 12-12z"></path>
@@ -355,8 +355,8 @@ function ParserJobCard({ job, onPause, onResume, onStop, onTrigger, isLoading }:
 
       {/* Информация о следующем автоматическом запуске */}
       {!isRunning && !isPaused && job.next_run && (
-        <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
-          <div className="flex items-center gap-2 text-sm text-green-700">
+        <div className="mb-4 p-3 bg-[#00ff88]/10 rounded-lg border border-[#00ff88]/20">
+          <div className="flex items-center gap-2 text-sm text-[#00ff88]">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -368,8 +368,8 @@ function ParserJobCard({ job, onPause, onResume, onStop, onTrigger, isLoading }:
 
       {/* Сообщение когда на паузе */}
       {isPaused && (
-        <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-sm text-gray-600">
+        <div className="mb-4 p-3 bg-black/40 rounded-lg border border-white/10">
+          <p className="text-sm text-gray-400">
             Автоматический запуск отключён. Парсер не будет запускаться по расписанию.
             Нажмите "Включить" для возобновления.
           </p>
@@ -383,7 +383,7 @@ function ParserJobCard({ job, onPause, onResume, onStop, onTrigger, isLoading }:
           <button
             onClick={onStop}
             disabled={isLoading}
-            className="w-full px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full px-4 py-2.5 text-sm font-medium text-[#ff3333] bg-[#ff3333]/10 border border-[#ff3333]/30 rounded-lg hover:bg-[#ff3333]/20 hover:shadow-[0_0_15px_rgba(255,51,51,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
@@ -407,7 +407,7 @@ function ParserJobCard({ job, onPause, onResume, onStop, onTrigger, isLoading }:
           <button
             onClick={onResume}
             disabled={isLoading}
-            className="w-full px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full px-4 py-2.5 text-sm font-medium text-black bg-gradient-to-r from-[#00ff88] to-[#00cc66] rounded-lg hover:shadow-[0_0_15px_rgba(0,255,136,0.5)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             title="Включить автоматический запуск по расписанию"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -422,7 +422,7 @@ function ParserJobCard({ job, onPause, onResume, onStop, onTrigger, isLoading }:
             <button
               onClick={onTrigger}
               disabled={isLoading}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2.5 text-sm font-medium text-black bg-gradient-to-br from-[#00f0ff] to-[#00b8ff] rounded-lg hover:shadow-[0_0_15px_rgba(0,240,255,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               title="Запустить прямо сейчас (вне расписания)"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -434,7 +434,7 @@ function ParserJobCard({ job, onPause, onResume, onStop, onTrigger, isLoading }:
             <button
               onClick={onPause}
               disabled={isLoading}
-              className="px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="px-4 py-2.5 text-sm font-medium text-[#ff3333] bg-[#ff3333]/10 border border-[#ff3333]/30 rounded-lg hover:bg-[#ff3333]/20 hover:shadow-[0_0_15px_rgba(255,51,51,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               title="Отключить автоматический запуск"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">

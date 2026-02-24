@@ -33,43 +33,47 @@ export default function EmployerHowItWorks() {
   ];
 
   return (
-    <section className="py-20 px-6 bg-gradient-to-b from-white to-blue-50">
-      <div className="max-w-6xl mx-auto">
+    <section className="py-20 px-6 bg-[#0b0c10] relative overflow-hidden">
+      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-5 pointer-events-none" />
+
+      {/* Decorative blurred circles */}
+      <div className="absolute top-1/4 left-0 w-96 h-96 bg-[#00f0ff] rounded-full mix-blend-screen filter blur-[150px] opacity-10 pointer-events-none" />
+      <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-[#ff6b00] rounded-full mix-blend-screen filter blur-[150px] opacity-10 pointer-events-none" />
+
+      <div className="max-w-6xl mx-auto relative z-10">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
             Как это работает
           </h2>
-          <p className="text-lg text-muted max-w-2xl mx-auto">
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto">
             Три простых шага до найма идеального кандидата
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-8 relative">
+          {/* Connecting line (hidden on mobile) */}
+          <div className="hidden md:block absolute top-[110px] left-[16%] right-[16%] h-0.5 bg-gradient-to-r from-transparent via-[#00f0ff]/30 to-transparent -z-10" />
+
           {steps.map((step, index) => (
             <div
               key={index}
-              className="relative"
+              className="relative group"
             >
-              {/* Connecting line (hidden on mobile, last item) */}
-              {index < steps.length - 1 && (
-                <div className="hidden md:block absolute top-16 left-1/2 w-full h-0.5 bg-gradient-to-r from-blue-300 to-blue-200 -z-10" />
-              )}
-
-              <div className="relative bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-blue-100">
+              <div className="relative bg-[#1f2833]/50 backdrop-blur-xl rounded-2xl p-8 shadow-[0_0_20px_rgba(0,0,0,0.5)] border border-white/10 group-hover:border-[#00f0ff]/50 group-hover:shadow-[0_0_30px_rgba(0,240,255,0.15)] transition-all duration-300 h-full">
                 {/* Number badge */}
-                <div className="absolute -top-4 -right-4 w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white font-bold flex items-center justify-center text-lg shadow-lg">
+                <div className="absolute -top-5 -right-5 w-14 h-14 rounded-full bg-gradient-to-br from-[#00f0ff] to-[#00b8ff] text-black font-bold flex items-center justify-center text-xl shadow-[0_0_20px_rgba(0,240,255,0.5)] group-hover:scale-110 transition-transform duration-300 border-4 border-[#0b0c10]">
                   {step.number}
                 </div>
 
                 {/* Icon */}
-                <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+                <div className="w-14 h-14 rounded-xl bg-[#00f0ff]/10 text-[#00f0ff] flex items-center justify-center mb-6 border border-[#00f0ff]/20 group-hover:bg-[#00f0ff]/20 transition-colors">
                   {step.icon}
                 </div>
 
-                <h3 className="text-xl font-semibold text-foreground mb-3">
+                <h3 className="text-xl font-bold text-white mb-3">
                   {step.title}
                 </h3>
-                <p className="text-muted leading-relaxed">
+                <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
                   {step.description}
                 </p>
               </div>

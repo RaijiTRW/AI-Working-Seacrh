@@ -27,37 +27,37 @@ function FeatureCard({ icon, text, delay }: { icon: string; text: string; delay:
 
   return (
     <div
-      className="flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-xl px-4 py-3 shadow-lg border border-white/50 animate-in fade-in slide-in-from-left-4 duration-500"
+      className="flex items-center gap-3 bg-[#1f2833]/50 backdrop-blur-xl rounded-xl px-4 py-3 shadow-xl border border-white/10 animate-in fade-in slide-in-from-left-4 duration-500"
       style={{ animationDelay: `${delay}ms`, animationFillMode: "backwards" }}
     >
-      <div className="w-10 h-10 rounded-lg bg-orange-100 text-orange-500 flex items-center justify-center">
+      <div className="w-10 h-10 rounded-lg bg-[#ff6b00]/20 text-[#ff6b00] flex items-center justify-center border border-[#ff6b00]/20 shadow-[0_0_10px_rgba(255,107,0,0.2)]">
         {icons[icon]}
       </div>
-      <span className="text-sm font-medium text-gray-700">{text}</span>
+      <span className="text-sm font-medium text-gray-300">{text}</span>
     </div>
   );
 }
 
 export default function AuthHero() {
   return (
-    <div className="hidden lg:flex flex-col justify-center h-full p-12 relative overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-orange-50 via-white to-orange-100" />
+    <div className="hidden lg:flex flex-col justify-center h-full p-12 relative overflow-hidden bg-[#0b0c10]">
+      {/* Background Grid */}
+      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-10 pointer-events-none" />
 
       {/* Decorative blurs */}
-      <div className="absolute top-20 -left-20 w-72 h-72 bg-orange-200/50 rounded-full blur-3xl" />
-      <div className="absolute bottom-20 -right-20 w-72 h-72 bg-orange-300/30 rounded-full blur-3xl" />
+      <div className="absolute top-1/4 -left-20 w-96 h-96 bg-[#ff6b00]/20 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-[#00f0ff]/10 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Content */}
       <div className="relative z-10 max-w-lg">
-        <h1 className="text-4xl xl:text-5xl font-bold text-gray-900 leading-tight mb-6">
+        <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-6">
           Найди{" "}
           <span className="relative inline-block">
-            <span className="relative z-10 italic text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-orange-600">
+            <span className="relative z-10 italic text-transparent bg-clip-text bg-gradient-to-r from-[#ff6b00] to-[auto]">
               работу мечты
             </span>
             <svg
-              className="absolute -bottom-1 left-0 w-full h-2 text-orange-400"
+              className="absolute -bottom-1 left-0 w-full h-2 text-[#ff6b00]"
               viewBox="0 0 200 8"
               fill="none"
               preserveAspectRatio="none"
@@ -68,18 +68,19 @@ export default function AuthHero() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 fill="none"
+                style={{ filter: "drop-shadow(0 0 4px rgba(255,107,0,0.5))" }}
               />
             </svg>
           </span>{" "}
           за минуты
         </h1>
 
-        <p className="text-lg text-gray-600 mb-10">
+        <p className="text-lg text-gray-400 mb-10">
           ИИ подберёт лучшие вакансии со всех сайтов. Без лишних нервов, курьеров и одинаковых предложений.
         </p>
 
         {/* Feature cards */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           {features.map((feature, i) => (
             <FeatureCard key={i} {...feature} delay={i * 150 + 300} />
           ))}
@@ -88,13 +89,16 @@ export default function AuthHero() {
 
       {/* Decorative vacancy card */}
       <div
-        className="absolute bottom-24 right-8 bg-white rounded-xl shadow-xl p-4 w-52 border border-gray-100 animate-in fade-in slide-in-from-right-4 duration-700"
+        className="absolute bottom-24 right-8 bg-[#1f2833]/80 backdrop-blur-xl rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] p-5 w-56 border border-white/10 animate-in fade-in slide-in-from-right-4 duration-700"
         style={{ transform: "rotate(-3deg)", animationDelay: "600ms", animationFillMode: "backwards" }}
       >
-        <div className="text-xs text-gray-400 mb-1">Найдено для тебя</div>
-        <h4 className="font-semibold text-sm mb-1">Маркетолог</h4>
-        <p className="text-orange-500 font-bold text-sm">от 90 000 ₽</p>
-        <p className="text-xs text-gray-500">Удалённо</p>
+        <div className="text-xs text-[#00f0ff] mb-1.5 font-medium tracking-wide">Найдено для тебя</div>
+        <h4 className="font-semibold text-white text-base mb-1.5">Маркетолог</h4>
+        <p className="text-[#ff6b00] font-bold text-sm mb-2 drop-shadow-[0_0_8px_rgba(255,107,0,0.4)]">от 90 000 ₽</p>
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#00ff88] shadow-[0_0_5px_#00ff88]"></span>
+          <p className="text-xs text-gray-400">Удалённо</p>
+        </div>
       </div>
     </div>
   );

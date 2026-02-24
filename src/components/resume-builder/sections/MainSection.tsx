@@ -164,32 +164,32 @@ export default function MainSection({
   return (
     <div className="space-y-6">
       {/* Hero Section */}
-      <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-6 border border-orange-200">
+      <div className="bg-[#1f2833]/50 backdrop-blur-md rounded-xl p-6 border border-white/10 shadow-[0_0_20px_rgba(0,0,0,0.3)]">
         <div className="flex items-start gap-4">
           <div className="flex-shrink-0">
-            <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-[#ff6b00] to-[#ff8c00] rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(255,107,0,0.4)]">
               <Zap className="w-6 h-6 text-white" />
             </div>
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
+            <h2 className="text-xl font-semibold text-white mb-2 flex items-center gap-2">
               AI-помощник для резюме
             </h2>
-            <p className="text-gray-700 text-sm mb-3">
+            <p className="text-gray-400 text-sm mb-3 font-light">
               Войдите в аккаунт, чтобы AI создал полноценное резюме на основе вашего описания.
               Профессиональные формулировки, оптимизация под ATS и готовность за минуты.
             </p>
-            <div className="flex flex-wrap gap-2 text-xs text-gray-600">
-              <span className="bg-white/60 px-2 py-1 rounded-full">
+            <div className="flex flex-wrap gap-2 text-xs text-[#00f0ff]">
+              <span className="bg-[#00f0ff]/10 border border-[#00f0ff]/20 px-2 py-1 rounded-full">
                 ✓ Опыт работы с метриками
               </span>
-              <span className="bg-white/60 px-2 py-1 rounded-full">
+              <span className="bg-[#00f0ff]/10 border border-[#00f0ff]/20 px-2 py-1 rounded-full">
                 ✓ Ключевые навыки
               </span>
-              <span className="bg-white/60 px-2 py-1 rounded-full">
+              <span className="bg-[#00f0ff]/10 border border-[#00f0ff]/20 px-2 py-1 rounded-full">
                 ✓ ATS-оптимизация
               </span>
-              <span className="bg-white/60 px-2 py-1 rounded-full">
+              <span className="bg-[#00f0ff]/10 border border-[#00f0ff]/20 px-2 py-1 rounded-full">
                 ✓ Готовность за 2 минуты
               </span>
             </div>
@@ -199,26 +199,26 @@ export default function MainSection({
 
       {/* Auth Gate - для неавторизованных пользователей */}
       {!isAuthenticated && (
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200 text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Lock className="w-8 h-8 text-white" />
+        <div className="bg-[#1f2833]/40 backdrop-blur-md rounded-xl p-6 border border-white/10 text-center shadow-[0_0_20px_rgba(0,0,0,0.3)]">
+          <div className="w-16 h-16 bg-[#ff6b00]/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#ff6b00]/30 shadow-[0_0_15px_rgba(255,107,0,0.2)]">
+            <Lock className="w-8 h-8 text-[#ff6b00]" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-semibold text-white mb-2">
             Войдите, чтобы использовать AI
           </h3>
-          <p className="text-gray-600 text-sm mb-4">
+          <p className="text-gray-400 text-sm mb-4 font-light">
             Авторизованные пользователи получают 5 бесплатных генераций резюме
           </p>
           <div className="flex gap-3 justify-center mb-4">
             <button
               onClick={() => router.push("/auth")}
-              className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg font-medium hover:from-orange-600 hover:to-orange-700 transition-all"
+              className="px-6 py-2 bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] text-white rounded-lg font-bold hover:shadow-[0_0_15px_rgba(255,107,0,0.5)] transition-all"
             >
               Войти в аккаунт
             </button>
             <button
               onClick={() => router.push("/auth?mode=signup")}
-              className="px-6 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:border-orange-500 hover:bg-orange-50 transition-all"
+              className="px-6 py-2 bg-transparent border border-white/20 text-gray-300 rounded-lg font-bold hover:border-white/40 hover:text-white hover:bg-white/5 transition-all"
             >
               Создать аккаунт
             </button>
@@ -228,29 +228,26 @@ export default function MainSection({
 
       {/* Limit Indicator */}
       {isAuthenticated && !checkingLimit && remainingGenerations !== null && (
-        <div className={`rounded-lg p-4 border ${
-          remainingGenerations <= 0
-            ? "bg-red-50 border-red-200"
+        <div className={`rounded-lg p-4 border backdrop-blur-md ${remainingGenerations <= 0
+            ? "bg-red-500/10 border-red-500/30"
             : remainingGenerations <= 2
-              ? "bg-yellow-50 border-yellow-200"
-              : "bg-green-50 border-green-200"
-        }`}>
+              ? "bg-[#ff6b00]/10 border-[#ff6b00]/30"
+              : "bg-[#00f0ff]/10 border-[#00f0ff]/30"
+          }`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {remainingGenerations <= 0 ? (
-                <Lock className="w-5 h-5 text-red-600" />
+                <Lock className="w-5 h-5 text-red-400 drop-shadow-[0_0_5px_rgba(248,113,113,0.5)]" />
               ) : (
-                <Sparkles className={`w-5 h-5 ${
-                  remainingGenerations <= 2 ? "text-yellow-600" : "text-green-600"
-                }`} />
+                <Sparkles className={`w-5 h-5 ${remainingGenerations <= 2 ? "text-[#ff6b00] drop-shadow-[0_0_5px_rgba(255,107,0,0.5)]" : "text-[#00f0ff] drop-shadow-[0_0_5px_rgba(0,240,255,0.5)]"
+                  }`} />
               )}
-              <span className={`text-sm font-medium ${
-                remainingGenerations <= 0
-                  ? "text-red-800"
+              <span className={`text-sm font-medium ${remainingGenerations <= 0
+                  ? "text-red-400"
                   : remainingGenerations <= 2
-                    ? "text-yellow-800"
-                    : "text-green-800"
-              }`}>
+                    ? "text-[#ff6b00]"
+                    : "text-[#00f0ff]"
+                }`}>
                 {remainingGenerations <= 0
                   ? "Лимит исчерпан"
                   : `Осталось генераций: ${remainingGenerations} из 5`
@@ -258,7 +255,7 @@ export default function MainSection({
               </span>
             </div>
             {remainingGenerations > 0 && (
-              <span className="text-xs text-gray-600">
+              <span className="text-xs text-gray-500">
                 Навсегда
               </span>
             )}
@@ -270,16 +267,16 @@ export default function MainSection({
       {isAuthenticated && (
         <div className="space-y-4">
           {/* Messages Area */}
-          <div className="bg-gray-50 rounded-xl p-4 min-h-[300px] max-h-[400px] overflow-y-auto">
+          <div className="bg-black/40 border border-white/10 rounded-xl p-4 min-h-[300px] max-h-[400px] overflow-y-auto custom-scrollbar">
             {messages.length === 0 ? (
               <div className="text-center py-12">
-                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Sparkles className="w-6 h-6 text-orange-600" />
+                <div className="w-12 h-12 bg-[#ff6b00]/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#ff6b00]/30 shadow-[0_0_15px_rgba(255,107,0,0.2)]">
+                  <Sparkles className="w-6 h-6 text-[#ff6b00]" />
                 </div>
-                <p className="text-gray-700 font-medium mb-1">
+                <p className="text-gray-300 font-medium mb-1">
                   Расскажите о своей карьере
                 </p>
-                <p className="text-gray-500 text-sm">
+                <p className="text-gray-500 text-sm font-light">
                   Например: &quot;Frontend разработчик с 3 годами опыта, React, TypeScript, ищу работу в product компании&quot;
                 </p>
               </div>
@@ -291,14 +288,13 @@ export default function MainSection({
                     className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                        message.role === "user"
-                          ? "bg-orange-500 text-white"
-                          : "bg-white text-gray-800 border border-gray-200"
-                      }`}
+                      className={`max-w-[80%] rounded-2xl px-4 py-2 ${message.role === "user"
+                          ? "bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] text-white shadow-[0_0_15px_rgba(255,107,0,0.4)]"
+                          : "bg-[#1f2833]/80 backdrop-blur-md text-white border border-white/10"
+                        }`}
                     >
                       <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      <span className="text-xs opacity-70 mt-1 block">
+                      <span className={`text-xs mt-1 block ${message.role === "user" ? "text-white/70" : "text-gray-500"}`}>
                         {message.timestamp.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
@@ -306,10 +302,10 @@ export default function MainSection({
                 ))}
                 {loading && (
                   <div className="flex justify-start">
-                    <div className="bg-white rounded-2xl px-4 py-3 border border-gray-200">
+                    <div className="bg-[#1f2833]/80 backdrop-blur-md rounded-2xl px-4 py-3 border border-white/10">
                       <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin text-orange-500" />
-                        <span className="text-sm text-gray-600">Генерация резюме...</span>
+                        <Loader2 className="w-4 h-4 animate-spin text-[#ff6b00]" />
+                        <span className="text-sm text-gray-400">Генерация резюме...</span>
                       </div>
                     </div>
                   </div>
@@ -320,7 +316,7 @@ export default function MainSection({
           </div>
 
           {/* Input Area - Styled like ChatInput */}
-          <div className="bg-white rounded-3xl shadow-lg border border-gray-200">
+          <div className="bg-[#1f2833]/50 backdrop-blur-md rounded-3xl shadow-[0_0_20px_rgba(0,0,0,0.4)] border border-white/10">
             <div className="flex items-end gap-2 p-3">
               <textarea
                 ref={textareaRef}
@@ -330,12 +326,12 @@ export default function MainSection({
                 placeholder="Опишите ваш опыт и желаемую позицию..."
                 disabled={loading || (remainingGenerations !== null && remainingGenerations <= 0)}
                 rows={1}
-                className="flex-1 resize-none bg-transparent px-3 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none max-h-[200px] text-sm"
+                className="flex-1 resize-none bg-transparent px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none max-h-[200px] text-sm custom-scrollbar"
               />
               {loading ? (
                 <button
                   disabled
-                  className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-red-500 text-white cursor-not-allowed"
+                  className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/50 text-white cursor-not-allowed border border-red-500/20"
                 >
                   <Loader2 className="w-5 h-5 animate-spin" />
                 </button>
@@ -343,11 +339,10 @@ export default function MainSection({
                 <button
                   onClick={handleSend}
                   disabled={!input.trim() || (remainingGenerations !== null && remainingGenerations <= 0)}
-                  className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                    input.trim() && (remainingGenerations === null || remainingGenerations > 0)
-                      ? "bg-orange-500 text-white hover:bg-orange-600"
-                      : "bg-gray-100 text-gray-300 cursor-not-allowed"
-                  }`}
+                  className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${input.trim() && (remainingGenerations === null || remainingGenerations > 0)
+                      ? "bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] text-white hover:shadow-[0_0_15px_rgba(255,107,0,0.5)]"
+                      : "bg-white/5 text-gray-600 cursor-not-allowed border border-white/5"
+                    }`}
                 >
                   <Wand2 className="w-5 h-5" />
                 </button>
@@ -356,8 +351,8 @@ export default function MainSection({
           </div>
 
           {/* Hints */}
-          <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-            <p className="text-xs text-blue-800">
+          <div className="bg-[#00f0ff]/10 rounded-lg p-4 border border-[#00f0ff]/20">
+            <p className="text-xs text-[#00f0ff]">
               <strong>Совет:</strong> Чем больше деталей вы предоставите (опыт, навыки, достижения),
               тем качественнее будет резюме. AI может создать полный профиль на основе краткого описания.
             </p>

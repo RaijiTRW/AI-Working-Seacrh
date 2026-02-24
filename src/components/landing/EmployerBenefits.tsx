@@ -39,14 +39,18 @@ export default function EmployerBenefits() {
   ];
 
   return (
-    <section className="py-20 px-6 bg-white">
-      <div className="max-w-6xl mx-auto">
+    <section className="py-20 px-6 bg-[#0b0c10] relative">
+      {/* Decorative gradient blur */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#00f0ff]/5 via-[#0b0c10] to-[#0b0c10] pointer-events-none" />
+      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-5 pointer-events-none" />
+
+      <div className="max-w-6xl mx-auto relative z-10">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Почему работодатели выбирают нас
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
+            Почему <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00f0ff] to-[#00b8ff] drop-shadow-[0_0_15px_rgba(0,240,255,0.5)]">работодатели</span> выбирают нас
           </h2>
-          <p className="text-lg text-muted max-w-2xl mx-auto">
-            Мы предлагаем эффективные инструменты для поиска лучших кандидатов
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+            Мы предлагаем современные инструменты для эффективного поиска лучших кандидатов
           </p>
         </div>
 
@@ -54,15 +58,15 @@ export default function EmployerBenefits() {
           {benefits.map((benefit, index) => (
             <div
               key={index}
-              className="group p-8 rounded-2xl bg-blue-50 border border-blue-100 hover:bg-blue-100 hover:shadow-xl transition-all duration-300"
+              className="group p-8 rounded-2xl bg-[#1f2833]/50 backdrop-blur-xl border border-white/10 hover:border-[#00f0ff]/50 hover:shadow-[0_0_30px_rgba(0,240,255,0.15)] transition-all duration-300"
             >
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#00f0ff] to-[#00b8ff] text-black flex items-center justify-center mb-6 group-hover:scale-110 group-hover:shadow-[0_0_20px_rgba(0,240,255,0.5)] transition-all duration-300">
                 {benefit.icon}
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-3">
+              <h3 className="text-xl font-bold text-white mb-3 tracking-wide">
                 {benefit.title}
               </h3>
-              <p className="text-muted leading-relaxed">
+              <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
                 {benefit.description}
               </p>
             </div>

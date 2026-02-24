@@ -101,37 +101,37 @@ export default function PersonalInfoSection({ data, onChange, userId }: Personal
     <div className="space-y-4">
       {/* Имя */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Имя <span className="text-red-500">*</span>
+        <label className="block text-sm font-medium text-gray-300 mb-1">
+          Имя <span className="text-[#ff6b00]">*</span>
         </label>
         <input
           type="text"
           value={data.first_name}
           onChange={(e) => onChange("first_name", e.target.value)}
           placeholder="Иван"
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+          className="w-full px-4 py-2 bg-black/40 border border-white/10 text-white placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/50 focus:border-[#ff6b00] transition-colors"
           required
         />
       </div>
 
       {/* Фамилия */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Фамилия <span className="text-red-500">*</span>
+        <label className="block text-sm font-medium text-gray-300 mb-1">
+          Фамилия <span className="text-[#ff6b00]">*</span>
         </label>
         <input
           type="text"
           value={data.last_name}
           onChange={(e) => onChange("last_name", e.target.value)}
           placeholder="Иванов"
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+          className="w-full px-4 py-2 bg-black/40 border border-white/10 text-white placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/50 focus:border-[#ff6b00] transition-colors"
           required
         />
       </div>
 
       {/* Отчество */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-300 mb-1">
           Отчество
         </label>
         <input
@@ -139,16 +139,16 @@ export default function PersonalInfoSection({ data, onChange, userId }: Personal
           value={data.middle_name || ""}
           onChange={(e) => onChange("middle_name", e.target.value)}
           placeholder="Иванович"
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+          className="w-full px-4 py-2 bg-black/40 border border-white/10 text-white placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/50 focus:border-[#ff6b00] transition-colors"
         />
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-gray-400 mt-1">
           Необязательно, но рекомендуется для российского рынка
         </p>
       </div>
 
       {/* Дата рождения */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-300 mb-1">
           Дата рождения
         </label>
         <input
@@ -156,16 +156,16 @@ export default function PersonalInfoSection({ data, onChange, userId }: Personal
           value={data.birth_date || ""}
           onChange={(e) => onChange("birth_date", e.target.value)}
           max={new Date().toISOString().split("T")[0]}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+          className="w-full px-4 py-2 bg-black/40 border border-white/10 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff6b00]/50 focus:border-[#ff6b00] transition-colors [&::-webkit-calendar-picker-indicator]:filter-invert"
         />
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-gray-400 mt-1">
           Необязательно. Работодатели не могут спрашивать возраст по закону.
         </p>
       </div>
 
       {/* Пол */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-300 mb-1">
           Пол
         </label>
         <div className="flex gap-4">
@@ -175,9 +175,9 @@ export default function PersonalInfoSection({ data, onChange, userId }: Personal
               name="gender"
               checked={data.gender === "male"}
               onChange={() => onChange("gender", "male")}
-              className="w-4 h-4 text-orange-500 focus:ring-orange-500"
+              className="w-4 h-4 text-[#ff6b00] focus:ring-[#ff6b00] bg-black/40 border-white/20"
             />
-            <span className="text-sm text-gray-700">Мужской</span>
+            <span className="text-sm text-gray-300">Мужской</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -185,9 +185,9 @@ export default function PersonalInfoSection({ data, onChange, userId }: Personal
               name="gender"
               checked={data.gender === "female"}
               onChange={() => onChange("gender", "female")}
-              className="w-4 h-4 text-orange-500 focus:ring-orange-500"
+              className="w-4 h-4 text-[#ff6b00] focus:ring-[#ff6b00] bg-black/40 border-white/20"
             />
-            <span className="text-sm text-gray-700">Женский</span>
+            <span className="text-sm text-gray-300">Женский</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -195,16 +195,16 @@ export default function PersonalInfoSection({ data, onChange, userId }: Personal
               name="gender"
               checked={data.gender === null || data.gender === undefined}
               onChange={() => onChange("gender", null)}
-              className="w-4 h-4 text-orange-500 focus:ring-orange-500"
+              className="w-4 h-4 text-[#ff6b00] focus:ring-[#ff6b00] bg-black/40 border-white/20"
             />
-            <span className="text-sm text-gray-700">Не указывать</span>
+            <span className="text-sm text-gray-300">Не указывать</span>
           </label>
         </div>
       </div>
 
       {/* Фото */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-300 mb-1">
           Фото
         </label>
 
@@ -214,12 +214,12 @@ export default function PersonalInfoSection({ data, onChange, userId }: Personal
             <img
               src={previewUrl}
               alt="Превью фото"
-              className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+              className="w-32 h-32 object-cover rounded-lg border border-white/10"
             />
             <button
               type="button"
               onClick={handleRemovePhoto}
-              className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+              className="absolute -top-2 -right-2 w-6 h-6 bg-red-500/80 backdrop-blur-md text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors border border-white/20"
               aria-label="Удалить фото"
             >
               <X className="w-4 h-4" />
@@ -228,9 +228,9 @@ export default function PersonalInfoSection({ data, onChange, userId }: Personal
         ) : (
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-orange-500 hover:bg-orange-50 transition-colors mb-3"
+            className="w-32 h-32 border-2 border-dashed border-white/20 bg-black/20 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-[#ff6b00]/50 hover:bg-white/5 transition-colors mb-3"
           >
-            <User className="w-12 h-12 text-gray-400" />
+            <User className="w-12 h-12 text-gray-500" />
           </div>
         )}
 
@@ -249,13 +249,13 @@ export default function PersonalInfoSection({ data, onChange, userId }: Personal
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:border-orange-500 hover:bg-orange-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-4 py-2 bg-[#1f2833]/80 border border-white/10 text-white rounded-lg hover:border-[#ff6b00]/50 hover:bg-[#ff6b00]/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Upload className="w-4 h-4" />
           {uploading ? "Загрузка..." : previewUrl ? "Изменить фото" : "Загрузить фото"}
         </button>
 
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-gray-400 mt-2">
           JPG, PNG или WebP, максимум 5MB. Рекомендуемый размер: 200x200px.
         </p>
       </div>

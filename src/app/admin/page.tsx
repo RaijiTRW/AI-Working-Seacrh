@@ -335,10 +335,10 @@ export default function AdminPage() {
   };
 
   const getPaymentStatusClass = (status: string) => {
-    if (status === "succeeded") return "bg-green-100 text-green-700";
-    if (status === "pending") return "bg-yellow-100 text-yellow-700";
-    if (status === "failed" || status === "canceled") return "bg-red-100 text-red-700";
-    return "bg-gray-100 text-gray-700";
+    if (status === "succeeded") return "bg-[#00ff88]/20 text-[#00ff88] border border-[#00ff88]/30 shadow-[0_0_10px_rgba(0,255,136,0.1)]";
+    if (status === "pending") return "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30";
+    if (status === "failed" || status === "canceled") return "bg-[#ff3333]/20 text-[#ff3333] border border-[#ff3333]/30";
+    return "bg-white/10 text-gray-400 border border-white/20";
   };
 
   const getPaymentDescription = (payment: AdminPayment) => {
@@ -435,170 +435,357 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
+      <div className="min-h-screen flex items-center justify-center bg-[#0b0c10]">
+        <div className="animate-spin w-8 h-8 border-4 border-[#ff6b00] border-t-transparent rounded-full" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Universal Header */}
-      <AppHeader />
+    <div className="min-h-screen bg-[#0b0c10] relative">
+      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-5 pointer-events-none" />
+      <div className="relative z-10">
+        {/* Universal Header */}
+        <AppHeader />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 pt-20 sm:pt-24">
-        {/* Page title */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Администрирование</h1>
-          <p className="text-gray-500 mt-1">Управление пользователями и настройками сайта</p>
-        </div>
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 pt-20 sm:pt-24">
+          {/* Page title */}
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold text-white">Администрирование</h1>
+            <p className="text-gray-400 mt-1">Управление пользователями и настройками сайта</p>
+          </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 flex-wrap">
-          {[
-            { id: "stats" as Tab, label: "Статистика" },
-            { id: "users" as Tab, label: "Пользователи" },
-            { id: "chats" as Tab, label: "Чаты" },
-            { id: "support" as Tab, label: "Чат поддержки" },
-            { id: "moderation" as Tab, label: "Модерация вакансий" },
-            { id: "agents" as Tab, label: "AI Агенты" },
-            { id: "settings" as Tab, label: "Настройки" },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.id
-                  ? "bg-orange-500 text-white"
-                  : "bg-white text-gray-600 hover:bg-gray-100"
-                }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+          {/* Tabs */}
+          <div className="flex gap-2 mb-6 flex-wrap">
+            {[
+              { id: "stats" as Tab, label: "Статистика" },
+              { id: "users" as Tab, label: "Пользователи" },
+              { id: "chats" as Tab, label: "Чаты" },
+              { id: "support" as Tab, label: "Чат поддержки" },
+              { id: "moderation" as Tab, label: "Модерация вакансий" },
+              { id: "agents" as Tab, label: "AI Агенты" },
+              { id: "settings" as Tab, label: "Настройки" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${activeTab === tab.id
+                  ? "bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] text-white shadow-[0_0_15px_rgba(255,107,0,0.4)]"
+                  : "bg-[#1f2833]/50 text-gray-400 hover:text-white hover:bg-white/5 border border-white/10"
+                  }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-        {/* Stats Tab */}
-        {activeTab === "stats" && stats && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <div className="text-3xl font-bold text-gray-900">{stats.total_users}</div>
-                <div className="text-sm text-gray-500 mt-1">Всего пользователей</div>
-              </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <div className="text-3xl font-bold text-green-500">{stats.online_users}</div>
-                <div className="text-sm text-gray-500 mt-1">Онлайн сейчас</div>
-              </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <div className="text-3xl font-bold text-red-500">{stats.banned_users}</div>
-                <div className="text-sm text-gray-500 mt-1">Забанено</div>
-              </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <div className="text-3xl font-bold text-orange-500">{stats.admins_count}</div>
-                <div className="text-sm text-gray-500 mt-1">Админов</div>
-              </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <div className="text-3xl font-bold text-blue-500">{stats.platform_vacancies}</div>
-                <div className="text-sm text-gray-500 mt-1">Наших вакансий</div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl border border-gray-200">
-              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">История платежей</h3>
-                  <p className="text-sm text-gray-500">
-                    ID платежа, пользователь, покупка, сумма, статус и дата/время
-                  </p>
+          {/* Stats Tab */}
+          {activeTab === "stats" && stats && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="bg-[#1f2833]/50 backdrop-blur-xl rounded-xl border border-white/10 p-6 shadow-xl">
+                  <div className="text-3xl font-bold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">{stats.total_users}</div>
+                  <div className="text-sm text-gray-400 mt-1">Всего пользователей</div>
+                </div>
+                <div className="bg-[#1f2833]/50 backdrop-blur-xl rounded-xl border border-white/10 p-6 shadow-xl">
+                  <div className="text-3xl font-bold text-[#00ff88] drop-shadow-[0_0_8px_rgba(0,255,136,0.3)]">{stats.online_users}</div>
+                  <div className="text-sm text-gray-400 mt-1">Онлайн сейчас</div>
+                </div>
+                <div className="bg-[#1f2833]/50 backdrop-blur-xl rounded-xl border border-white/10 p-6 shadow-xl">
+                  <div className="text-3xl font-bold text-[#ff3333] drop-shadow-[0_0_8px_rgba(255,51,51,0.3)]">{stats.banned_users}</div>
+                  <div className="text-sm text-gray-400 mt-1">Забанено</div>
+                </div>
+                <div className="bg-[#1f2833]/50 backdrop-blur-xl rounded-xl border border-white/10 p-6 shadow-xl">
+                  <div className="text-3xl font-bold text-[#ff6b00] drop-shadow-[0_0_8px_rgba(255,107,0,0.3)]">{stats.admins_count}</div>
+                  <div className="text-sm text-gray-400 mt-1">Админов</div>
+                </div>
+                <div className="bg-[#1f2833]/50 backdrop-blur-xl rounded-xl border border-white/10 p-6 shadow-xl">
+                  <div className="text-3xl font-bold text-[#00f0ff] drop-shadow-[0_0_8px_rgba(0,240,255,0.3)]">{stats.platform_vacancies}</div>
+                  <div className="text-sm text-gray-400 mt-1">Наших вакансий</div>
                 </div>
               </div>
 
+              <div className="bg-[#1f2833]/50 backdrop-blur-xl rounded-xl border border-white/10 overflow-hidden shadow-xl">
+                <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">История платежей</h3>
+                    <p className="text-sm text-gray-400">
+                      ID платежа, пользователь, покупка, сумма, статус и дата/время
+                    </p>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[1100px]">
+                    <thead className="bg-black/20 text-left">
+                      <tr>
+                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Payment ID</th>
+                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Пользователь</th>
+                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Покупка</th>
+                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Сумма</th>
+                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Статус</th>
+                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Дата и время</th>
+                        <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Действия</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/10">
+                      {paymentsLoading && (
+                        <tr>
+                          <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">
+                            Загрузка платежей...
+                          </td>
+                        </tr>
+                      )}
+
+                      {!paymentsLoading && payments.length === 0 && (
+                        <tr>
+                          <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">
+                            Платежей пока нет
+                          </td>
+                        </tr>
+                      )}
+
+                      {!paymentsLoading && payments.map((payment) => (
+                        <tr key={payment.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <code className="text-xs text-gray-700 max-w-[220px] truncate block">
+                                {payment.yookassa_payment_id || payment.id}
+                              </code>
+                              <button
+                                onClick={() => copyToClipboard(payment.yookassa_payment_id || payment.id)}
+                                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
+                                title="Скопировать Payment ID"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 8h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                              </button>
+                            </div>
+                            {payment.yookassa_payment_id && (
+                              <div className="text-[11px] text-gray-400 mt-1">DB ID: {payment.id}</div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="text-sm font-medium text-gray-900">
+                              {payment.full_name || "Без имени"}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {payment.email || payment.user_id}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-700 max-w-[280px]">
+                            <div className="truncate" title={getPaymentDescription(payment)}>
+                              {getPaymentDescription(payment)}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">{getPaymentTypeLabel(payment.type)}</div>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-700">
+                            {formatAmount(payment.amount, payment.currency)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${getPaymentStatusClass(payment.status)}`}>
+                              {getPaymentStatusLabel(payment.status)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-700">
+                            {formatDate(payment.created_at)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => {
+                                setSelectedPayment(payment);
+                                setShowPaymentModal(true);
+                              }}
+                              className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg"
+                            >
+                              Подробнее
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {paymentsTotal > 20 && (
+                  <div className="p-4 border-t border-gray-200 flex justify-between items-center">
+                    <div className="text-sm text-gray-500">
+                      Показано {(paymentsPage - 1) * 20 + 1}-{Math.min(paymentsPage * 20, paymentsTotal)} из {paymentsTotal}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setPaymentsPage((p) => Math.max(1, p - 1))}
+                        disabled={paymentsPage === 1}
+                        className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
+                      >
+                        Назад
+                      </button>
+                      <button
+                        onClick={() => setPaymentsPage((p) => p + 1)}
+                        disabled={paymentsPage * 20 >= paymentsTotal}
+                        className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
+                      >
+                        Вперёд
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Users Tab */}
+          {activeTab === "users" && (
+            <div className="bg-[#1f2833]/50 backdrop-blur-xl rounded-xl border border-white/10 shadow-xl overflow-hidden">
+              {/* Search */}
+              <div className="p-4 border-b border-white/10">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Поиск по email..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    className="flex-1 px-4 py-2 bg-black/20 text-white placeholder-gray-500 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff6b00] focus:border-[#ff6b00] transition-all"
+                  />
+                  <button
+                    onClick={handleSearch}
+                    className="px-4 py-2 bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] text-white rounded-lg hover:shadow-[0_0_15px_rgba(255,107,0,0.4)] transition-all duration-300"
+                  >
+                    Найти
+                  </button>
+                </div>
+              </div>
+
+              {/* Table */}
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[1100px]">
-                  <thead className="bg-gray-50 text-left">
+                <table className="w-full">
+                  <thead className="bg-black/20 text-left">
                     <tr>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Payment ID</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Пользователь</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Покупка</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Сумма</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Статус</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Дата и время</th>
-                      <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Действия</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Роль</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Статус</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Подписка</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Запросы</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Был онлайн</th>
+                      <th className="px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider">Действия</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {paymentsLoading && (
-                      <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">
-                          Загрузка платежей...
-                        </td>
-                      </tr>
-                    )}
-
-                    {!paymentsLoading && payments.length === 0 && (
-                      <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-sm text-gray-500">
-                          Платежей пока нет
-                        </td>
-                      </tr>
-                    )}
-
-                    {!paymentsLoading && payments.map((payment) => (
-                      <tr key={payment.id} className="hover:bg-gray-50">
+                  <tbody className="divide-y divide-white/10">
+                    {users.map((user) => (
+                      <tr key={user.id} className="hover:bg-white/5 transition-colors">
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <code className="text-xs text-gray-700 max-w-[220px] truncate block">
-                              {payment.yookassa_payment_id || payment.id}
-                            </code>
-                            <button
-                              onClick={() => copyToClipboard(payment.yookassa_payment_id || payment.id)}
-                              className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded"
-                              title="Скопировать Payment ID"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 8h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                              </svg>
-                            </button>
-                          </div>
-                          {payment.yookassa_payment_id && (
-                            <div className="text-[11px] text-gray-400 mt-1">DB ID: {payment.id}</div>
+                          <div className="font-medium text-white">{user.email}</div>
+                          {user.full_name && (
+                            <div className="text-sm text-gray-400">{user.full_name}</div>
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="text-sm font-medium text-gray-900">
-                            {payment.full_name || "Без имени"}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {payment.email || payment.user_id}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-700 max-w-[280px]">
-                          <div className="truncate" title={getPaymentDescription(payment)}>
-                            {getPaymentDescription(payment)}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">{getPaymentTypeLabel(payment.type)}</div>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">
-                          {formatAmount(payment.amount, payment.currency)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${getPaymentStatusClass(payment.status)}`}>
-                            {getPaymentStatusLabel(payment.status)}
+                          <span
+                            className={`inline-flex px-2 py-1 rounded text-xs font-medium border ${user.role === "admin"
+                              ? "bg-[#ff3333]/20 text-[#ff3333] border-[#ff3333]/30"
+                              : "bg-white/10 text-gray-300 border-white/20"
+                              }`}
+                          >
+                            {user.role === "admin" ? "Админ" : "Пользователь"}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">
-                          {formatDate(payment.created_at)}
+                        <td className="px-4 py-3">
+                          {user.is_banned ? (
+                            <span className="inline-flex px-2 py-1 bg-[#ff3333]/20 text-[#ff3333] border border-[#ff3333]/30 rounded text-xs font-medium">
+                              Забанен
+                            </span>
+                          ) : (
+                            <span className="inline-flex px-2 py-1 bg-[#00ff88]/20 text-[#00ff88] border border-[#00ff88]/30 rounded text-xs font-medium shadow-[0_0_10px_rgba(0,255,136,0.1)]">
+                              Активен
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-300">
+                          {user.subscription_type || "-"}
                         </td>
                         <td className="px-4 py-3">
-                          <button
-                            onClick={() => {
-                              setSelectedPayment(payment);
-                              setShowPaymentModal(true);
-                            }}
-                            className="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg"
-                          >
-                            Подробнее
-                          </button>
+                          <div className="text-xs">
+                            <div className="text-[#a855f7] font-medium">
+                              Бонус: {user.bonus_requests || 0}
+                            </div>
+                            <div className="text-gray-400">
+                              Дневной: {user.daily_used || 0} / {user.daily_limit || 0}
+                            </div>
+                            <div className="text-[#00ff88] font-medium">
+                              Всего: {((user.daily_limit || 0) - (user.daily_used || 0) + (user.bonus_requests || 0))}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-400">
+                          {formatDate(user.last_seen_at)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1">
+                            {user.is_banned ? (
+                              <button
+                                onClick={() => handleUnban(user.user_id)}
+                                className="p-1.5 text-[#00ff88] hover:bg-[#00ff88]/10 rounded transition-colors"
+                                title="Разбанить"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setShowBanModal(true);
+                                }}
+                                className="p-1.5 text-[#ff3333] hover:bg-[#ff3333]/10 rounded transition-colors"
+                                title="Забанить"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                                </svg>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleToggleVacancies(user)}
+                              className={`p-1.5 rounded transition-colors ${user.can_create_vacancies
+                                ? "text-[#ff6b00] hover:bg-[#ff6b00]/10"
+                                : "text-gray-500 hover:text-gray-300 hover:bg-white/5"
+                                }`}
+                              title={user.can_create_vacancies ? "Запретить вакансии" : "Разрешить вакансии"}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setSubscriptionType(user.subscription_type || "base");
+                                setShowSubscriptionModal(true);
+                              }}
+                              className="p-1.5 text-[#00f0ff] hover:bg-[#00f0ff]/10 rounded transition-colors"
+                              title="Подписка"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setRequestsAmount("");
+                                setShowRequestsModal(true);
+                              }}
+                              className="p-1.5 text-[#a855f7] hover:bg-[#a855f7]/10 rounded transition-colors"
+                              title="Управление запросами (добавить/убавить)"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -606,23 +793,24 @@ export default function AdminPage() {
                 </table>
               </div>
 
-              {paymentsTotal > 20 && (
-                <div className="p-4 border-t border-gray-200 flex justify-between items-center">
-                  <div className="text-sm text-gray-500">
-                    Показано {(paymentsPage - 1) * 20 + 1}-{Math.min(paymentsPage * 20, paymentsTotal)} из {paymentsTotal}
+              {/* Pagination */}
+              {usersTotal > 20 && (
+                <div className="p-4 border-t border-white/10 flex justify-between items-center bg-black/10">
+                  <div className="text-sm text-gray-400">
+                    Показано {(usersPage - 1) * 20 + 1}-{Math.min(usersPage * 20, usersTotal)} из {usersTotal}
                   </div>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setPaymentsPage((p) => Math.max(1, p - 1))}
-                      disabled={paymentsPage === 1}
-                      className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
+                      onClick={() => setUsersPage((p) => Math.max(1, p - 1))}
+                      disabled={usersPage === 1}
+                      className="px-3 py-1 border border-white/10 text-gray-300 hover:text-white hover:bg-white/5 rounded text-sm disabled:opacity-50 transition-colors"
                     >
                       Назад
                     </button>
                     <button
-                      onClick={() => setPaymentsPage((p) => p + 1)}
-                      disabled={paymentsPage * 20 >= paymentsTotal}
-                      className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
+                      onClick={() => setUsersPage((p) => p + 1)}
+                      disabled={usersPage * 20 >= usersTotal}
+                      className="px-3 py-1 border border-white/10 text-gray-300 hover:text-white hover:bg-white/5 rounded text-sm disabled:opacity-50 transition-colors"
                     >
                       Вперёд
                     </button>
@@ -630,299 +818,32 @@ export default function AdminPage() {
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Users Tab */}
-        {activeTab === "users" && (
-          <div className="bg-white rounded-xl border border-gray-200">
-            {/* Search */}
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Поиск по email..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-                <button
-                  onClick={handleSearch}
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-                >
-                  Найти
-                </button>
-              </div>
-            </div>
-
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 text-left">
-                  <tr>
-                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Email</th>
-                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Роль</th>
-                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Статус</th>
-                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Подписка</th>
-                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Запросы</th>
-                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Был онлайн</th>
-                    <th className="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Действия</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {users.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900">{user.email}</div>
-                        {user.full_name && (
-                          <div className="text-sm text-gray-500">{user.full_name}</div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex px-2 py-1 rounded text-xs font-medium ${user.role === "admin"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-gray-100 text-gray-700"
-                            }`}
-                        >
-                          {user.role === "admin" ? "Админ" : "Пользователь"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {user.is_banned ? (
-                          <span className="inline-flex px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
-                            Забанен
-                          </span>
-                        ) : (
-                          <span className="inline-flex px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
-                            Активен
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {user.subscription_type || "-"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="text-xs">
-                          <div className="text-purple-600 font-medium">
-                            Бонус: {user.bonus_requests || 0}
-                          </div>
-                          <div className="text-gray-600">
-                            Дневной: {user.daily_used || 0} / {user.daily_limit || 0}
-                          </div>
-                          <div className="text-green-600 font-medium">
-                            Всего: {((user.daily_limit || 0) - (user.daily_used || 0) + (user.bonus_requests || 0))}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {formatDate(user.last_seen_at)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1">
-                          {user.is_banned ? (
-                            <button
-                              onClick={() => handleUnban(user.user_id)}
-                              className="p-1.5 text-green-600 hover:bg-green-50 rounded"
-                              title="Разбанить"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setShowBanModal(true);
-                              }}
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded"
-                              title="Забанить"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                              </svg>
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleToggleVacancies(user)}
-                            className={`p-1.5 rounded ${user.can_create_vacancies
-                                ? "text-orange-600 hover:bg-orange-50"
-                                : "text-gray-400 hover:bg-gray-50"
-                              }`}
-                            title={user.can_create_vacancies ? "Запретить вакансии" : "Разрешить вакансии"}
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setSubscriptionType(user.subscription_type || "base");
-                              setShowSubscriptionModal(true);
-                            }}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
-                            title="Подписка"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setRequestsAmount("");
-                              setShowRequestsModal(true);
-                            }}
-                            className="p-1.5 text-purple-600 hover:bg-purple-50 rounded"
-                            title="Управление запросами (добавить/убавить)"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            {usersTotal > 20 && (
-              <div className="p-4 border-t border-gray-200 flex justify-between items-center">
-                <div className="text-sm text-gray-500">
-                  Показано {(usersPage - 1) * 20 + 1}-{Math.min(usersPage * 20, usersTotal)} из {usersTotal}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setUsersPage((p) => Math.max(1, p - 1))}
-                    disabled={usersPage === 1}
-                    className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
-                  >
-                    Назад
-                  </button>
-                  <button
-                    onClick={() => setUsersPage((p) => p + 1)}
-                    disabled={usersPage * 20 >= usersTotal}
-                    className="px-3 py-1 border border-gray-200 rounded text-sm disabled:opacity-50"
-                  >
-                    Вперёд
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Settings Tab */}
-        {activeTab === "settings" && (
-          <div className="space-y-4">
-            {/* Обычные настройки */}
-            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-200">
-              {settings.filter(s => s.id !== "first_purchase_discount" && s.id !== "subscription_price" && s.id !== "extra_requests_price" && s.id !== "extra_requests_count").map((setting) => {
-                // Type guard: ensure this setting has 'enabled' property
-                const isEnabled = 'enabled' in setting.value ? setting.value.enabled : false;
-                return (
-                <div
-                  key={setting.id}
-                  className="flex items-center justify-between p-4"
-                >
-                  <div>
-                    <div className="font-medium text-gray-900">
-                      {settingLabels[setting.id] || setting.id}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {isEnabled ? "Включено" : "Выключено"}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleToggleSetting(setting)}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isEnabled ? "bg-orange-500" : "bg-gray-200"
-                      }`}
-                  >
-                    <span
-                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isEnabled ? "translate-x-5" : "translate-x-0"
-                        }`}
-                    />
-                  </button>
-                </div>
-              );
-              })}
-            </div>
-
-            {/* Support Chat - отдельная секция */}
-            {supportChatStatus && (
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">Чат поддержки (в углу экрана)</div>
-                      <div className="text-sm text-gray-500">
-                        {supportChatStatus.enabled ? "Включён" : "Выключен"}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleToggleSupportChat}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${supportChatStatus.enabled ? "bg-purple-500" : "bg-gray-200"
-                      }`}
-                  >
-                    <span
-                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${supportChatStatus.enabled ? "translate-x-5" : "translate-x-0"
-                        }`}
-                    />
-                  </button>
-                </div>
-                <p className="text-xs text-gray-500 mt-3">
-                  Когда выключен, виджет чата в углу экрана скрывается, и пользователи не могут писать в поддержку.
-                </p>
-              </div>
-            )}
-
-            {/* Настройка скидки */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <h3 className="font-medium text-gray-900 mb-4">Скидка на первую покупку подписки</h3>
-              {(() => {
-                const discountSetting = settings.find(s => s.id === "first_purchase_discount");
-                const priceSetting = settings.find(s => s.id === "subscription_price");
-                if (!discountSetting) {
+          {/* Settings Tab */}
+          {activeTab === "settings" && (
+            <div className="space-y-4">
+              {/* Обычные настройки */}
+              <div className="bg-[#1f2833]/50 backdrop-blur-xl rounded-xl border border-white/10 divide-y divide-white/10 shadow-xl">
+                {settings.filter(s => s.id !== "first_purchase_discount" && s.id !== "subscription_price" && s.id !== "extra_requests_price" && s.id !== "extra_requests_count").map((setting) => {
+                  // Type guard: ensure this setting has 'enabled' property
+                  const isEnabled = 'enabled' in setting.value ? setting.value.enabled : false;
                   return (
-                    <div className="text-sm text-gray-500">
-                      Настройка не найдена. Добавьте запись &quot;first_purchase_discount&quot; в таблицу site_settings.
-                    </div>
-                  );
-                }
-                // Type guard for discount setting
-                const currentPercent = 'discount_percent' in discountSetting.value ? discountSetting.value.discount_percent : 80;
-                const isEnabled = 'enabled' in discountSetting.value ? discountSetting.value.enabled : false;
-                // Получаем цену из настроек
-                const regularPrice = priceSetting && typeof priceSetting.value === 'object' && 'price' in priceSetting.value
-                  ? (priceSetting.value as { price: number }).price
-                  : 499;
-                const discountedPrice = Math.round(regularPrice * (1 - (currentPercent ?? 0) / 100));
-
-                return (
-                  <div className="space-y-4">
-                    {/* Переключатель */}
-                    <div className="flex items-center justify-between">
+                    <div
+                      key={setting.id}
+                      className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
+                    >
                       <div>
-                        <div className="text-sm text-gray-600">Статус</div>
-                        <div className={`text-sm font-medium ${isEnabled ? "text-green-600" : "text-gray-500"}`}>
-                          {isEnabled ? "Включена" : "Выключена"}
+                        <div className="font-medium text-white">
+                          {settingLabels[setting.id] || setting.id}
+                        </div>
+                        <div className="text-sm text-gray-400">
+                          {isEnabled ? "Включено" : "Выключено"}
                         </div>
                       </div>
                       <button
-                        onClick={() => handleUpdateDiscount(discountSetting, !isEnabled)}
-                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isEnabled ? "bg-green-500" : "bg-gray-200"
+                        onClick={() => handleToggleSetting(setting)}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isEnabled ? "bg-[#ff6b00]" : "bg-white/20"
                           }`}
                       >
                         <span
@@ -931,581 +852,663 @@ export default function AdminPage() {
                         />
                       </button>
                     </div>
-
-                    {/* Процент скидки */}
-                    <div>
-                      <label className="text-sm text-gray-600 block mb-2">Размер скидки (%)</label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={discountInput || currentPercent}
-                          onChange={(e) => setDiscountInput(e.target.value)}
-                          className="w-24 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                        />
-                        <span className="text-gray-500">%</span>
-                        <button
-                          onClick={() => {
-                            const newPercent = parseInt(discountInput || String(currentPercent), 10);
-                            if (!isNaN(newPercent) && newPercent >= 0 && newPercent <= 100) {
-                              handleUpdateDiscount(discountSetting, isEnabled, newPercent);
-                              setDiscountInput("");
-                            }
-                          }}
-                          className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm"
-                        >
-                          Сохранить
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Предпросмотр */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="text-sm text-gray-600 mb-2">Предпросмотр цены:</div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-gray-400 line-through">{regularPrice} ₽</span>
-                        <span className="text-2xl font-bold text-green-600">{discountedPrice} ₽</span>
-                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-sm font-medium">
-                          -{currentPercent}%
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        Пользователи, которые ещё не покупали подписку, увидят цену {discountedPrice} ₽ вместо {regularPrice} ₽
-                      </p>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Настройка цены подписки */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <h3 className="font-medium text-gray-900 mb-4">Цена Pro подписки</h3>
-              {(() => {
-                const priceSetting = settings.find(s => s.id === "subscription_price");
-                if (!priceSetting) {
-                  return (
-                    <div className="text-sm text-gray-500">
-                      Настройка не найдена. Добавьте запись &quot;subscription_price&quot; в таблицу site_settings.
-                    </div>
                   );
-                }
-                const currentPrice = typeof priceSetting.value === 'object' && 'price' in priceSetting.value
-                  ? (priceSetting.value as { price: number }).price
-                  : 499;
-
-                return (
-                  <div className="space-y-4">
-                    {/* Текущая цена */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-gray-600">Текущая цена</div>
-                        <div className="text-2xl font-bold text-gray-900">{currentPrice} ₽/мес</div>
-                      </div>
-                    </div>
-
-                    {/* Изменение цены */}
-                    <div>
-                      <label className="text-sm text-gray-600 block mb-2">Новая цена (₽)</label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="number"
-                          min="1"
-                          max="99999"
-                          step="1"
-                          value={priceInput || currentPrice}
-                          onChange={(e) => setPriceInput(e.target.value)}
-                          className="w-32 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                        />
-                        <span className="text-gray-500">₽</span>
-                        <button
-                          onClick={() => {
-                            const newPrice = parseInt(priceInput || String(currentPrice), 10);
-                            if (!isNaN(newPrice) && newPrice >= 1 && newPrice <= 99999) {
-                              handleUpdatePrice(priceSetting, newPrice);
-                              setPriceInput("");
-                            }
-                          }}
-                          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
-                        >
-                          Сохранить
-                        </button>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        Цена будет обновлена везде: в модальном окне, на странице подписки и при оплате через YooKassa
-                      </p>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Настройка цены дополнительных запросов */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <h3 className="font-medium text-gray-900 mb-4">Цена дополнительных запросов</h3>
-              {(() => {
-                const priceSetting = settings.find(s => s.id === "extra_requests_price");
-                const countSetting = settings.find(s => s.id === "extra_requests_count");
-                if (!priceSetting) {
-                  return (
-                    <div className="text-sm text-gray-500">
-                      Настройка не найдена. Добавьте запись &quot;extra_requests_price&quot; в таблицу site_settings.
-                    </div>
-                  );
-                }
-                const currentPrice = typeof priceSetting.value === 'object' && 'price' in priceSetting.value
-                  ? (priceSetting.value as { price: number }).price
-                  : 99;
-                const currentCount = countSetting && typeof countSetting.value === 'object' && 'count' in countSetting.value
-                  ? (countSetting.value as { count: number }).count
-                  : 10;
-
-                return (
-                  <div className="space-y-4">
-                    {/* Текущая цена */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-gray-600">Текущая цена</div>
-                        <div className="text-2xl font-bold text-gray-900">{currentPrice} ₽ за {currentCount} запросов</div>
-                      </div>
-                    </div>
-
-                    {/* Изменение цены */}
-                    <div>
-                      <label className="text-sm text-gray-600 block mb-2">Новая цена (₽)</label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="number"
-                          min="1"
-                          max="99999"
-                          step="1"
-                          value={extraRequestsPriceInput || currentPrice}
-                          onChange={(e) => setExtraRequestsPriceInput(e.target.value)}
-                          className="w-32 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                        />
-                        <span className="text-gray-500">₽</span>
-                        <button
-                          onClick={() => {
-                            const newPrice = parseInt(extraRequestsPriceInput || String(currentPrice), 10);
-                            if (!isNaN(newPrice) && newPrice >= 1 && newPrice <= 99999) {
-                              handleUpdatePrice(priceSetting, newPrice);
-                              setExtraRequestsPriceInput("");
-                            }
-                          }}
-                          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
-                        >
-                          Сохранить
-                        </button>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        Цена будет обновлена на странице подписки и при оплате через YooKassa
-                      </p>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Настройка количества дополнительных запросов */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <h3 className="font-medium text-gray-900 mb-4">Количество дополнительных запросов</h3>
-              {(() => {
-                const countSetting = settings.find(s => s.id === "extra_requests_count");
-                if (!countSetting) {
-                  return (
-                    <div className="text-sm text-gray-500">
-                      Настройка не найдена. Добавьте запись &quot;extra_requests_count&quot; в таблицу site_settings.
-                    </div>
-                  );
-                }
-                const currentCount = typeof countSetting.value === 'object' && 'count' in countSetting.value
-                  ? (countSetting.value as { count: number }).count
-                  : 10;
-
-                return (
-                  <div className="space-y-4">
-                    {/* Текущее количество */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-gray-600">Текущее количество</div>
-                        <div className="text-2xl font-bold text-gray-900">{currentCount} запросов</div>
-                      </div>
-                    </div>
-
-                    {/* Изменение количества */}
-                    <div>
-                      <label className="text-sm text-gray-600 block mb-2">Новое количество</label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="number"
-                          min="1"
-                          max="1000"
-                          step="1"
-                          value={extraRequestsCountInput || currentCount}
-                          onChange={(e) => setExtraRequestsCountInput(e.target.value)}
-                          className="w-32 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                        />
-                        <span className="text-gray-500">шт.</span>
-                        <button
-                          onClick={() => {
-                            const newCount = parseInt(extraRequestsCountInput || String(currentCount), 10);
-                            if (!isNaN(newCount) && newCount >= 1 && newCount <= 1000) {
-                              handleUpdateExtraRequestsCount(countSetting, newCount);
-                              setExtraRequestsCountInput("");
-                            }
-                          }}
-                          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
-                        >
-                          Сохранить
-                        </button>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        Количество запросов будет обновлено на странице подписки и при оплате через YooKassa
-                      </p>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-        )}
-
-        {/* Support Chat Tab */}
-        {activeTab === "support" && token && (
-          <SupportChatTab token={token} />
-        )}
-
-        {/* Chats History Tab */}
-        {activeTab === "chats" && token && (
-          <ChatHistoryTab token={token} />
-        )}
-
-        {/* Moderation Tab */}
-        {activeTab === "moderation" && token && (
-          <ModerationTab token={token} />
-        )}
-
-        {/* Agents Tab */}
-        {activeTab === "agents" && token && (
-          <AgentsTab token={token} />
-        )}
-      </main>
-
-      {/* Ban Modal */}
-      {showBanModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              Забанить пользователя
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              {selectedUser?.email}
-            </p>
-            <textarea
-              placeholder="Причина бана (опционально)"
-              value={banReason}
-              onChange={(e) => setBanReason(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none h-24"
-            />
-            <div className="flex justify-end gap-2 mt-4">
-              <button
-                onClick={() => setShowBanModal(false)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-              >
-                Отмена
-              </button>
-              <button
-                onClick={handleBan}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-              >
-                Забанить
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Vacancy Ban Modal */}
-      {showVacancyBanModal && selectedUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                </svg>
+                })}
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">
-                  Запретить создание вакансий
-                </h3>
-                <p className="text-sm text-gray-500">{selectedUser.email}</p>
+
+              {/* Support Chat - отдельная секция */}
+              {supportChatStatus && (
+                <div className="bg-[#1f2833]/50 backdrop-blur-xl rounded-xl border border-white/10 p-4 shadow-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[#a855f7]/20 rounded-lg flex items-center justify-center border border-[#a855f7]/30">
+                        <svg className="w-5 h-5 text-[#a855f7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="font-medium text-white">Чат поддержки (в углу экрана)</div>
+                        <div className="text-sm text-gray-400">
+                          {supportChatStatus.enabled ? "Включён" : "Выключен"}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleToggleSupportChat}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${supportChatStatus.enabled ? "bg-[#a855f7]" : "bg-white/20"
+                        }`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${supportChatStatus.enabled ? "translate-x-5" : "translate-x-0"
+                          }`}
+                      />
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-3">
+                    Когда выключен, виджет чата в углу экрана скрывается, и пользователи не могут писать в поддержку.
+                  </p>
+                </div>
+              )}
+
+              {/* Настройка скидки */}
+              <div className="bg-[#1f2833]/50 backdrop-blur-xl rounded-xl border border-white/10 p-4 shadow-xl">
+                <h3 className="font-medium text-white mb-4">Скидка на первую покупку подписки</h3>
+                {(() => {
+                  const discountSetting = settings.find(s => s.id === "first_purchase_discount");
+                  const priceSetting = settings.find(s => s.id === "subscription_price");
+                  if (!discountSetting) {
+                    return (
+                      <div className="text-sm text-gray-400">
+                        Настройка не найдена. Добавьте запись &quot;first_purchase_discount&quot; в таблицу site_settings.
+                      </div>
+                    );
+                  }
+                  // Type guard for discount setting
+                  const currentPercent = 'discount_percent' in discountSetting.value ? discountSetting.value.discount_percent : 80;
+                  const isEnabled = 'enabled' in discountSetting.value ? discountSetting.value.enabled : false;
+                  // Получаем цену из настроек
+                  const regularPrice = priceSetting && typeof priceSetting.value === 'object' && 'price' in priceSetting.value
+                    ? (priceSetting.value as { price: number }).price
+                    : 499;
+                  const discountedPrice = Math.round(regularPrice * (1 - (currentPercent ?? 0) / 100));
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Переключатель */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm text-gray-400">Статус</div>
+                          <div className={`text-sm font-medium ${isEnabled ? "text-[#00ff88]" : "text-gray-500"}`}>
+                            {isEnabled ? "Включена" : "Выключена"}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleUpdateDiscount(discountSetting, !isEnabled)}
+                          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isEnabled ? "bg-[#00ff88]" : "bg-white/20"
+                            }`}
+                        >
+                          <span
+                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isEnabled ? "translate-x-5" : "translate-x-0"
+                              }`}
+                          />
+                        </button>
+                      </div>
+
+                      {/* Процент скидки */}
+                      <div>
+                        <label className="text-sm text-gray-400 block mb-2">Размер скидки (%)</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={discountInput || currentPercent}
+                            onChange={(e) => setDiscountInput(e.target.value)}
+                            className="w-24 px-3 py-2 bg-black/20 text-white placeholder-gray-500 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff6b00] focus:border-[#ff6b00] transition-colors"
+                          />
+                          <span className="text-gray-400">%</span>
+                          <button
+                            onClick={() => {
+                              const newPercent = parseInt(discountInput || String(currentPercent), 10);
+                              if (!isNaN(newPercent) && newPercent >= 0 && newPercent <= 100) {
+                                handleUpdateDiscount(discountSetting, isEnabled, newPercent);
+                                setDiscountInput("");
+                              }
+                            }}
+                            className="px-4 py-2 bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] text-white rounded-lg hover:shadow-[0_0_15px_rgba(255,107,0,0.4)] transition-all duration-300 text-sm"
+                          >
+                            Сохранить
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Предпросмотр */}
+                      <div className="bg-black/20 border border-white/5 rounded-lg p-4">
+                        <div className="text-sm text-gray-400 mb-2">Предпросмотр цены:</div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-gray-500 line-through">{regularPrice} ₽</span>
+                          <span className="text-2xl font-bold text-[#00ff88]">{discountedPrice} ₽</span>
+                          <span className="px-2 py-1 bg-[#00ff88]/20 text-[#00ff88] border border-[#00ff88]/30 rounded text-sm font-medium">
+                            -{currentPercent}%
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          Пользователи, которые ещё не покупали подписку, увидят цену {discountedPrice} ₽ вместо {regularPrice} ₽
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Настройка цены подписки */}
+              <div className="bg-[#1f2833]/50 backdrop-blur-xl rounded-xl border border-white/10 p-4 shadow-xl">
+                <h3 className="font-medium text-white mb-4">Цена Pro подписки</h3>
+                {(() => {
+                  const priceSetting = settings.find(s => s.id === "subscription_price");
+                  if (!priceSetting) {
+                    return (
+                      <div className="text-sm text-gray-400">
+                        Настройка не найдена. Добавьте запись &quot;subscription_price&quot; в таблицу site_settings.
+                      </div>
+                    );
+                  }
+                  const currentPrice = typeof priceSetting.value === 'object' && 'price' in priceSetting.value
+                    ? (priceSetting.value as { price: number }).price
+                    : 499;
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Текущая цена */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm text-gray-400">Текущая цена</div>
+                          <div className="text-2xl font-bold text-white">{currentPrice} ₽/мес</div>
+                        </div>
+                      </div>
+
+                      {/* Изменение цены */}
+                      <div>
+                        <label className="text-sm text-gray-400 block mb-2">Новая цена (₽)</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            min="1"
+                            max="99999"
+                            step="1"
+                            value={priceInput || currentPrice}
+                            onChange={(e) => setPriceInput(e.target.value)}
+                            className="w-32 px-3 py-2 bg-black/20 text-white placeholder-gray-500 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00f0ff] focus:border-[#00f0ff] transition-colors"
+                          />
+                          <span className="text-gray-400">₽</span>
+                          <button
+                            onClick={() => {
+                              const newPrice = parseInt(priceInput || String(currentPrice), 10);
+                              if (!isNaN(newPrice) && newPrice >= 1 && newPrice <= 99999) {
+                                handleUpdatePrice(priceSetting, newPrice);
+                                setPriceInput("");
+                              }
+                            }}
+                            className="px-4 py-2 bg-gradient-to-r from-[#00f0ff] to-[#00b8ff] text-black font-medium rounded-lg hover:shadow-[0_0_15px_rgba(0,240,255,0.4)] transition-all duration-300 text-sm"
+                          >
+                            Сохранить
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">
+                          Цена будет обновлена везде: в модальном окне, на странице подписки и при оплате через YooKassa
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Настройка цены дополнительных запросов */}
+              <div className="bg-[#1f2833]/50 backdrop-blur-xl rounded-xl border border-white/10 p-4 shadow-xl">
+                <h3 className="font-medium text-white mb-4">Цена дополнительных запросов</h3>
+                {(() => {
+                  const priceSetting = settings.find(s => s.id === "extra_requests_price");
+                  const countSetting = settings.find(s => s.id === "extra_requests_count");
+                  if (!priceSetting) {
+                    return (
+                      <div className="text-sm text-gray-400">
+                        Настройка не найдена. Добавьте запись &quot;extra_requests_price&quot; в таблицу site_settings.
+                      </div>
+                    );
+                  }
+                  const currentPrice = typeof priceSetting.value === 'object' && 'price' in priceSetting.value
+                    ? (priceSetting.value as { price: number }).price
+                    : 99;
+                  const currentCount = countSetting && typeof countSetting.value === 'object' && 'count' in countSetting.value
+                    ? (countSetting.value as { count: number }).count
+                    : 10;
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Текущая цена */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm text-gray-400">Текущая цена</div>
+                          <div className="text-2xl font-bold text-white">{currentPrice} ₽ за {currentCount} запросов</div>
+                        </div>
+                      </div>
+
+                      {/* Изменение цены */}
+                      <div>
+                        <label className="text-sm text-gray-400 block mb-2">Новая цена (₽)</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            min="1"
+                            max="99999"
+                            step="1"
+                            value={extraRequestsPriceInput || currentPrice}
+                            onChange={(e) => setExtraRequestsPriceInput(e.target.value)}
+                            className="w-32 px-3 py-2 bg-black/20 text-white placeholder-gray-500 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00f0ff] focus:border-[#00f0ff] transition-colors"
+                          />
+                          <span className="text-gray-400">₽</span>
+                          <button
+                            onClick={() => {
+                              const newPrice = parseInt(extraRequestsPriceInput || String(currentPrice), 10);
+                              if (!isNaN(newPrice) && newPrice >= 1 && newPrice <= 99999) {
+                                handleUpdatePrice(priceSetting, newPrice);
+                                setExtraRequestsPriceInput("");
+                              }
+                            }}
+                            className="px-4 py-2 bg-gradient-to-r from-[#00f0ff] to-[#00b8ff] text-black font-medium rounded-lg hover:shadow-[0_0_15px_rgba(0,240,255,0.4)] transition-all duration-300 text-sm"
+                          >
+                            Сохранить
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">
+                          Цена будет обновлена на странице подписки и при оплате через YooKassa
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Настройка количества дополнительных запросов */}
+              <div className="bg-[#1f2833]/50 backdrop-blur-xl rounded-xl border border-white/10 p-4 shadow-xl">
+                <h3 className="font-medium text-white mb-4">Количество дополнительных запросов</h3>
+                {(() => {
+                  const countSetting = settings.find(s => s.id === "extra_requests_count");
+                  if (!countSetting) {
+                    return (
+                      <div className="text-sm text-gray-400">
+                        Настройка не найдена. Добавьте запись &quot;extra_requests_count&quot; в таблицу site_settings.
+                      </div>
+                    );
+                  }
+                  const currentCount = typeof countSetting.value === 'object' && 'count' in countSetting.value
+                    ? (countSetting.value as { count: number }).count
+                    : 10;
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Текущее количество */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm text-gray-400">Текущее количество</div>
+                          <div className="text-2xl font-bold text-white">{currentCount} запросов</div>
+                        </div>
+                      </div>
+
+                      {/* Изменение количества */}
+                      <div>
+                        <label className="text-sm text-gray-400 block mb-2">Новое количество</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="number"
+                            min="1"
+                            max="1000"
+                            step="1"
+                            value={extraRequestsCountInput || currentCount}
+                            onChange={(e) => setExtraRequestsCountInput(e.target.value)}
+                            className="w-32 px-3 py-2 bg-black/20 text-white placeholder-gray-500 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00f0ff] focus:border-[#00f0ff] transition-colors"
+                          />
+                          <span className="text-gray-400">шт.</span>
+                          <button
+                            onClick={() => {
+                              const newCount = parseInt(extraRequestsCountInput || String(currentCount), 10);
+                              if (!isNaN(newCount) && newCount >= 1 && newCount <= 1000) {
+                                handleUpdateExtraRequestsCount(countSetting, newCount);
+                                setExtraRequestsCountInput("");
+                              }
+                            }}
+                            className="px-4 py-2 bg-gradient-to-r from-[#00f0ff] to-[#00b8ff] text-black font-medium rounded-lg hover:shadow-[0_0_15px_rgba(0,240,255,0.4)] transition-all duration-300 text-sm"
+                          >
+                            Сохранить
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">
+                          Количество запросов будет обновлено на странице подписки и при оплате через YooKassa
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
+          )}
 
-            <div className="mb-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-              <p className="text-sm text-yellow-800">
-                Все активные и ожидающие модерации вакансии будут сняты с публикации и переведены в черновик. Пользователь больше не сможет создавать новые вакансии.
+          {/* Support Chat Tab */}
+          {activeTab === "support" && token && (
+            <SupportChatTab token={token} />
+          )}
+
+          {/* Chats History Tab */}
+          {activeTab === "chats" && token && (
+            <ChatHistoryTab token={token} />
+          )}
+
+          {/* Moderation Tab */}
+          {activeTab === "moderation" && token && (
+            <ModerationTab token={token} />
+          )}
+
+          {/* Agents Tab */}
+          {activeTab === "agents" && token && (
+            <AgentsTab token={token} />
+          )}
+        </main>
+
+        {/* Ban Modal */}
+        {showBanModal && (
+          <div className="fixed inset-0 bg-[#0b0c10]/80 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-[#1f2833] rounded-xl border border-white/10 p-6 max-w-md w-full mx-4 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+              <h3 className="text-lg font-bold text-white mb-4">
+                Забанить пользователя
+              </h3>
+              <p className="text-sm text-gray-400 mb-4">
+                {selectedUser?.email}
               </p>
-            </div>
-
-            <label className="block mb-4">
-              <span className="text-sm font-medium text-gray-700 mb-2 block">
-                Причина запрета
-              </span>
               <textarea
-                placeholder="Укажите причину запрета (будет видна пользователю)"
-                value={vacancyBanReason}
-                onChange={(e) => setVacancyBanReason(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 resize-none h-24"
+                placeholder="Причина бана (опционально)"
+                value={banReason}
+                onChange={(e) => setBanReason(e.target.value)}
+                className="w-full px-4 py-2 bg-black/20 text-white placeholder-gray-500 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff6b00] focus:border-[#ff6b00] resize-none h-24 transition-colors"
               />
-            </label>
-
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => {
-                  setShowVacancyBanModal(false);
-                  setSelectedUser(null);
-                  setVacancyBanReason("");
-                }}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-              >
-                Отмена
-              </button>
-              <button
-                onClick={handleVacancyBan}
-                disabled={!vacancyBanReason.trim() || vacancyBanLoading}
-                className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {vacancyBanLoading ? "Запрет..." : "Запретить"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Subscription Modal */}
-      {showSubscriptionModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              Установить подписку
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              {selectedUser?.email}
-            </p>
-            <select
-              value={subscriptionType}
-              onChange={(e) => setSubscriptionType(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="base">Base (3 запроса/день)</option>
-              <option value="pro_trial">Pro Trial (15 запросов/день)</option>
-              <option value="pro">Pro (15 запросов/день)</option>
-            </select>
-            <div className="flex justify-end gap-2 mt-4">
-              <button
-                onClick={() => setShowSubscriptionModal(false)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-              >
-                Отмена
-              </button>
-              <button
-                onClick={handleSetSubscription}
-                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-              >
-                Сохранить
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Requests Modal */}
-      {showRequestsModal && selectedUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
-              Управление запросами
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              {selectedUser.email}
-            </p>
-
-            {/* Current state */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <div className="text-sm font-medium text-gray-700 mb-2">Текущее состояние:</div>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Бонусные запросы:</span>
-                  <span className="font-medium text-purple-600">{selectedUser.bonus_requests || 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Дневной лимит:</span>
-                  <span className="font-medium">{selectedUser.daily_limit || 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Использовано сегодня:</span>
-                  <span className="font-medium">{selectedUser.daily_used || 0}</span>
-                </div>
-                <div className="flex justify-between border-t border-gray-200 pt-1 mt-1">
-                  <span className="text-gray-700 font-medium">Доступно всего:</span>
-                  <span className="font-bold text-green-600">
-                    {((selectedUser.daily_limit || 0) - (selectedUser.daily_used || 0) + (selectedUser.bonus_requests || 0))}
-                  </span>
-                </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  onClick={() => setShowBanModal(false)}
+                  className="px-4 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleBan}
+                  className="px-4 py-2 bg-gradient-to-r from-[#ff3333] to-[#ff5555] text-white rounded-lg hover:shadow-[0_0_15px_rgba(255,51,51,0.4)] transition-all duration-300"
+                >
+                  Забанить
+                </button>
               </div>
             </div>
+          </div>
+        )}
 
-            <input
-              type="number"
-              placeholder="+10 для добавления, -5 для уменьшения"
-              value={requestsAmount}
-              onChange={(e) => setRequestsAmount(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-            <p className="text-xs text-gray-500 mt-2">
-              Введите положительное число для добавления или отрицательное для уменьшения бонусных запросов
-            </p>
+        {/* Vacancy Ban Modal */}
+        {showVacancyBanModal && selectedUser && (
+          <div className="fixed inset-0 bg-[#0b0c10]/80 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-[#1f2833] rounded-xl border border-white/10 p-6 max-w-md w-full mx-4 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-[#ff3333]/20 border border-[#ff3333]/30 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5 text-[#ff3333]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">
+                    Запретить создание вакансий
+                  </h3>
+                  <p className="text-sm text-gray-400">{selectedUser.email}</p>
+                </div>
+              </div>
 
-            {/* Reset daily usage button */}
-            {(selectedUser.daily_used || 0) > 0 && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <button
-                  onClick={handleResetDailyUsage}
-                  className="w-full px-4 py-2 bg-orange-100 text-orange-600 rounded-lg hover:bg-orange-200 transition-colors text-sm font-medium"
-                >
-                  🔄 Сбросить использованные сегодня ({selectedUser.daily_used || 0})
-                </button>
-                <p className="text-xs text-gray-500 mt-1 text-center">
-                  Вернёт пользователю дневной лимит запросов
+              <div className="mb-4 p-3 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
+                <p className="text-sm text-yellow-400">
+                  Все активные и ожидающие модерации вакансии будут сняты с публикации и переведены в черновик. Пользователь больше не сможет создавать новые вакансии.
                 </p>
               </div>
-            )}
 
-            <div className="flex justify-end gap-2 mt-4">
-              <button
-                onClick={() => setShowRequestsModal(false)}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-              >
-                Отмена
-              </button>
-              <button
-                onClick={handleAddRequests}
-                className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
-              >
-                Применить
-              </button>
+              <label className="block mb-4">
+                <span className="text-sm font-medium text-gray-400 mb-2 block">
+                  Причина запрета
+                </span>
+                <textarea
+                  placeholder="Укажите причину запрета (будет видна пользователю)"
+                  value={vacancyBanReason}
+                  onChange={(e) => setVacancyBanReason(e.target.value)}
+                  className="w-full px-4 py-2 bg-black/20 text-white placeholder-gray-500 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ff3333] focus:border-[#ff3333] resize-none h-24 transition-colors"
+                />
+              </label>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setShowVacancyBanModal(false);
+                    setSelectedUser(null);
+                    setVacancyBanReason("");
+                  }}
+                  className="px-4 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleVacancyBan}
+                  disabled={!vacancyBanReason.trim() || vacancyBanLoading}
+                  className="px-4 py-2 bg-gradient-to-r from-[#ff3333] to-[#ff5555] text-white rounded-lg hover:shadow-[0_0_15px_rgba(255,51,51,0.4)] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none transition-all duration-300"
+                >
+                  {vacancyBanLoading ? "Запрет..." : "Запретить"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Payment Details Modal */}
-      {showPaymentModal && selectedPayment && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Детали платежа</h3>
-                <p className="text-sm text-gray-500">Полная информация по операции</p>
-              </div>
-              <button
-                onClick={() => {
-                  setShowPaymentModal(false);
-                  setSelectedPayment(null);
-                }}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                title="Закрыть"
+        {/* Subscription Modal */}
+        {showSubscriptionModal && (
+          <div className="fixed inset-0 bg-[#0b0c10]/80 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-[#1f2833] rounded-xl border border-white/10 p-6 max-w-md w-full mx-4 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+              <h3 className="text-lg font-bold text-white mb-4">
+                Установить подписку
+              </h3>
+              <p className="text-sm text-gray-400 mb-4">
+                {selectedUser?.email}
+              </p>
+              <select
+                value={subscriptionType}
+                onChange={(e) => setSubscriptionType(e.target.value)}
+                className="w-full px-4 py-2 bg-black/20 text-white border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00f0ff] focus:border-[#00f0ff] [&>option]:bg-[#1f2833] [&>option]:text-white transition-colors"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+                <option value="base">Base (3 запроса/день)</option>
+                <option value="pro_trial">Pro Trial (15 запросов/день)</option>
+                <option value="pro">Pro (15 запросов/день)</option>
+              </select>
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  onClick={() => setShowSubscriptionModal(false)}
+                  className="px-4 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleSetSubscription}
+                  className="px-4 py-2 bg-gradient-to-r from-[#00f0ff] to-[#00b8ff] text-black font-medium rounded-lg hover:shadow-[0_0_15px_rgba(0,240,255,0.4)] transition-all duration-300"
+                >
+                  Сохранить
+                </button>
+              </div>
             </div>
+          </div>
+        )}
 
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <div className="text-xs text-gray-500 mb-1">YooKassa Payment ID</div>
-                  <div className="flex items-center gap-2">
-                    <code className="text-xs text-gray-800 break-all">
-                      {selectedPayment.yookassa_payment_id || "-"}
-                    </code>
-                    {selectedPayment.yookassa_payment_id && (
+        {/* Requests Modal */}
+        {showRequestsModal && selectedUser && (
+          <div className="fixed inset-0 bg-[#0b0c10]/80 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-[#1f2833] rounded-xl border border-white/10 p-6 max-w-md w-full mx-4 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+              <h3 className="text-lg font-bold text-white mb-4">
+                Управление запросами
+              </h3>
+              <p className="text-sm text-gray-400 mb-4">
+                {selectedUser.email}
+              </p>
+
+              {/* Current state */}
+              <div className="bg-black/20 border border-white/5 rounded-lg p-4 mb-4">
+                <div className="text-sm font-medium text-gray-300 mb-2">Текущее состояние:</div>
+                <div className="space-y-1 text-sm text-gray-400">
+                  <div className="flex justify-between">
+                    <span>Бонусные запросы:</span>
+                    <span className="font-medium text-[#a855f7]">{selectedUser.bonus_requests || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Дневной лимит:</span>
+                    <span className="font-medium text-white">{selectedUser.daily_limit || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Использовано сегодня:</span>
+                    <span className="font-medium text-white">{selectedUser.daily_used || 0}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-white/10 pt-1 mt-1">
+                    <span className="text-gray-300 font-medium">Доступно всего:</span>
+                    <span className="font-bold text-[#00ff88]">
+                      {((selectedUser.daily_limit || 0) - (selectedUser.daily_used || 0) + (selectedUser.bonus_requests || 0))}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <input
+                type="number"
+                placeholder="+10 для добавления, -5 для уменьшения"
+                value={requestsAmount}
+                onChange={(e) => setRequestsAmount(e.target.value)}
+                className="w-full px-4 py-2 bg-black/20 text-white placeholder-gray-500 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#a855f7] focus:border-[#a855f7] transition-colors"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                Введите положительное число для добавления или отрицательное для уменьшения бонусных запросов
+              </p>
+
+              {/* Reset daily usage button */}
+              {(selectedUser.daily_used || 0) > 0 && (
+                <div className="mt-4 pt-4 border-t border-white/10">
+                  <button
+                    onClick={handleResetDailyUsage}
+                    className="w-full px-4 py-2 bg-[#ff6b00]/20 text-[#ff6b00] border border-[#ff6b00]/30 rounded-lg hover:bg-[#ff6b00]/30 transition-colors text-sm font-medium"
+                  >
+                    🔄 Сбросить использованные сегодня ({selectedUser.daily_used || 0})
+                  </button>
+                  <p className="text-xs text-gray-500 mt-1 text-center">
+                    Вернёт пользователю дневной лимит запросов
+                  </p>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  onClick={() => setShowRequestsModal(false)}
+                  className="px-4 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleAddRequests}
+                  className="px-4 py-2 bg-gradient-to-r from-[#a855f7] to-[#c084fc] text-white rounded-lg hover:shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all duration-300"
+                >
+                  Применить
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Payment Details Modal */}
+        {showPaymentModal && selectedPayment && (
+          <div className="fixed inset-0 bg-[#0b0c10]/80 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-[#1f2833] rounded-xl border border-white/10 p-6 max-w-2xl w-full mx-4 max-h-[85vh] overflow-y-auto shadow-[0_0_40px_rgba(0,0,0,0.5)] custom-scrollbar">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-white">Детали платежа</h3>
+                  <p className="text-sm text-gray-400">Полная информация по операции</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPaymentModal(false);
+                    setSelectedPayment(null);
+                  }}
+                  className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  title="Закрыть"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-black/20 border border-white/5 rounded-lg p-3">
+                    <div className="text-xs text-gray-400 mb-1">YooKassa Payment ID</div>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs text-gray-300 break-all">
+                        {selectedPayment.yookassa_payment_id || "-"}
+                      </code>
+                      {selectedPayment.yookassa_payment_id && (
+                        <button
+                          onClick={() => copyToClipboard(selectedPayment.yookassa_payment_id)}
+                          className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors"
+                          title="Скопировать ID"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 8h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-black/20 border border-white/5 rounded-lg p-3">
+                    <div className="text-xs text-gray-400 mb-1">Внутренний ID платежа</div>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs text-gray-300 break-all">{selectedPayment.id}</code>
                       <button
-                        onClick={() => copyToClipboard(selectedPayment.yookassa_payment_id)}
-                        className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded"
+                        onClick={() => copyToClipboard(selectedPayment.id)}
+                        className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded transition-colors"
                         title="Скопировать ID"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 8h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
                       </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="bg-black/20 border border-white/10 rounded-lg p-3">
+                    <div className="text-xs text-gray-400 mb-1">Пользователь</div>
+                    <div className="font-medium text-white">{selectedPayment.full_name || "Без имени"}</div>
+                    <div className="text-gray-400">{selectedPayment.email || selectedPayment.user_id}</div>
+                  </div>
+                  <div className="bg-black/20 border border-white/10 rounded-lg p-3">
+                    <div className="text-xs text-gray-400 mb-1">Покупка</div>
+                    <div className="font-medium text-white">{getPaymentDescription(selectedPayment)}</div>
+                    <div className="text-gray-400">{getPaymentTypeLabel(selectedPayment.type)}</div>
+                  </div>
+                  <div className="bg-black/20 border border-white/10 rounded-lg p-3">
+                    <div className="text-xs text-gray-400 mb-1">Сумма</div>
+                    <div className="font-medium text-white">{formatAmount(selectedPayment.amount, selectedPayment.currency)}</div>
+                  </div>
+                  <div className="bg-black/20 border border-white/10 rounded-lg p-3">
+                    <div className="text-xs text-gray-400 mb-1">Статус</div>
+                    <span className={`inline-flex px-2 py-1 rounded-md text-xs font-medium border ${selectedPayment.status === 'succeeded' ? 'bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/30' : selectedPayment.status === 'pending' ? 'bg-[#ff6b00]/10 text-[#ff6b00] border-[#ff6b00]/30' : 'bg-[#ff3333]/10 text-[#ff3333] border-[#ff3333]/30'}`}>
+                      {getPaymentStatusLabel(selectedPayment.status)}
+                    </span>
+                    {selectedPayment.yookassa_status && (
+                      <div className="text-xs text-gray-400 mt-2">
+                        YooKassa: {selectedPayment.yookassa_status}
+                      </div>
                     )}
                   </div>
-                </div>
-
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <div className="text-xs text-gray-500 mb-1">Внутренний ID платежа</div>
-                  <div className="flex items-center gap-2">
-                    <code className="text-xs text-gray-800 break-all">{selectedPayment.id}</code>
-                    <button
-                      onClick={() => copyToClipboard(selectedPayment.id)}
-                      className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded"
-                      title="Скопировать ID"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 8h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </button>
+                  <div className="bg-black/20 border border-white/10 rounded-lg p-3 md:col-span-2">
+                    <div className="text-xs text-gray-400 mb-1">Дата и время</div>
+                    <div className="font-medium text-white">{formatDate(selectedPayment.created_at)}</div>
                   </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="bg-white border border-gray-200 rounded-lg p-3">
-                  <div className="text-xs text-gray-500 mb-1">Пользователь</div>
-                  <div className="font-medium text-gray-900">{selectedPayment.full_name || "Без имени"}</div>
-                  <div className="text-gray-600">{selectedPayment.email || selectedPayment.user_id}</div>
+                <div>
+                  <div className="text-sm font-medium text-white mb-2">Metadata</div>
+                  <pre className="bg-black/50 text-gray-300 border border-white/5 text-xs rounded-lg p-3 overflow-x-auto custom-scrollbar">
+                    {JSON.stringify(selectedPayment.metadata || {}, null, 2)}
+                  </pre>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-3">
-                  <div className="text-xs text-gray-500 mb-1">Покупка</div>
-                  <div className="font-medium text-gray-900">{getPaymentDescription(selectedPayment)}</div>
-                  <div className="text-gray-600">{getPaymentTypeLabel(selectedPayment.type)}</div>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-3">
-                  <div className="text-xs text-gray-500 mb-1">Сумма</div>
-                  <div className="font-medium text-gray-900">{formatAmount(selectedPayment.amount, selectedPayment.currency)}</div>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-3">
-                  <div className="text-xs text-gray-500 mb-1">Статус</div>
-                  <span className={`inline-flex px-2 py-1 rounded text-xs font-medium ${getPaymentStatusClass(selectedPayment.status)}`}>
-                    {getPaymentStatusLabel(selectedPayment.status)}
-                  </span>
-                  {selectedPayment.yookassa_status && (
-                    <div className="text-xs text-gray-500 mt-2">
-                      YooKassa: {selectedPayment.yookassa_status}
-                    </div>
-                  )}
-                </div>
-                <div className="bg-white border border-gray-200 rounded-lg p-3 md:col-span-2">
-                  <div className="text-xs text-gray-500 mb-1">Дата и время</div>
-                  <div className="font-medium text-gray-900">{formatDate(selectedPayment.created_at)}</div>
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm font-medium text-gray-900 mb-2">Metadata</div>
-                <pre className="bg-gray-900 text-gray-100 text-xs rounded-lg p-3 overflow-x-auto">
-                  {JSON.stringify(selectedPayment.metadata || {}, null, 2)}
-                </pre>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

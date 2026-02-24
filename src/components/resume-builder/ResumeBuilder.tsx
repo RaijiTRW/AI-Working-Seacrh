@@ -386,40 +386,40 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#ff6b00] border-t-transparent shadow-[0_0_15px_rgba(255,107,0,0.5)]"></div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] bg-gray-50">
+    <div className="flex flex-col h-[calc(100vh-[var(--header-height)])] bg-transparent">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
+      <header className="bg-[#1f2833]/50 backdrop-blur-md border-b border-white/10 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {/* Hamburger menu for tablet only (not mobile) */}
           {breakpoint.isTablet && (
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="p-2 rounded-lg hover:bg-white/5 transition-colors text-gray-300 hover:text-white"
               aria-label="Toggle sidebar"
             >
               {sidebarOpen ? (
-                <X className="w-5 h-5 text-gray-700" />
+                <X className="w-5 h-5" />
               ) : (
-                <Menu className="w-5 h-5 text-gray-700" />
+                <Menu className="w-5 h-5" />
               )}
             </button>
           )}
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900">Конструктор резюме</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-white">Конструктор резюме</h1>
             <div className="flex items-center gap-2">
               {lastSaved && (
-                <span className="text-xs sm:text-sm text-gray-500">
+                <span className="text-xs sm:text-sm text-gray-400">
                   {breakpoint.isMobile ? "Сохранено " : "Сохранено в "}{lastSaved.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
                 </span>
               )}
               {isAutoSaving && (
-                <span className="text-xs sm:text-sm text-orange-500">Сохранение...</span>
+                <span className="text-xs sm:text-sm text-[#ff6b00] drop-shadow-[0_0_5px_rgba(255,107,0,0.5)]">Сохранение...</span>
               )}
             </div>
           </div>
@@ -429,11 +429,10 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
           {breakpoint.isTablet && (
             <button
               onClick={() => setShowPreview(!showPreview)}
-              className={`p-2 rounded-lg transition-colors ${
-                showPreview
-                  ? "bg-orange-100 text-orange-700"
-                  : "hover:bg-gray-100 text-gray-700"
-              }`}
+              className={`p-2 rounded-lg transition-colors ${showPreview
+                  ? "bg-[#00f0ff]/10 text-[#00f0ff] border border-[#00f0ff]/30"
+                  : "hover:bg-white/5 text-gray-400 hover:text-white"
+                }`}
               aria-label="Toggle preview"
             >
               <Eye className="w-5 h-5" />
@@ -441,14 +440,14 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
           )}
           <button
             onClick={() => router.back()}
-            className="px-3 sm:px-4 py-2 text-gray-700 hover:text-gray-900 font-medium text-sm"
+            className="px-3 sm:px-4 py-2 text-gray-300 hover:text-white font-medium text-sm transition-colors"
           >
             {breakpoint.isMobile ? "Назад" : "Назад"}
           </button>
           <button
             onClick={handleManualSave}
             disabled={isManualSaving}
-            className="px-3 sm:px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 font-medium text-sm"
+            className="px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] text-white rounded-xl shadow-[0_0_15px_rgba(255,107,0,0.4)] hover:shadow-[0_0_25px_rgba(255,107,0,0.6)] disabled:opacity-50 disabled:cursor-not-allowed font-bold text-sm transition-all"
           >
             {isManualSaving ? "..." : "Сохранить"}
           </button>
@@ -479,10 +478,10 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
         {(breakpoint.isMobile || breakpoint.isTablet) && sidebarOpen && (
           <>
             <div
-              className="fixed inset-0 bg-black/50 z-20"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-20"
               onClick={() => setSidebarOpen(false)}
             />
-            <aside className="fixed left-0 top-0 bottom-0 w-72 bg-white border-r border-gray-200 overflow-y-auto z-30 transform transition-transform duration-300 ease-in-out">
+            <aside className="fixed left-0 top-0 bottom-0 w-72 bg-[#1f2833]/95 backdrop-blur-xl border-r border-white/10 overflow-y-auto z-30 transform transition-transform duration-300 ease-in-out">
               <nav className="p-4 space-y-1 pt-16">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
@@ -495,13 +494,12 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
                         setActiveTab(tab.id);
                         setSidebarOpen(false);
                       }}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        isActive
-                          ? "bg-orange-50 text-orange-700"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
+                          ? "bg-white/10 text-[#00f0ff] shadow-[inset_2px_0_0_0_#00f0ff]"
+                          : "text-gray-400 hover:text-white hover:bg-white/5"
+                        }`}
                     >
-                      <Icon className="w-4 h-4" />
+                      <Icon className={`w-4 h-4 ${isActive ? "drop-shadow-[0_0_5px_rgba(0,240,255,0.5)]" : ""}`} />
                       {tab.label}
                     </button>
                   );
@@ -513,7 +511,7 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
 
         {/* Desktop Sidebar - Always Visible */}
         {breakpoint.isDesktop && (
-          <aside className="w-64 bg-white border-r border-gray-200 overflow-y-auto hidden lg:block">
+          <aside className="w-64 bg-[#1f2833]/40 backdrop-blur-md border-r border-white/10 overflow-y-auto custom-scrollbar hidden lg:block">
             <nav className="p-4 space-y-1">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
@@ -523,13 +521,12 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? "bg-orange-50 text-orange-700"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive
+                        ? "bg-white/10 text-[#00f0ff] shadow-[inset_2px_0_0_0_#00f0ff]"
+                        : "text-gray-400 hover:text-white hover:bg-white/5"
+                      }`}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className={`w-4 h-4 ${isActive ? "drop-shadow-[0_0_5px_rgba(0,240,255,0.5)]" : ""}`} />
                     {tab.label}
                   </button>
                 );
@@ -539,10 +536,10 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
         )}
 
         {/* Middle Panel - Editor */}
-        <main className={`flex-1 overflow-y-auto ${breakpoint.isMobile ? "pb-20" : "p-4 sm:p-6"}`}>
+        <main className={`flex-1 overflow-y-auto custom-scrollbar ${breakpoint.isMobile ? "pb-20" : "p-4 sm:p-6"}`}>
           <div className={`${breakpoint.isMobile ? "px-3 py-4" : "max-w-2xl mx-auto"} min-h-full`}>
-            <div className={`bg-white rounded-xl border border-gray-200 ${breakpoint.isMobile ? "p-4" : "p-6"}`}>
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">
+            <div className={`bg-[#1f2833]/50 backdrop-blur-xl rounded-xl border border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)] ${breakpoint.isMobile ? "p-4" : "p-6 sm:p-8"}`}>
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-6 tracking-wide drop-shadow-[0_0_10px_rgba(255,255,255,0.2)] border-b border-white/10 pb-4">
                 {tabs.find((t) => t.id === activeTab)?.label}
               </h2>
 
@@ -654,7 +651,7 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
 
         {/* Right Panel - Preview - Desktop Only */}
         {breakpoint.isDesktop && (
-          <aside className="w-[400px] xl:w-[500px] border-l border-gray-200 h-full hidden lg:block">
+          <aside className="w-[400px] xl:w-[500px] border-l border-white/10 bg-[#0b0c10]/40 backdrop-blur-md h-full hidden lg:block custom-scrollbar">
             <ResumePreview
               resume={resume}
               currentTemplate={resume.template_id}
@@ -669,10 +666,10 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
         {breakpoint.isTablet && showPreview && (
           <>
             <div
-              className="fixed inset-0 bg-black/50 z-20"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-20"
               onClick={() => setShowPreview(false)}
             />
-            <aside className="fixed right-0 top-0 bottom-0 w-full sm:w-[500px] bg-white border-l border-gray-200 z-30 overflow-hidden">
+            <aside className="fixed right-0 top-0 bottom-0 w-full sm:w-[500px] bg-[#0b0c10]/95 backdrop-blur-xl border-l border-white/10 z-30 overflow-hidden">
               <ResumePreview
                 resume={resume}
                 currentTemplate={resume.template_id}
@@ -708,7 +705,7 @@ export default function ResumeBuilder({ user }: ResumeBuilderProps) {
       {breakpoint.isMobile && !showPreview && (
         <button
           onClick={() => setShowPreview(true)}
-          className="fixed bottom-20 right-4 z-30 w-14 h-14 bg-orange-500 text-white rounded-full shadow-lg hover:bg-orange-600 transition-colors flex items-center justify-center"
+          className="fixed bottom-20 right-4 z-30 w-14 h-14 bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] text-white rounded-full shadow-[0_0_15px_rgba(255,107,0,0.5)] hover:shadow-[0_0_25px_rgba(255,107,0,0.7)] transition-all flex items-center justify-center"
           aria-label="Preview resume"
         >
           <Eye className="w-6 h-6" />

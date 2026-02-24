@@ -242,16 +242,16 @@ export default function AuthForm() {
     <div className="flex flex-col justify-center h-full p-8 lg:p-12">
       <div className="max-w-sm mx-auto w-full">
         {/* Logo */}
-        <Link href="/" className="inline-block mb-8">
-          <span className="text-xl font-bold text-gray-900 flex items-center gap-2"><ArrowLeft size={20} /> Job Search</span>
+        <Link href="/" className="inline-block mb-8 hover:opacity-80 transition-opacity">
+          <span className="text-xl font-bold text-white flex items-center gap-2"><ArrowLeft size={20} /> Job Search</span>
         </Link>
 
         {step === "email" && (
           <>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl font-bold text-white mb-2">
               {mode === "login" ? "Войти в аккаунт" : "Создать аккаунт"}
             </h2>
-            <p className="text-gray-500 mb-8">
+            <p className="text-gray-400 mb-8">
               {mode === "signup" && !siteSettings.registration_enabled
                 ? "Регистрация временно недоступна"
                 : `Введи email для ${mode === "login" ? "входа" : "регистрации"}`
@@ -260,7 +260,7 @@ export default function AuthForm() {
 
             <form onSubmit={handleEmailSubmit} className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1.5">
                   Email
                 </label>
                 <input
@@ -272,7 +272,7 @@ export default function AuthForm() {
                   required
                   autoFocus
                   disabled={mode === "signup" && !siteSettings.registration_enabled}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-3 bg-black/20 text-white placeholder-gray-500 rounded-xl border border-white/10 focus:border-[#ff6b00] focus:ring-1 focus:ring-[#ff6b00] outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -281,7 +281,7 @@ export default function AuthForm() {
               <button
                 type="submit"
                 disabled={mode === "signup" && !siteSettings.registration_enabled}
-                className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-medium hover:from-orange-600 hover:to-orange-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] text-white rounded-xl font-medium hover:shadow-[0_0_15px_rgba(255,107,0,0.4)] transition-all duration-300 disabled:opacity-50 disabled:hover:shadow-none disabled:cursor-not-allowed"
               >
                 Продолжить
               </button>
@@ -289,18 +289,17 @@ export default function AuthForm() {
 
             {/* Divider */}
             <div className="flex items-center gap-4 my-6">
-              <div className="flex-1 h-px bg-gray-200" />
-              <span className="text-sm text-gray-400">или</span>
-              <div className="flex-1 h-px bg-gray-200" />
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-sm text-gray-500">или</span>
+              <div className="flex-1 h-px bg-white/10" />
             </div>
 
             {/* OAuth */}
             <button
               onClick={() => handleOAuth("google")}
               disabled={mode === "signup" && !siteSettings.registration_enabled}
-              className={`w-full flex items-center justify-center gap-2 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors ${
-                mode === "signup" && !siteSettings.registration_enabled ? "opacity-50 cursor-not-allowed" : ""
-              }`}
+              className={`w-full flex items-center justify-center gap-2 py-3 border border-white/10 rounded-xl text-white hover:bg-white/5 transition-colors ${mode === "signup" && !siteSettings.registration_enabled ? "opacity-50 cursor-not-allowed" : ""
+                }`}
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -316,7 +315,7 @@ export default function AuthForm() {
               {mode === "login" ? "Нет аккаунта?" : "Уже есть аккаунт?"}{" "}
               <button
                 onClick={toggleMode}
-                className="text-orange-500 hover:text-orange-600 font-medium"
+                className="text-[#ff6b00] hover:text-[#ff8c00] font-medium transition-colors"
               >
                 {mode === "login" ? "Зарегистрироваться" : "Войти"}
               </button>
@@ -328,7 +327,7 @@ export default function AuthForm() {
           <>
             <button
               onClick={handleBack}
-              className="flex items-center gap-1 text-gray-500 hover:text-gray-700 mb-6 transition-colors"
+              className="flex items-center gap-1 text-gray-400 hover:text-white mb-6 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -337,17 +336,17 @@ export default function AuthForm() {
             </button>
 
             {switchEmail && (
-              <div className="mb-6 p-3 bg-blue-50 text-blue-700 rounded-xl text-sm">
+              <div className="mb-6 p-3 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl text-sm">
                 Переключение на аккаунт
               </div>
             )}
 
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl font-bold text-white mb-2">
               {switchEmail ? "Введи пароль" : mode === "login" ? "Введи пароль" : "Придумай пароль"}
             </h2>
-            <p className="text-gray-500 mb-8">
+            <p className="text-gray-400 mb-8">
               {mode === "login" || switchEmail ? (
-                <>Для аккаунта <span className="font-medium text-gray-700">{email}</span></>
+                <>Для аккаунта <span className="font-medium text-gray-200">{email}</span></>
               ) : (
                 <>Минимум 6 символов</>
               )}
@@ -355,7 +354,7 @@ export default function AuthForm() {
 
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1.5">
                   Пароль
                 </label>
                 <div className="relative">
@@ -368,12 +367,12 @@ export default function AuthForm() {
                     placeholder={mode === "login" ? "Введи пароль" : "Придумай пароль"}
                     required
                     minLength={6}
-                    className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all"
+                    className="w-full px-4 py-3 pr-12 bg-black/20 text-white placeholder-gray-500 rounded-xl border border-white/10 focus:border-[#ff6b00] focus:ring-1 focus:ring-[#ff6b00] outline-none transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
                   >
                     {showPassword ? (
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -393,7 +392,7 @@ export default function AuthForm() {
                       type="button"
                       onClick={handleForgotPassword}
                       disabled={loading || !email}
-                      className="text-sm text-orange-500 hover:text-orange-600 disabled:opacity-50"
+                      className="text-sm text-[#ff6b00] hover:text-[#ff8c00] disabled:opacity-50 transition-colors"
                     >
                       Забыли пароль?
                     </button>
@@ -411,15 +410,15 @@ export default function AuthForm() {
                       type="checkbox"
                       checked={privacyAccepted}
                       onChange={(e) => setPrivacyAccepted(e.target.checked)}
-                      className="mt-1 w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
+                      className="mt-1 w-4 h-4 text-[#ff6b00] bg-black/20 border-white/20 rounded focus:ring-[#ff6b00] focus:ring-2"
                     />
-                    <label htmlFor="privacy" className="text-sm text-gray-600 cursor-pointer leading-tight">
+                    <label htmlFor="privacy" className="text-sm text-gray-400 cursor-pointer leading-tight">
                       Я соглашаюсь с{' '}
                       <Link
                         href="/privacy"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-orange-600 hover:text-orange-700 underline font-medium"
+                        className="text-[#ff6b00] hover:text-[#ff8c00] underline font-medium transition-colors"
                       >
                         политикой конфиденциальности
                       </Link>
@@ -437,7 +436,7 @@ export default function AuthForm() {
               <button
                 type="submit"
                 disabled={loading || password.length < 6 || (mode === "signup" && !privacyAccepted)}
-                className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-medium hover:from-orange-600 hover:to-orange-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] text-white rounded-xl font-medium hover:shadow-[0_0_15px_rgba(255,107,0,0.4)] transition-all duration-300 disabled:opacity-50 disabled:hover:shadow-none disabled:cursor-not-allowed"
               >
                 {loading ? "Загрузка..." : mode === "login" ? "Войти" : "Зарегистрироваться"}
               </button>
@@ -446,7 +445,7 @@ export default function AuthForm() {
             {/* Toggle mode */}
             <p className="mt-6 text-center text-sm text-gray-500">
               {mode === "login" ? "Нет аккаунта?" : "Уже есть аккаунт?"}{" "}
-              <button onClick={toggleMode} className="text-orange-500 hover:text-orange-600 font-medium">
+              <button onClick={toggleMode} className="text-[#ff6b00] hover:text-[#ff8c00] font-medium transition-colors">
                 {mode === "login" ? "Зарегистрироваться" : "Войти"}
               </button>
             </p>
@@ -457,7 +456,7 @@ export default function AuthForm() {
           <>
             <button
               onClick={handleBack}
-              className="flex items-center gap-1 text-gray-500 hover:text-gray-700 mb-6 transition-colors"
+              className="flex items-center gap-1 text-gray-400 hover:text-white mb-6 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -465,11 +464,11 @@ export default function AuthForm() {
               Назад
             </button>
 
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-2xl font-bold text-white mb-2">
               Подтверди email
             </h2>
-            <p className="text-gray-500 mb-8">
-              Отправили код на <span className="font-medium text-gray-700">{email}</span>
+            <p className="text-gray-400 mb-8">
+              Отправили код на <span className="font-medium text-gray-200">{email}</span>
             </p>
 
             <form onSubmit={handleVerifyCode} className="space-y-6">
@@ -484,7 +483,7 @@ export default function AuthForm() {
                     value={digit}
                     onChange={(e) => handleCodeChange(i, e.target.value)}
                     onKeyDown={(e) => handleCodeKeyDown(i, e)}
-                    className="w-12 h-14 text-center text-xl font-bold rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 outline-none transition-all"
+                    className="w-12 h-14 bg-black/20 text-white text-center text-xl font-bold rounded-xl border border-white/10 focus:border-[#ff6b00] focus:ring-1 focus:ring-[#ff6b00] outline-none transition-all"
                   />
                 ))}
               </div>
@@ -494,7 +493,7 @@ export default function AuthForm() {
               <button
                 type="submit"
                 disabled={loading || code.some((d) => !d)}
-                className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-medium hover:from-orange-600 hover:to-orange-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] text-white rounded-xl font-medium hover:shadow-[0_0_15px_rgba(255,107,0,0.4)] transition-all duration-300 disabled:opacity-50 disabled:hover:shadow-none disabled:cursor-not-allowed"
               >
                 {loading ? "Проверка..." : "Подтвердить"}
               </button>
@@ -509,7 +508,7 @@ export default function AuthForm() {
                 <button
                   onClick={handleResendCode}
                   disabled={loading}
-                  className="text-orange-500 hover:text-orange-600 text-sm font-medium transition-colors"
+                  className="text-[#ff6b00] hover:text-[#ff8c00] text-sm font-medium transition-colors"
                 >
                   Отправить код повторно
                 </button>
@@ -521,7 +520,7 @@ export default function AuthForm() {
 
       {/* Уведомление об отключенной регистрации */}
       {mode === "signup" && !siteSettings.registration_enabled && (
-        <div className="fixed bottom-0 left-0 right-0 bg-gray-900 text-white p-4 text-center">
+        <div className="fixed bottom-0 left-0 right-0 bg-red-500/10 border-t border-red-500/20 text-red-400 p-4 text-center backdrop-blur-md">
           <p className="text-sm">Регистрация временно недоступна. Пожалуйста, войдите в существующий аккаунт.</p>
         </div>
       )}
