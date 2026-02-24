@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/useAuth";
 import { supabase } from "@/lib/supabase";
 import { createVacancy, publishVacancy, EmployerVacancyCreate } from "@/lib/api";
 import { useSiteSettings } from "@/lib/useSiteSettings";
+import { motion } from "framer-motion";
 
 const EXPERIENCE_OPTIONS = [
   { value: "", label: "Не указан" },
@@ -146,7 +147,7 @@ export default function CreateVacancyPage() {
       const vacancy = await createVacancy(formData, token);
 
       if (publish) {
-        const publishResult = await publishVacancy(vacancy.id, token);
+        await publishVacancy(vacancy.id, token);
         // Show success message and redirect to My Vacancies
         setSubmitting(false);
         setSuccessMessage("Вакансия отправлена на модерацию! Обычно проверка занимает 1-2 рабочих дня.");
@@ -169,8 +170,13 @@ export default function CreateVacancyPage() {
 
   if (authLoading || settingsLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500" />
+      <div className="min-h-[100dvh] bg-[#0b0c10] relative">
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-5 pointer-events-none" />
+        <Header />
+        <div className="pt-32 flex flex-col items-center justify-center relative z-10 space-y-4">
+          <div className="animate-spin w-12 h-12 border-4 border-[#ff6b00] border-t-transparent rounded-full shadow-[0_0_15px_rgba(255,107,0,0.5)]" />
+          <p className="text-[#c5c6c7] font-bold tracking-widest uppercase text-xs animate-pulse">Загрузка данных...</p>
+        </div>
       </div>
     );
   }
@@ -181,26 +187,36 @@ export default function CreateVacancyPage() {
 
   if (vacancyBanned && !isAdmin) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-[100dvh] bg-[#0b0c10] relative">
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-5 pointer-events-none" />
         <Header />
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-20">
-          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="pt-32 pb-16 flex items-center justify-center relative z-10 px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#1f2833]/60 backdrop-blur-xl border border-red-500/30 rounded-3xl p-8 max-w-2xl w-full text-center shadow-[0_0_50px_rgba(239,68,68,0.15)] relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="w-20 h-20 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center mx-auto mb-6 relative z-10">
+              <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Создание вакансий заблокировано
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-wide mb-3 relative z-10 drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]">
+              Доступ заблокирован
             </h1>
-            <p className="text-gray-600 mb-4">
-              Вам запрещено создавать вакансии администратором.
+            <p className="text-[#c5c6c7]/80 mb-8 max-w-md mx-auto relative z-10">
+              Вам запрещено создавать или публиковать новые вакансии администратором платформы.
             </p>
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-left">
-              <p className="text-xs font-medium text-red-600 uppercase mb-1">Причина</p>
-              <p className="text-sm text-red-700">{vacancyBanReason}</p>
+            <div className="bg-[#0b0c10]/80 border border-red-500/20 rounded-xl p-5 text-left relative z-10 inline-block min-w-[300px]">
+              <p className="text-[10px] font-black tracking-widest text-red-400 uppercase mb-2 flex items-center gap-1.5 opacity-80">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Причина блокировки
+              </p>
+              <p className="font-medium text-[#c5c6c7] leading-relaxed">{vacancyBanReason}</p>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     );
@@ -208,151 +224,191 @@ export default function CreateVacancyPage() {
 
   if (!settings.vacancy_creation_enabled && !isAdmin) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-[100dvh] bg-[#0b0c10] relative">
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-5 pointer-events-none" />
         <Header />
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-20">
-          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="pt-32 pb-16 flex items-center justify-center relative z-10 px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-[#1f2833]/60 backdrop-blur-xl border border-[#ff6b00]/30 rounded-3xl p-8 max-w-2xl w-full text-center shadow-[0_0_50px_rgba(255,107,0,0.15)] relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#ff6b00]/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="w-20 h-20 bg-[#ff6b00]/10 border border-[#ff6b00]/30 rounded-full flex items-center justify-center mx-auto mb-6 relative z-10">
+              <svg className="w-10 h-10 text-[#ff6b00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Создание вакансий временно недоступно
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-wide mb-3 relative z-10 drop-shadow-[0_0_10px_rgba(255,107,0,0.5)]">
+              Доступ ограничен
             </h1>
-            <p className="text-gray-600">
-              Функция отключена администратором. Пожалуйста, попробуйте позже.
+            <p className="text-[#c5c6c7]/80 text-lg relative z-10">
+              Функция публикации вакансий временно отключена администратором. Пожалуйста, попробуйте позже.
             </p>
-          </div>
+          </motion.div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-[100dvh] bg-[#0b0c10] relative">
+      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center opacity-5 pointer-events-none" />
       <Header />
 
-      <main className="pt-24 pb-12">
-        <div className="max-w-3xl mx-auto px-6">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">Создать вакансию</h1>
-            <p className="text-gray-600 mt-1">
-              Заполните информацию о вакансии для публикации на платформе
+      <main className="pt-24 sm:pt-32 pb-16 relative z-10">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-10 text-center sm:text-left"
+          >
+            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-wide flex items-center justify-center sm:justify-start gap-3">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#ff6b00] shadow-[0_0_10px_rgba(255,107,0,0.8)]" />
+              Инициализация вакансии
+            </h1>
+            <p className="text-[#c5c6c7]/60 mt-2 font-medium tracking-wide">
+              Заполните спецификацию позиции для трансляции в поиске платформы
             </p>
-          </div>
+          </motion.div>
 
-          <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-6">
+          {/* Form wrapper */}
+          <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-8">
+
             {/* Basic info */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Основная информация
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-[#1f2833]/60 backdrop-blur-xl rounded-3xl border border-[#c5c6c7]/10 p-6 sm:p-8 shadow-[0_10px_40px_rgba(0,0,0,0.3)] relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#ff6b00]/5 to-transparent rounded-bl-full pointer-events-none" />
+
+              <h2 className="text-xl font-black text-white mb-6 uppercase tracking-widest flex items-center gap-2">
+                <svg className="w-5 h-5 text-[#ff6b00]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Базовые данные
               </h2>
 
-              <div className="space-y-4">
+              <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Название вакансии *
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-[#c5c6c7]/70 mb-2 ml-1">
+                    Название вакансии <span className="text-[#ff6b00]">*</span>
                   </label>
                   <input
                     type="text"
                     name="title"
                     value={formData.title}
                     onChange={handleChange}
-                    placeholder="Например: Frontend-разработчик"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="Например: Senior Frontend Developer"
+                    className="w-full px-5 py-3.5 bg-[#0b0c10]/50 border border-[#c5c6c7]/10 rounded-xl text-white placeholder:text-[#c5c6c7]/30 focus:outline-none focus:ring-0 focus:border-[#ff6b00]/50 focus:bg-[#0b0c10]/80 transition-all font-medium"
                     required
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Компания *
-                  </label>
-                  <input
-                    type="text"
-                    name="company"
-                    value={formData.company}
-                    onChange={handleChange}
-                    placeholder="Название вашей компании"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    required
-                  />
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-[11px] font-black uppercase tracking-widest text-[#c5c6c7]/70 mb-2 ml-1">
+                      Компания <span className="text-[#ff6b00]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="company"
+                      value={formData.company}
+                      onChange={handleChange}
+                      placeholder="HighTech Corp"
+                      className="w-full px-5 py-3.5 bg-[#0b0c10]/50 border border-[#c5c6c7]/10 rounded-xl text-white placeholder:text-[#c5c6c7]/30 focus:outline-none focus:ring-0 focus:border-[#00f0ff]/50 focus:bg-[#0b0c10]/80 transition-all font-medium"
+                      required
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Город *
-                  </label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleChange}
-                    placeholder="Москва"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    required
-                  />
+                  <div>
+                    <label className="block text-[11px] font-black uppercase tracking-widest text-[#c5c6c7]/70 mb-2 ml-1">
+                      Город / Локация <span className="text-[#ff6b00]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleChange}
+                      placeholder="Москва / Удаленно"
+                      className="w-full px-5 py-3.5 bg-[#0b0c10]/50 border border-[#c5c6c7]/10 rounded-xl text-white placeholder:text-[#c5c6c7]/30 focus:outline-none focus:ring-0 focus:border-[#00f0ff]/50 focus:bg-[#0b0c10]/80 transition-all font-medium"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Salary */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Зарплата
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="bg-[#1f2833]/60 backdrop-blur-xl rounded-3xl border border-[#c5c6c7]/10 p-6 sm:p-8 shadow-[0_10px_40px_rgba(0,0,0,0.3)] relative overflow-hidden"
+            >
+              <h2 className="text-xl font-black text-white mb-6 uppercase tracking-widest flex items-center gap-2">
+                <svg className="w-5 h-5 text-[#ff6b00]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Монетизация
               </h2>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    От
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-[#c5c6c7]/70 mb-2 ml-1 flex items-center gap-2">
+                    Нижний лимит <span className="text-xs text-[#c5c6c7]/30 normal-case font-medium border border-[#c5c6c7]/10 px-1.5 py-0.5 rounded ml-auto">RUB</span>
                   </label>
                   <input
                     type="number"
                     name="salary_from"
                     value={formData.salary_from || ""}
                     onChange={handleNumberChange}
-                    placeholder="50000"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="150000"
+                    className="w-full px-5 py-3.5 bg-[#0b0c10]/50 border border-[#c5c6c7]/10 rounded-xl text-white placeholder:text-[#c5c6c7]/30 focus:outline-none focus:ring-0 focus:border-[#00ff88]/50 focus:bg-[#0b0c10]/80 transition-all font-medium font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    До
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-[#c5c6c7]/70 mb-2 ml-1 flex items-center gap-2">
+                    Верхний лимит <span className="text-xs text-[#c5c6c7]/30 normal-case font-medium border border-[#c5c6c7]/10 px-1.5 py-0.5 rounded ml-auto">RUB</span>
                   </label>
                   <input
                     type="number"
                     name="salary_to"
                     value={formData.salary_to || ""}
                     onChange={handleNumberChange}
-                    placeholder="100000"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="300000"
+                    className="w-full px-5 py-3.5 bg-[#0b0c10]/50 border border-[#c5c6c7]/10 rounded-xl text-white placeholder:text-[#c5c6c7]/30 focus:outline-none focus:ring-0 focus:border-[#00ff88]/50 focus:bg-[#0b0c10]/80 transition-all font-medium font-mono"
                   />
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Work conditions */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Условия работы
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-[#1f2833]/60 backdrop-blur-xl rounded-3xl border border-[#c5c6c7]/10 p-6 sm:p-8 shadow-[0_10px_40px_rgba(0,0,0,0.3)] relative overflow-hidden"
+            >
+              <h2 className="text-xl font-black text-white mb-6 uppercase tracking-widest flex items-center gap-2">
+                <svg className="w-5 h-5 text-[#00f0ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                Формат кооперации
               </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Опыт работы
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-[#c5c6c7]/70 mb-2 ml-1">
+                    Опыт <span className="text-[#ff6b00]/50">*</span>
                   </label>
                   <select
                     name="experience"
                     value={formData.experience}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
+                    className="w-full px-5 py-3.5 bg-[#0b0c10]/80 border border-[#c5c6c7]/10 rounded-xl text-white focus:outline-none focus:ring-0 focus:border-[#ff6b00]/50 transition-all font-medium appearance-none cursor-pointer"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23c5c6c7' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: `right 1rem center`, backgroundRepeat: `no-repeat`, backgroundSize: `1.5em 1.5em` }}
                   >
                     {EXPERIENCE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
+                      <option key={opt.value} value={opt.value} className="bg-[#1f2833] text-white">
                         {opt.label}
                       </option>
                     ))}
@@ -360,17 +416,18 @@ export default function CreateVacancyPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Тип занятости
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-[#c5c6c7]/70 mb-2 ml-1">
+                    Занятость <span className="text-[#ff6b00]/50">*</span>
                   </label>
                   <select
                     name="employment_type"
                     value={formData.employment_type}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
+                    className="w-full px-5 py-3.5 bg-[#0b0c10]/80 border border-[#c5c6c7]/10 rounded-xl text-white focus:outline-none focus:ring-0 focus:border-[#ff6b00]/50 transition-all font-medium appearance-none cursor-pointer"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23c5c6c7' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: `right 1rem center`, backgroundRepeat: `no-repeat`, backgroundSize: `1.5em 1.5em` }}
                   >
                     {EMPLOYMENT_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
+                      <option key={opt.value} value={opt.value} className="bg-[#1f2833] text-white">
                         {opt.label}
                       </option>
                     ))}
@@ -378,103 +435,116 @@ export default function CreateVacancyPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    График
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-[#c5c6c7]/70 mb-2 ml-1">
+                    График <span className="text-[#ff6b00]/50">*</span>
                   </label>
                   <select
                     name="schedule"
                     value={formData.schedule}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
+                    className="w-full px-5 py-3.5 bg-[#0b0c10]/80 border border-[#c5c6c7]/10 rounded-xl text-white focus:outline-none focus:ring-0 focus:border-[#ff6b00]/50 transition-all font-medium appearance-none cursor-pointer"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23c5c6c7' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: `right 1rem center`, backgroundRepeat: `no-repeat`, backgroundSize: `1.5em 1.5em` }}
                   >
                     {SCHEDULE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
+                      <option key={opt.value} value={opt.value} className="bg-[#1f2833] text-white">
                         {opt.label}
                       </option>
                     ))}
                   </select>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Description */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Описание
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              className="bg-[#1f2833]/60 backdrop-blur-xl rounded-3xl border border-[#c5c6c7]/10 p-6 sm:p-8 shadow-[0_10px_40px_rgba(0,0,0,0.3)] relative overflow-hidden"
+            >
+              <h2 className="text-xl font-black text-white mb-6 uppercase tracking-widest flex items-center gap-2">
+                <svg className="w-5 h-5 text-[#c5c6c7]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+                Спецификация
               </h2>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Описание вакансии *
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-[#c5c6c7]/70 mb-2 ml-1">
+                    Суть задач <span className="text-[#ff6b00]">*</span>
                   </label>
                   <textarea
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
-                    placeholder="Опишите, чем предстоит заниматься..."
-                    rows={5}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+                    placeholder="Детальное описание зоны ответственности и повседневных задач..."
+                    rows={6}
+                    className="w-full px-5 py-4 bg-[#0b0c10]/50 border border-[#c5c6c7]/10 rounded-xl text-white placeholder:text-[#c5c6c7]/30 focus:outline-none focus:ring-0 focus:border-[#ff6b00]/50 focus:bg-[#0b0c10]/80 transition-all font-medium resize-none leading-relaxed"
                     required
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-[10px] font-bold tracking-widest uppercase text-[#c5c6c7]/40 mt-2 px-1 text-right">
                     Минимум 50 символов
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Требования
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-[#c5c6c7]/70 mb-2 ml-1">
+                    Стек и требования
                   </label>
                   <textarea
                     name="requirements"
                     value={formData.requirements}
                     onChange={handleChange}
-                    placeholder="Что должен знать и уметь кандидат..."
+                    placeholder="Технологии, хард и софт скиллы кандидата..."
                     rows={4}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+                    className="w-full px-5 py-4 bg-[#0b0c10]/50 border border-[#c5c6c7]/10 rounded-xl text-white placeholder:text-[#c5c6c7]/30 focus:outline-none focus:ring-0 focus:border-[#00f0ff]/50 focus:bg-[#0b0c10]/80 transition-all font-medium resize-none leading-relaxed"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Условия
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-[#c5c6c7]/70 mb-2 ml-1">
+                    Что мы предлагаем
                   </label>
                   <textarea
                     name="conditions"
                     value={formData.conditions}
                     onChange={handleChange}
-                    placeholder="Что предлагаете сотруднику..."
+                    placeholder="Печеньки, ДМС, техника, опционы..."
                     rows={4}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+                    className="w-full px-5 py-4 bg-[#0b0c10]/50 border border-[#c5c6c7]/10 rounded-xl text-white placeholder:text-[#c5c6c7]/30 focus:outline-none focus:ring-0 focus:border-[#00ff88]/50 focus:bg-[#0b0c10]/80 transition-all font-medium resize-none leading-relaxed"
                   />
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Contacts */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Контакты
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-[#1f2833]/60 backdrop-blur-xl rounded-2xl border border-[#c5c6c7]/10 p-6 sm:p-8 shadow-[0_10px_40px_rgba(0,0,0,0.3)] relative overflow-hidden"
+            >
+              <h2 className="text-xl font-black text-white mb-6 uppercase tracking-widest flex items-center gap-2">
+                <svg className="w-5 h-5 text-[#ff6b00]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg>
+                Коммуникация
               </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Контактное лицо
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-[#c5c6c7]/70 mb-2 ml-1">
+                    Ответственный
                   </label>
                   <input
                     type="text"
                     name="contact_name"
                     value={formData.contact_name}
                     onChange={handleChange}
-                    placeholder="Иван Иванов"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="Имя Фамилия"
+                    className="w-full px-5 py-3.5 bg-[#0b0c10]/50 border border-[#c5c6c7]/10 rounded-xl text-white placeholder:text-[#c5c6c7]/30 focus:outline-none focus:ring-0 focus:border-[#ff6b00]/50 focus:bg-[#0b0c10]/80 transition-all font-medium"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-[#c5c6c7]/70 mb-2 ml-1">
                     Email
                   </label>
                   <input
@@ -482,63 +552,80 @@ export default function CreateVacancyPage() {
                     name="contact_email"
                     value={formData.contact_email}
                     onChange={handleChange}
-                    placeholder="hr@company.ru"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="hr@tech.corp"
+                    className="w-full px-5 py-3.5 bg-[#0b0c10]/50 border border-[#c5c6c7]/10 rounded-xl text-white placeholder:text-[#c5c6c7]/30 focus:outline-none focus:ring-0 focus:border-[#00f0ff]/50 focus:bg-[#0b0c10]/80 transition-all font-medium font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Телефон
+                  <label className="block text-[11px] font-black uppercase tracking-widest text-[#c5c6c7]/70 mb-2 ml-1">
+                    Связь (Mobile/TG)
                   </label>
                   <input
                     type="tel"
                     name="contact_phone"
                     value={formData.contact_phone}
                     onChange={handleChange}
-                    placeholder="+7 (999) 123-45-67"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    placeholder="+X (XXX) XXX-XX-XX"
+                    className="w-full px-5 py-3.5 bg-[#0b0c10]/50 border border-[#c5c6c7]/10 rounded-xl text-white placeholder:text-[#c5c6c7]/30 focus:outline-none focus:ring-0 focus:border-[#00ff88]/50 focus:bg-[#0b0c10]/80 transition-all font-medium font-mono"
                   />
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Success message */}
             {successMessage && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-green-700 text-sm flex items-center gap-3">
-                <svg className="w-5 h-5 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-[#00ff88]/10 border border-[#00ff88]/30 rounded-2xl p-4 sm:p-5 text-[#00ff88] text-sm flex items-center justify-center gap-3 font-medium shadow-[0_0_20px_rgba(0,255,136,0.15)]"
+              >
+                <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 {successMessage}
-              </div>
+              </motion.div>
             )}
 
             {/* Error */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600 text-sm">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 sm:p-5 text-red-400 text-sm flex items-center justify-center gap-3 font-medium shadow-[0_0_20px_rgba(239,68,68,0.15)]"
+              >
+                <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
                 {error}
-              </div>
+              </motion.div>
             )}
 
             {/* Actions */}
-            <div className="flex flex-col sm:flex-row gap-3">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+              className="flex flex-col sm:flex-row gap-4 pt-6"
+            >
               <button
                 type="button"
                 onClick={(e) => handleSubmit(e, true)}
                 disabled={submitting}
-                className="flex-1 px-6 py-3 bg-orange-500 text-white font-medium rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="relative flex-1 group overflow-hidden rounded-xl bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] p-[1px] disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-[1.01] active:scale-[0.99] shadow-[0_0_20px_rgba(255,107,0,0.3)] hover:shadow-[0_0_30px_rgba(255,107,0,0.5)]"
               >
-                {submitting ? "Сохранение..." : "Опубликовать"}
+                <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-[0%] transition-transform duration-300 ease-out" />
+                <div className="relative h-full w-full bg-[#0b0c10] bg-opacity-10 px-6 py-4 rounded-xl flex items-center justify-center font-black uppercase tracking-widest text-[#0b0c10] text-xs sm:text-sm">
+                  {submitting ? "Обработка запроса..." : "Запустить публикацию"}
+                </div>
               </button>
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 px-6 py-3 border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-6 py-4 bg-[#1f2833] border border-[#c5c6c7]/20 text-[#c5c6c7] text-xs sm:text-sm font-black uppercase tracking-widest rounded-xl hover:bg-[#c5c6c7]/10 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-inner"
               >
-                {submitting ? "Сохранение..." : "Сохранить как черновик"}
+                {submitting ? "Синхронизация..." : "Сохранить в кэш (ЧЕРНОВИК)"}
               </button>
-            </div>
+            </motion.div>
           </form>
         </div>
       </main>

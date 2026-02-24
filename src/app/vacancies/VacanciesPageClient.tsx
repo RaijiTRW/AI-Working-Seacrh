@@ -72,7 +72,8 @@ export default function VacanciesPageClient() {
       setTotal(result.total);
       setPage(result.page);
       setHasNext(result.has_next);
-    } catch (error) {
+    } catch {
+      // ignore
     } finally {
       setLoading(false);
     }
@@ -127,6 +128,7 @@ export default function VacanciesPageClient() {
   // Загружаем вакансии при первом рендере
   useEffect(() => {
     fetchVacancies({ page: 1, limit: 20 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleLoadMore = useCallback(() => {

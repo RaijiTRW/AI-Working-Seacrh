@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import VacancyDetailClient from "./VacancyDetailClient";
 import { getVacancy, isNetworkVacancyId, EmployerVacancy, NetworkVacancy } from "@/lib/api";
 import { notFound } from "next/navigation";
-import { JobPostingJsonLd, BreadcrumbJsonLd } from "@/components/seo";
+import { BreadcrumbJsonLd } from "@/components/seo";
 import { generateVacancyJSONLD } from "@/lib/seo-core";
 
 interface PageProps {
@@ -25,9 +25,8 @@ function sanitizeVacancyId(id: string): string {
 function generatePlatformMetadata(vacancy: EmployerVacancy, id: string): Metadata {
   const salary =
     vacancy.salary_from || vacancy.salary_to
-      ? `${vacancy.salary_from ? `от ${vacancy.salary_from.toLocaleString("ru-RU")}` : ""}${
-          vacancy.salary_to ? (vacancy.salary_from ? " - " : "до ") + vacancy.salary_to.toLocaleString("ru-RU") : ""
-        } ₽`
+      ? `${vacancy.salary_from ? `от ${vacancy.salary_from.toLocaleString("ru-RU")}` : ""}${vacancy.salary_to ? (vacancy.salary_from ? " - " : "до ") + vacancy.salary_to.toLocaleString("ru-RU") : ""
+      } ₽`
       : "";
 
   const title = salary
@@ -92,9 +91,8 @@ function generatePlatformMetadata(vacancy: EmployerVacancy, id: string): Metadat
 function generateNetworkMetadata(vacancy: NetworkVacancy, id: string): Metadata {
   const salary =
     vacancy.salary_from || vacancy.salary_to
-      ? `${vacancy.salary_from ? `от ${vacancy.salary_from.toLocaleString("ru-RU")}` : ""}${
-          vacancy.salary_to ? (vacancy.salary_from ? " - " : "до ") + vacancy.salary_to.toLocaleString("ru-RU") : ""
-        } ₽`
+      ? `${vacancy.salary_from ? `от ${vacancy.salary_from.toLocaleString("ru-RU")}` : ""}${vacancy.salary_to ? (vacancy.salary_from ? " - " : "до ") + vacancy.salary_to.toLocaleString("ru-RU") : ""
+      } ₽`
       : "";
 
   const sourceLabel = vacancy.source === "hh" ? "hh.ru" : vacancy.source === "avito" ? "Avito" : "SuperJob";
@@ -169,7 +167,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     // Platform vacancy
     const vacancy = await getVacancy(vacancyId) as EmployerVacancy;
     return generatePlatformMetadata(vacancy, id);
-  } catch (error) {
+  } catch {
     // Fallback metadata if vacancy fetch fails
     return {
       title: "Вакансия | JobAISearch",
@@ -189,7 +187,7 @@ export default async function VacancyDetailPage({ params }: PageProps) {
     // Check if network vacancy
     isNetwork = isNetworkVacancyId(vacancyId);
     vacancy = await getVacancy(vacancyId);
-  } catch (error) {
+  } catch {
     notFound();
   }
 
@@ -210,7 +208,8 @@ export default async function VacancyDetailPage({ params }: PageProps) {
   let jsonLd = null;
   try {
     jsonLd = generateVacancyJSONLD(vacancy);
-  } catch (error) {
+  } catch {
+    // ignore
   }
 
   return (

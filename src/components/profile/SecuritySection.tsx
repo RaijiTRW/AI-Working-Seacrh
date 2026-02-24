@@ -91,7 +91,7 @@ export default function SecuritySection({ userEmail }: SecuritySectionProps) {
       });
 
       if (error) {
-        
+
         throw error;
       }
 
@@ -99,7 +99,7 @@ export default function SecuritySection({ userEmail }: SecuritySectionProps) {
       setEmailSent(true);
       setMessage({ type: "success", text: `Отправили письмо для подтверждения на ${email}` });
     } catch (err: any) {
-      
+
       setMessage({ type: "error", text: err?.message || "Ошибка отправки письма" });
     } finally {
       setSavingEmail(false);
@@ -144,13 +144,13 @@ export default function SecuritySection({ userEmail }: SecuritySectionProps) {
   return (
     <div className="space-y-6">
       {/* Email change */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-6">Изменить почту</h2>
+      <div className="bg-[#1f2833]/50 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-xl">
+        <h2 className="text-xl font-semibold text-white mb-6">Изменить почту</h2>
 
         {!emailSent ? (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Новая почта</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">Новая почта</label>
               <input
                 type="email"
                 value={email}
@@ -158,36 +158,35 @@ export default function SecuritySection({ userEmail }: SecuritySectionProps) {
                   setEmail(e.target.value);
                   checkEmailAvailability(e.target.value);
                 }}
-                className={`w-full px-4 py-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 ${
-                  emailError ? "border-red-500" : "border-gray-200"
-                }`}
+                className={`w-full px-4 py-2.5 bg-black/20 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#ff6b00] transition-colors ${emailError ? "border-red-500 focus:border-red-500" : "border-white/10 focus:border-[#ff6b00]"
+                  }`}
                 placeholder="example@mail.com"
               />
               {isCheckingEmail && (
-                <p className="text-sm text-gray-400 mt-1">Проверка...</p>
+                <p className="text-sm text-gray-400 mt-1.5">Проверка...</p>
               )}
               {isEmailAvailable && !isCheckingEmail && (
-                <p className="text-sm text-green-600 mt-1">Email доступен</p>
+                <p className="text-sm text-[#00ff88] mt-1.5">Email доступен</p>
               )}
               {emailError && !isCheckingEmail && (
-                <p className="text-sm text-red-500 mt-1">{emailError}</p>
+                <p className="text-sm text-red-400 mt-1.5">{emailError}</p>
               )}
             </div>
             <button
               onClick={handleInitiateEmailChange}
               disabled={savingEmail || !isEmailAvailable || email === userEmail}
-              className="px-6 py-2 bg-orange-500 text-white font-medium rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50"
+              className="px-6 py-2.5 bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] text-white font-medium rounded-xl hover:shadow-[0_0_15px_rgba(255,107,0,0.4)] transition-all duration-300 disabled:opacity-50 disabled:hover:shadow-none"
             >
               {savingEmail ? "Отправка..." : "Изменить почту"}
             </button>
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="p-4 bg-blue-50 rounded-xl">
-              <p className="text-sm text-blue-800">
+            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+              <p className="text-sm text-blue-200">
                 Отправили письмо для подтверждения на <span className="font-medium">{newEmailSentTo}</span>
               </p>
-              <p className="text-sm text-blue-600 mt-2">
+              <p className="text-sm text-blue-400 mt-2">
                 Перейдите по ссылке в письме для завершения смены email.
               </p>
             </div>
@@ -197,7 +196,7 @@ export default function SecuritySection({ userEmail }: SecuritySectionProps) {
                 setNewEmailSentTo("");
                 setMessage(null);
               }}
-              className="text-sm text-gray-500 hover:text-gray-700"
+              className="text-sm text-gray-400 hover:text-white transition-colors"
             >
               Отмена
             </button>
@@ -206,43 +205,43 @@ export default function SecuritySection({ userEmail }: SecuritySectionProps) {
       </div>
 
       {/* Password change */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-6">Изменить пароль</h2>
-        <div className="space-y-4">
+      <div className="bg-[#1f2833]/50 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-xl">
+        <h2 className="text-xl font-semibold text-white mb-6">Изменить пароль</h2>
+        <div className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Текущий пароль</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">Текущий пароль</label>
             <input
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-4 py-2.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#ff6b00] focus:border-[#ff6b00] transition-colors"
               placeholder="••••••••"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Новый пароль</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">Новый пароль</label>
             <input
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-4 py-2.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#ff6b00] focus:border-[#ff6b00] transition-colors"
               placeholder="••••••••"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Подтвердите пароль</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">Подтвердите пароль</label>
             <input
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-4 py-2.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#ff6b00] focus:border-[#ff6b00] transition-colors"
               placeholder="••••••••"
             />
           </div>
           <button
             onClick={handlePasswordChange}
             disabled={savingPassword || !newPassword || !confirmPassword}
-            className="px-6 py-2 bg-orange-500 text-white font-medium rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50"
+            className="px-6 py-2.5 bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] text-white font-medium rounded-xl hover:shadow-[0_0_15px_rgba(255,107,0,0.4)] transition-all duration-300 disabled:opacity-50 disabled:hover:shadow-none"
           >
             {savingPassword ? "Сохранение..." : "Изменить пароль"}
           </button>
@@ -251,9 +250,10 @@ export default function SecuritySection({ userEmail }: SecuritySectionProps) {
 
       {/* Message */}
       {message && !emailSent && (
-        <div className={`p-3 rounded-xl text-sm ${
-          message.type === "success" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
-        }`}>
+        <div className={`p-4 rounded-xl text-sm border ${message.type === "success"
+            ? "bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/20"
+            : "bg-red-500/10 text-red-400 border-red-500/20"
+          }`}>
           {message.text}
         </div>
       )}

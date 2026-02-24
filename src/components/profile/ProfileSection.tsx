@@ -179,50 +179,50 @@ export default function ProfileSection({ userId, email }: ProfileSectionProps) {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
+      <div className="bg-[#1f2833]/50 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-xl">
         <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-200 rounded w-1/4" />
-          <div className="h-10 bg-gray-200 rounded" />
-          <div className="h-10 bg-gray-200 rounded" />
+          <div className="h-4 bg-white/10 rounded w-1/4" />
+          <div className="h-10 bg-white/10 rounded" />
+          <div className="h-10 bg-white/10 rounded" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-6">Личные данные</h2>
+    <div className="bg-[#1f2833]/50 backdrop-blur-xl rounded-2xl border border-white/10 p-6 shadow-xl">
+      <h2 className="text-xl font-semibold text-white mb-6">Личные данные</h2>
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         {/* Name fields */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Фамилия</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">Фамилия</label>
             <input
               type="text"
               value={profile.last_name}
               onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-4 py-2.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#ff6b00] focus:border-[#ff6b00] transition-colors"
               placeholder="Иванов"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Имя</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">Имя</label>
             <input
               type="text"
               value={profile.first_name}
               onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-4 py-2.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#ff6b00] focus:border-[#ff6b00] transition-colors"
               placeholder="Иван"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Отчество</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">Отчество</label>
             <input
               type="text"
               value={profile.patronymic}
               onChange={(e) => setProfile({ ...profile, patronymic: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-4 py-2.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#ff6b00] focus:border-[#ff6b00] transition-colors"
               placeholder="Иванович"
             />
           </div>
@@ -230,56 +230,57 @@ export default function ProfileSection({ userId, email }: ProfileSectionProps) {
 
         {/* Email (readonly) */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1.5">Email</label>
           <input
             type="email"
             value={email || ""}
             disabled
-            className="w-full px-4 py-2 border border-gray-200 rounded-xl bg-gray-50 text-gray-500"
+            className="w-full px-4 py-2.5 bg-white/5 border border-white/5 rounded-xl text-gray-400 cursor-not-allowed"
           />
-          <p className="text-xs text-gray-400 mt-1">Изменить email можно в разделе Безопасность</p>
+          <p className="text-xs text-gray-500 mt-1.5">Изменить email можно в разделе Безопасность</p>
         </div>
 
         {/* Phone */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1.5">Телефон</label>
           <input
             type="tel"
             value={profile.phone}
             onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full px-4 py-2.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#ff6b00] focus:border-[#ff6b00] transition-colors"
             placeholder="+7 (999) 123-45-67"
           />
         </div>
 
         {/* City */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Город</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1.5">Город</label>
           <input
             type="text"
             value={profile.city}
             onChange={(e) => setProfile({ ...profile, city: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full px-4 py-2.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#ff6b00] focus:border-[#ff6b00] transition-colors"
             placeholder="Москва"
           />
         </div>
 
         {/* Birth date */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Дата рождения</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1.5">Дата рождения</label>
           <input
             type="date"
             value={profile.birth_date}
             onChange={(e) => setProfile({ ...profile, birth_date: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full px-4 py-2.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-[#ff6b00] focus:border-[#ff6b00] transition-colors [color-scheme:dark]"
           />
         </div>
 
         {/* Message */}
         {message && (
-          <div className={`p-3 rounded-xl text-sm ${
-            message.type === "success" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
-          }`}>
+          <div className={`p-4 rounded-xl text-sm border ${message.type === "success"
+              ? "bg-[#00ff88]/10 text-[#00ff88] border-[#00ff88]/20"
+              : "bg-red-500/10 text-red-400 border-red-500/20"
+            }`}>
             {message.text}
           </div>
         )}
@@ -288,9 +289,9 @@ export default function ProfileSection({ userId, email }: ProfileSectionProps) {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full py-3 bg-orange-500 text-white font-medium rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50"
+          className="w-full py-3 bg-gradient-to-r from-[#ff6b00] to-[#ff8c00] text-white font-medium rounded-xl hover:shadow-[0_0_15px_rgba(255,107,0,0.4)] transition-all duration-300 disabled:opacity-50 mt-4"
         >
-          {saving ? "Сохранение..." : "Сохранить"}
+          {saving ? "Сохранение..." : "Сохранить изменения"}
         </button>
       </div>
     </div>
