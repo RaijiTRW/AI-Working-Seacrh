@@ -88,10 +88,14 @@ jobs:
             echo "active-slot:${ACTIVE_SLOT}"
 
             if [ "${ACTIVE_SLOT}" = "blue" ]; then
-              systemctl is-active jobaisearch-frontend-blue jobaisearch-backend-blue caddy
+              sudo systemctl is-active --quiet jobaisearch-frontend-blue.service
+              sudo systemctl is-active --quiet jobaisearch-backend-blue.service
             else
-              systemctl is-active jobaisearch-frontend-green jobaisearch-backend-green caddy
+              sudo systemctl is-active --quiet jobaisearch-frontend-green.service
+              sudo systemctl is-active --quiet jobaisearch-backend-green.service
             fi
+            sudo systemctl is-active --quiet caddy.service
+            echo "services:active"
 
             curl -kfsS -o /dev/null -w "site:%{http_code}\n" https://jobaisearch.ru/
             curl -kfsS -o /dev/null -w "health:%{http_code}\n" https://jobaisearch.ru/health
