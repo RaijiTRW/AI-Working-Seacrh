@@ -22,6 +22,64 @@ const DEFAULT_LIFESTYLE_PREFERENCES: LifestylePreferences = {
   strict_mode: false,
 };
 
+const LOAD_MORE_COMMAND_PATTERNS = [
+  /^найд[иите]+\s+еще\b/i,
+  /^найд[иите]+\s+ещ[eё]\b/i,
+  /^покаж[иите]+\s+еще\b/i,
+  /^покаж[иите]+\s+ещ[eё]\b/i,
+  /^ещ[eё]\s+ваканси/i,
+  /^еще\s+ваканси/i,
+  /^ещ[eё]\s+таки/i,
+  /^еще\s+таки/i,
+  /^more$/i,
+];
+
+function isLoadMoreCommandText(text: string): boolean {
+  const normalized = text.trim().replace(/\s+/g, " ");
+  return LOAD_MORE_COMMAND_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+function truncateForPrompt(text: string, maxLength = 240): string {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, maxLength - 1)}…`;
+}
+
+function buildLoadMoreAiRequest(
+  allMessages: Message[],
+  assistantMessageIndex: number
+): string {
+  const assistantMessage = allMessages[assistantMessageIndex];
+
+  let previousUserSearchMessage: string | null = null;
+  for (let i = assistantMessageIndex - 1; i >= 0; i -= 1) {
+    const msg = allMessages[i];
+    if (msg.role !== "user") continue;
+    if (!msg.content?.trim()) continue;
+    if (isLoadMoreCommandText(msg.content)) continue;
+    previousUserSearchMessage = msg.content;
+    break;
+  }
+
+  const sampleTitles = (assistantMessage?.vacancies || [])
+    .slice(0, 3)
+    .map((v) => v.title)
+    .filter(Boolean)
+    .join(", ");
+
+  const parts = [
+    "Это продолжение предыдущего поиска вакансий.",
+    previousUserSearchMessage
+      ? `Предыдущий запрос пользователя: "${truncateForPrompt(previousUserSearchMessage)}".`
+      : "",
+    sampleTitles ? `Примеры ранее найденных ролей: ${truncateForPrompt(sampleTitles, 180)}.` : "",
+    "Найди еще похожие вакансии по тем же параметрам и критериям.",
+    "Не начинай диалог с нуля и не спрашивай снова профессию или город, если они уже были понятны из контекста.",
+  ];
+
+  return parts.filter(Boolean).join(" ");
+}
+
 export default function ChatPage() {
   const router = useRouter();
   const { subscription, refresh: refreshSubscription } = useSubscriptionContext();
@@ -304,7 +362,8 @@ export default function ChatPage() {
     }
 
     // Найти сообщение с этим ID
-    const message = messages.find((m) => m.id === messageId);
+    const messageIndex = messages.findIndex((m) => m.id === messageId);
+    const message = messageIndex >= 0 ? messages[messageIndex] : undefined;
     if (!message || message.role !== "assistant" || !message.vacancies) return;
 
     // Собрать все ID вакансий (approved + rejected)
@@ -318,6 +377,7 @@ export default function ChatPage() {
 
     // Отправить запрос "найди еще" с exclude_vacancy_ids
     const loadMoreMessage = "найди еще";
+    const loadMoreAiRequest = buildLoadMoreAiRequest(messages, messageIndex);
 
     const userMessage: Message = {
       id: `user-${Date.now()}`,
@@ -360,7 +420,7 @@ export default function ChatPage() {
       let rejectedVacancies: Vacancy[] = [];
 
       await sendMessageStream(
-        loadMoreMessage,
+        loadMoreAiRequest,
         user.id,
         currentChatId,
         { searchInFeed: true, searchOnline: true }, // Ищем везде
